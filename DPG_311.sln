@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.32106.194
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "DPG_311", "DPG_311.pyproj", "{7FC669D3-6D84-47F5-BD28-0ECD2E4B1730}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7FC669D3-6D84-47F5-BD28-0ECD2E4B1730}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7FC669D3-6D84-47F5-BD28-0ECD2E4B1730}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5C717832-0B54-4DD4-ABCE-7AC9B22EE182}
+	EndGlobalSection
+EndGlobal
