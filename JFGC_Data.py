@@ -45,8 +45,19 @@ class Department:
 @dataclass
 class JFGC_Data:
     #=====================================================
+    # Dictionaries for this program should be of type:
+    #   { READABLE DISPLAY VALUE : IM_INV-formatted-value }
+    #=====================================================
     # The actual hardcoded info
     tax_codes  = ["TX","DEL","NT","DE"]
+    tax_names  = ["Taxable","Delivery","Nontaxed","Edible"]
+
+    taxDict   = {
+        "Taxable"   :   "TX",
+        "Delivery"  :   "DEL",
+        "Nontaxed"  :   "NT",
+        "Edible"    :   "DE"
+        }
 
     deptMargin =   {
         "1": 65.20,
