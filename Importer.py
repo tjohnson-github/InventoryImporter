@@ -25,18 +25,38 @@ class Importer:
         self.JFGC = JFGC
         self.pathing_dict = pathing_dict
 
-    def helper_update_taxDesc(sender, app_data,user_data):
+    def lock_info(self,sender,app_data,user_data):
+        # Helper function for cleaning up the UI after a file's information is accepted for batch processing.
+        # If the box is checked, do not show.
+        if      app_data: 
+                app_data=False
+        else:   app_data=True
+
+        dpg.configure_item(user_data+'_window',show=app_data)
+
+        if not app_data: 
+            dpg.configure_item(user_data+'_save',label="")
+        else:
+            dpg.configure_item(user_data+'_save',label="Information Correct?")
+        
+    def helper_update_taxDesc(self,sender, app_data,user_data):
         # Helper function for updating Tax code labels upon selection.
-        dpg.configure_item(user_data[0],default_value=user_data[1][self.JFGC.taxDict[app_data]])
+        dpg.configure_item(
+            user_data,
+            default_value=self.JFGC.taxDict[app_data])
 
-    def helper_update_vendorNum(sender, app_data,user_data):
+    def helper_update_vendorNum(self,sender, app_data,user_data):
         # Helper function for quickly updating vendor number during selection.
-        #---------------------------
-        dpg.configure_item(user_data[0],default_value=user_data[1][app_data])
+        dpg.configure_item(user_data,default_value=self.vendor_codes[app_data])
 
-    def helper_update_vendorlist(sender,app_data,user_data):
+    def helper_update_vendorlist(self,sender,app_data,user_data):
         #---------------------------
-        vend        = user_data[1]
+        #0: combo
+        #self.vendor_names,
+        #self.vendor_codes
+        #---------------------------
+        print (user_data)
+        vend        = self.vendor_names
         guess_val   = app_data.upper()
         #---------------------------
         if len(guess_val)!=0:
@@ -45,11 +65,15 @@ class Importer:
             num_helper  =   1
         #---------------------------
         temp_vendor_names   =   [i for i in vend if i.startswith(guess_val[0:num_helper])]
-        dpg.configure_item(user_data[0]+'_combo', items=temp_vendor_names,default_value=temp_vendor_names[0])
-        dpg.configure_item(user_data[0]+'_code',default_value=user_data[2][dpg.get_value(user_data[0]+'_combo')])
+        print(temp_vendor_names)
+        try:
+            dpg.configure_item(user_data+'_combo', items=temp_vendor_names,default_value=temp_vendor_names[0])
+        except:
+            dpg.configure_item(user_data+'_combo', items=temp_vendor_names,default_value="~NONE FOUND~")
+        dpg.configure_item(user_data+'_vendorCodeDisplay',default_value=self.vendor_codes[dpg.get_value(user_data+'_combo')])
 
 
-    def helper_showQtyAlloc(sender,app_data,user_data):
+    def helper_showQtyAlloc(self,sender,app_data,user_data):
         # Helper function for displaying a special combo box that specifies what to do with a given file's QTY if 'BOTH' stores are selected
         box_name    = f"{user_data}_qtyDivide"
         val         = dpg.get_value(f"{user_data}_storeLoc")
@@ -90,17 +114,17 @@ class Importer:
         #---------------------------
         for item in vendorfile_list:
             # If the item is going to be processed...
-            if dpg.get_value(item.filename+"_save")==True:
+            if dpg.get_value(item.name+"_save")==True:
                 # If that item's store has been correctly specified...
-                if dpg.get_value(item.filename+'_storeLoc') not in ["Kens","Olney","Both"]:
+                if dpg.get_value(item.name+'_storeLoc') not in ["Kens","Olney","Both"]:
                     with dpg.window(popup=True):
                         dpg.add_text("A vendorfile has been checked but no store selected!")
                     return
                 else:
                     #------------
-                    tax         =   dpg.get_value(item.filename+"_tax")
-                    code        =   dpg.get_value(item.filename+"_code")
-                    temp_dept   =   dpg.get_value(item.filename+"_dept")
+                    tax         =   dpg.get_value(item.name+"_tax")
+                    code        =   dpg.get_value(item.name+"_vendorCodeDisplay")
+                    temp_dept   =   dpg.get_value(item.name+"_dept")
                     dept        =   dept_dict_fwds[temp_dept]  
                     #------------
                     item.set_manual_input(tax,code,dept)
@@ -153,7 +177,7 @@ class Importer:
         #============================================================== 
         with dpg.tab_bar():
             with dpg.tab(label="Information"):
-                with dpg.child(id=vendorfileObj.name+"_window", width=800, height=87,no_scrollbar=True):
+                with dpg.child(tag=vendorfileObj.name+"_window", width=800, height=87,no_scrollbar=True):
                     information_group = dpg.add_group(horizontal=True)
                     #--------------------
                     # VENDOR
@@ -161,7 +185,7 @@ class Importer:
                     vendor_group = dpg.add_group(horizontal=False,parent = information_group)
                     vendorinfo_group = dpg.add_group(horizontal=True,parent = vendor_group)
                     dpg.add_text(default_value="Vendor Code:",parent=vendorinfo_group)
-                    dpg.add_text(id=vendorfileObj.vendorName+"_vendorCodeDisplay",default_value="XXXXXX",parent=vendorinfo_group,color=(160,160,250))
+                    dpg.add_text(id=vendorfileObj.name+"_vendorCodeDisplay",default_value="XXXXXX",parent=vendorinfo_group,color=(160,160,250))
                     dpg.add_input_text(default_value=vendorfileObj.vendorName,width=150,id=vendorfileObj.name+'_vend',parent=vendor_group)
                     #--------------------
                     guess_val = dpg.get_value(vendorfileObj.name+'_vend').upper()
@@ -196,20 +220,23 @@ class Importer:
                     dpg.add_combo(width=100,items=list(self.JFGC.taxDict.keys()),id=vendorfileObj.name+'_tax',default_value=list(self.JFGC.taxDict.keys())[0],parent=tax_group)
                     #===================================================  
                     # Updates Combo box     based on vendor input
-                    dpg.set_item_callback(vendorfileObj.name+'_vend',helper_update_vendorlist)
-                    #dpg.set_item_user_data(vendorfileobj.filename+'_vend',[vendorfileobj.filename+'_combo',vendor_names])
-                    dpg.set_item_user_data(vendorfileObj.name+'_vend',[vendorfileObj.name,self.vendor_names,self.vendor_codes])
+                    dpg.set_item_callback(vendorfileObj.name+'_vend',self.helper_update_vendorlist)
+                    dpg.set_item_user_data(vendorfileObj.name+'_vend',vendorfileObj.name)
                     # Updates Vendor Code   based on    combo choice
-                    dpg.set_item_callback(vendorfileObj.name+'_combo',helper_update_vendorNum)
-                    dpg.set_item_user_data(vendorfileObj.name+'_combo',[vendorfileObj.name+'_code',self.vendor_codes])
+                    dpg.set_item_callback(vendorfileObj.name+'_combo',self.helper_update_vendorNum)
+                    dpg.set_item_user_data(vendorfileObj.name+'_combo',vendorfileObj.name+'_vendorCodeDisplay')
                     # Updates TaxInfo       based on    tax choice
-                    dpg.set_item_callback(vendorfileObj.name+'_tax',helper_update_taxDesc)
-                    dpg.set_item_user_data(vendorfileObj.name+'_tax',[vendorfileObj.name+'_taxinfo',list(self.JFGC.taxDict.keys())])
+                    dpg.set_item_callback(vendorfileObj.name+'_tax',self.helper_update_taxDesc)
+                    dpg.set_item_user_data(vendorfileObj.name+'_tax',vendorfileObj.name+'_taxinfo')
                     #===================================================
+                    try:
+                        dpg.configure_item(vendorfileObj.name+"_vendorCodeDisplay",default_value=self.vendor_codes[dpg.get_value(vendorfileObj.name+'_combo')])
+                    except: 
+                        pass
                     #Could add header or selectors here
                     #dpg.add_text(vendorfileobj.header)
                 #===================================================
-                dpg.set_item_callback(vendorfileObj.name+'_save',lock_info)
+                dpg.set_item_callback(vendorfileObj.name+'_save',self.lock_info)
                 dpg.set_item_user_data(vendorfileObj.name+'_save',vendorfileObj.name)
                 # After Save button: logs all the appropriate data into the vendorfile OBJ and continues.
                 # logs based on names, so be sure that when we're calling down below, we are calling the items saved here, NOT the ones created below.
@@ -258,7 +285,7 @@ class Importer:
             dpg.configure_item("outputFileName",default_value=saveStr)
             dpg.set_item_callback("process_button",self.processing_helper)
             today = date.today()
-            dpg.set_item_user_data("process_button",[vendorfileObjList,self.pathing_dict,today,annotations])
+            dpg.set_item_user_data("process_button",[vendorfileObjList,self.pathing_dict,today,True])
 
 
 def manualInput(vendorfileObjList,pathing_dict,individualOrMultiple,cloudRubric=True): 
@@ -271,7 +298,6 @@ def manualInput(vendorfileObjList,pathing_dict,individualOrMultiple,cloudRubric=
                 with dpg.tab(label="Information"):
                     with dpg.child(id=vendorfileobj.filename+"_window", width=800, height=67,no_scrollbar=True):
                         with dpg.table(header_row=False):
-                            
                             #===================================================  
                             # Updates Combo box     based on vendor input
                             dpg.set_item_callback(vendorfileobj.filename+'_vend',update_vendorlist)
@@ -434,4 +460,4 @@ def manualInput(vendorfileObjList,pathing_dict,individualOrMultiple,cloudRubric=
         #dpg.add_text("<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
         dpg.set_item_callback("process_button",processing_helper)
         today = date.today()
-        dpg.set_item_user_data("process_button",[list_of_vendorfile_objs,pathing_dict,today,annotations])
+        dpg.set_item_user_data("process_button",[list_of_vendorfile_objs,pathing_dict,today,True])
