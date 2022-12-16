@@ -1,90 +1,52 @@
 
 
 import dearpygui.dearpygui as dpg
-
+import os
+import pickle
+import fnmatch
 #from JFGC_Data import dept_comb
+
 import Utilities
+import Gspread_Rubric
+from Vendorfile import vendorfile
 
 import JFGC_Data
 JFGC = JFGC_Data.JFGC_Data()
 
+import Importer
 
 #====================================================
 #================== HELPER FUNCTIONS
 
-
-def scanInputs(cloudRubric=True, automatePDF = False):
-    #====================================================
-    # Given a set of filepaths, scan all possible files in the INPUT folder and create the appropriate
-    #   UI-based objects which will allow for manual input to more accurately process the vendorfiles.
-    #====================================================
-    
-    #====================================================
-    excel_files_to_process  =   fnmatch.filter(os.listdir(input_filepath), '*.xlsx')
-    csv_files_to_process    =   fnmatch.filter(os.listdir(input_filepath), '*.csv')
-    pdf_files_to_process    =   fnmatch.filter(os.listdir(input_filepath), '*.pdf') if automatePDF else []
-    #====================================================
-    print ("=========================================")
-    #====================================================
-    """ The master_processing_dict is the main variable for all data manipulation regarding ImportInventory
-        It has format: 
-            { 'filename' : [list_of_rows] }
-        with 
-            list_of_rows[0] = the header contained within 'filename'
-    """
-    master_processing_dict={}
-    #====================================================
-    # Converts PDFs to CSVs in the same directory which will subsquently be processed by csv_to_list
-    for file in pdf_files_to_process:
- 
-        print (f'Cannot convert {file} to CSV in the same step as processing CSVs.\tPDFs too often require manual validation.')
-
-        #PDF_Scraper.scrape_pdf(input_path=input_filepath,output_path=input_filepath,filename=file,annotations=annotations)
-        #File_Operations.cleanup(file,input_filepath,processed_path) 
-        #print("\t"+file+" successfully converted to csv.\n\t\tMoving from "+input_filepath+" to "+processed_path+"\n")
-    #====================================================
-    # Converts XLSXs to arrays and adds them to the master processor. 
-    for file in excel_files_to_process:
-        output_array,errorMsg    =   File_Operations.excel_to_list(input_filepath+file)
-        #----------------------
-        if output_array==False: 
-            print("\t"+errorMsg+"\n"); continue
-        #----------------------
-        master_processing_dict.update(  {   file    :  output_array  })
-    #====================================================
-    # Converts CSVs to arrays and adds them to the master processor. 
-    for file in csv_files_to_process:
-        output_array,errorMsg    =   File_Operations.csv_to_list(input_filepath+file)
-        #----------------------
-        if output_array==False: 
-            print("\t"+errorMsg+"\n"); continue
-        #----------------------
-        master_processing_dict.update(  {   file    :  output_array  })
-    #====================================================
-    return master_processing_dict
-
-def formatPathingDict():
+def formatPathingDict(input_type):
     # If the default is selected, uses default for all entries
     # If custom is selected, uses default for all entries EXCEPT the custom input folder to scan.
+    #print (f"Userdata:\t{user_data}")
     #====================================================
     pathingDict: dict = {}
-    pathingDict['parent_path']          =   dpg.get_value('base_parent_directory')
-    pathingDict['ouput_filepath']       =   dpg.get_value('base_output_path')
-    pathingDict['processed_path']       =   dpg.get_value('base_processed_path')
-    pathingDict['rubric_path']          =   dpg.get_value('base_rubric_path')
+    pathingDict['parent_path']          =   dpg.get_value('base_parent_directory')+ "\\"
+    pathingDict['ouput_filepath']       =   dpg.get_value('base_output_path')+ "\\"
+    pathingDict['processed_path']       =   dpg.get_value('base_processed_path')+ "\\"
+    pathingDict['rubric_path']          =   dpg.get_value('base_rubric_path')+ "\\"
     #====================================================
-    if user_data=="default":
-        pathingDict['input_filepath']   =   dpg.get_value('base_input_path')
-    elif user_data=="custom":
-        pathingDict['input_filepath']   =   dpg.get_value('input_path')
+    if input_type=="default":
+        pathingDict['input_filepath']   =   dpg.get_value('base_input_path')+ "\\"
+    elif input_type=="custom":
+        pathingDict['input_filepath']   =   dpg.get_value('input_path')+ "\\"
     #====================================================
     # Final formatting
-    for key,val in enumerate(pathingDict.items()):
-        pathingDict[key] = val + "\\"
+    print (pathingDict)
+    #for key,val in enumerate(pathingDict.items()):
+    #    print (key,val)
+        #pathingDict[key] = val + "\\"
     #====================================================
     return pathingDict
 
-def manualInput(master_processing_dict,pathing_dict,individualOrMultiple,cloudRubric=True): 
+def manualInput(vendorfileObjList,pathing_dict,cloudRubric=True):
+    importer = Importer.Importer(JFGC,pathing_dict,cloudRubric)
+    importer.importerWindow(vendorfileObjList)
+
+def manualInputOLD(vendorfileObjList,pathing_dict,individualOrMultiple,cloudRubric=True): 
     #====================================================
     if cloudRubric:
         rubrics  ,  vends  ,  all_headers  ,  tags = Gspread_Rubric.read_formatting_gsheet() 
@@ -105,7 +67,7 @@ def manualInput(master_processing_dict,pathing_dict,individualOrMultiple,cloudRu
 
     #====================================================
     # Begin UI
-    with dpg.window(label="Manual Input Required",id='manual_input_'+individualOrMultiple,width=820,height=(300+(80*int(len(master_processing_dict.keys()))))):
+    with dpg.window(label="Manual Input Required",id='manual_input_'+individualOrMultiple,width=820,height=(300+(80*int(len(vendorfileObjList))))):
         #----------------------------------------------------
         dpg.add_button(label="Begin Processing",id="process_button",width=120,height=60)
         dpg.add_same_line(spacing=100)
@@ -127,7 +89,6 @@ def manualInput(master_processing_dict,pathing_dict,individualOrMultiple,cloudRu
         dpg.add_same_line(spacing=30)
         dpg.add_checkbox(id='defaultSave?',label="Use generic save instead?",default_value=False)
         #----------------------------------------------------
-        #dpg.add_input_text(default_value=input_filepath,label=' files being displayed:',enabled=False)
         #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
         with dpg.child(label="test", width=800, height=40,no_scrollbar=True) as child_container:
             with dpg.table(header_row=False):
@@ -139,21 +100,14 @@ def manualInput(master_processing_dict,pathing_dict,individualOrMultiple,cloudRu
         #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
         dpg.add_separator()
         dpg.add_separator()
-        list_of_vendorfile_objs=[]
+
         suggestedSaveName_content=[]
         #----------------------------------------------------
         #----------------------------------------------------
         # BEGIN FILE ITERATOR
-        for file in master_processing_dict.keys():
-            #==============================================================
-            # Creates a new vendorfile class object for each file... 
-            #   Based on which items remain checked as "information correct" by the time the main button is pressed, 
-            #   it will feed into the next part of the program a list of those objects for which information was verified correct.
-            vendorfileobj = vendorfile({file : master_processing_dict[file] })
-            list_of_vendorfile_objs.append(vendorfileobj)
-
+        for vendorfile in vendorfileObjList:
+            #============================================================== 
             print (":::::::::::::::::::_",vendorfileobj.filename)
-            #with dpg.child(id=vendorfileobj.filename+"_METAwindow", width=800, height=147,no_scrollbar=True):
             #==============================================================
             dpg.add_text(
                 default_value = vendorfileobj.filename,
@@ -437,28 +391,42 @@ def manualInput(master_processing_dict,pathing_dict,individualOrMultiple,cloudRu
         saveStr="Inventory-"
         for item in suggestedSaveName_content:
             saveStr+=item+'-'
-
+        #===================================================
         dpg.configure_item("outputFileName",default_value=saveStr)
         #dpg.add_text("<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
         dpg.set_item_callback("process_button",processing_helper)
         today = date.today()
         dpg.set_item_user_data("process_button",[list_of_vendorfile_objs,pathing_dict,today,annotations])
      
+def beginMultiImport(sender, app_data, user_data):
+    #====================================================
+    print (f"Userdata1:\t{user_data}")
+    input_type          =   "default"
+    pathingDict         =   formatPathingDict(input_type)
+    #====================================================
+    # Given a set of filepaths, scan all possible files in the INPUT folder and create the appropriate
+    #   UI-based objects which will allow for manual input to more accurately process the vendorfiles.
+    #====================================================
+    vendorfileObjList    =   []
+    #====================================================
+    excel_files_to_process  =   fnmatch.filter(os.listdir(pathingDict['input_filepath']), '*.xlsx')
+    csv_files_to_process    =   fnmatch.filter(os.listdir(pathingDict['input_filepath']), '*.csv')
+    #pdf_files_to_process    =   fnmatch.filter(os.listdir(pathingDict['input_filepath']), '*.pdf') if automatePDF else []
+    #====================================================
+    print ("=========================================")
+    #====================================================
+    for file in excel_files_to_process:
+        vendorfileObjList.append(vendorfile(pathingDict["input_filepath"]+file))
 
-def beginScan(sender, app_data, user_data):
+    for file in csv_files_to_process:
+        vendorfileObjList.append(vendorfile(pathingDict["input_filepath"]+file))
+    #for file in pdf_files_to_process:
+    #    print (f'Cannot convert {file} to CSV in the same step as processing CSVs.\tPDFs too often require manual validation.')
     #====================================================
-    pathingDict         =   formatPathingDict()
-    fileContentsDict    =   scanInputs()
-    #====================================================
-    manualInput(fileContentsDict,pathingDict,"multiple")
+    manualInput(vendorfileObjList,pathingDict,"multiple")
 
 #====================================================
-
-def display_indiv_fileSelector():
-    pass
-
-def display_group_import():
-    pass
+# MISC
 
 def display_pdf_transformer():
     pass
@@ -466,11 +434,199 @@ def display_pdf_transformer():
 def display_duplicate_cleaner():
     pass
 
-def defaultFolderSelect():
+#====================================================
+# Default Folder Manip
+
+def updateFolderSelect(sender, app_data, user_data):
+    #====================================================
+    foldername  =   app_data['file_path_name']
+    #====================================================
+    dpg.configure_item('foldername',default_value=foldername)
+    dpg.configure_item('input_path',default_value=foldername,label="Input Path")
+    dpg.add_text(parent='input_folderWindow',default_value="**Note**: Input path changed; all other paths will remain the default.")
+    dpg.add_separator(parent='input_folderWindow')
+    dpg.add_button(id='beginScan',width=600,label="Begin Processing Files",callback=beginMultiImport,user_data="custom",enabled=True,parent='input_folderWindow')    
+
+def inputFolderSelect(sender, app_data, user_data):
+    # Input Folder select Dialogue
+    #-------------------------------------------
+    with dpg.file_dialog(modal=True,default_path=user_data, id="folder_dialog_id",callback=updateFolderSelect):
+        pass
+
+#====================================================
+# INDIVIDUAL FILE MANIP
+
+def beginSingleImport(sender, app_data, user_data):
+    # Given an individual file, 
+    # Parent path and Input path are identical in the case of individual file selection. 
+    #====================================================
+    filename    =   dpg.get_value('filename')
+    parent_path =   user_data+"\\"
+    #====================================================
+    master_dict:    dict    = {}
+    #====================================================
+    pathing_dict:   dict    = {}
+    pathing_dict['parent_path']     = user_data #dpg.get_value('base_parent_directory')
+    pathing_dict['ouput_filepath']  = dpg.get_value('base_output_path')
+    pathing_dict['processed_path']  = dpg.get_value('base_processed_path')
+    pathing_dict['rubric_path']     = dpg.get_value('base_rubric_path')
+    pathing_dict['input_filepath']  = user_data #dpg.get_value('base_input_path')
+    #====================================================
+    vendorfileObjList=[vendorfile(parent_path+filename)]
+    #====================================================
+    manualInput(vendorfileObjList,pathing_dict,"individual")
+    # NEXT THING:::: MAKING SURE THAT A FILE's FORMATTING DICT IS APPLIED ON CHECK, NOT DURING...
+    # MUST APPLY THAT DICT TO THE VENDORFILE OBJ SO IT CAN BE EASILY REFERENCED LATER
+
+def updateFileSelect(sender, app_data, user_data):          
+    # After an individual file has been selected for some sort of processing,
+    # Enable/Disable the correct buttons based on what the filetype can be used for.
+    # TO DO:
+    #   - make sure the disabled buttons are colored correctly.
+    #====================================================
+    filename        =   app_data['file_name_buffer']
+    parent_folder   =   app_data['current_path']
+    #====================================================
+    dpg.configure_item('filename',default_value=filename)
+    #====================================================
+    #====================================================
+    if 'wix' in filename.lower():
+       dpg.configure_item(      'process_WIX-to-site',enabled=True)
+       dpg.set_item_user_data(  'process_WIX-to-site',user_data=parent_folder)
+
+    elif 'full' in filename.lower():
+        dpg.configure_item(     'process_master-to-WIX',enabled=True)
+        dpg.set_item_user_data( 'process_master-to-WIX',user_data = parent_folder)
+
+    elif 'partial' in filename.lower():
+        with dpg.window(popup=True):
+            dpg.add_text(       "Partial Files cannot be coverted into WIX")
+
+    else:   # 'inventory' in filename.lower():
+        dpg.configure_item(     'process_import-to-master',enabled=True)
+        dpg.set_item_user_data( 'process_import-to-master',user_data=parent_folder)
+
+def individFileSelect(sender, app_data, user_data):
+    # Individual File select Dialogue
+    #-------------------------------------------
+    with dpg.file_dialog(modal=True,default_path=user_data, id="file_dialog_id",callback=updateFileSelect,width=700):
+        dpg.add_file_extension(".*", color=(255, 255, 255, 255))
+        dpg.add_file_extension("Source files (*.csv *.xlsx){.csv,.xlsx}", color=(0, 255, 255, 255))
+        dpg.add_file_extension(".csv", color=(255, 255, 0, 255), custom_text="CSV")
+        dpg.add_file_extension(".xlsx", color=(255, 0, 255, 255), custom_text="Excel")
+    #-------------------------------------------
     pass
 
-def saveDefault():
-    pass
+def display_indiv_fileSelector(sender, app_data, user_data):
+    # File selection windoe for individual files.
+    # TO DO:
+    #   - buttons should be colored correctly when disabled.
+    #====================================================
+    filepath=user_data
+    #====================================================
+    with dpg.window(id='fileSelectorWindow',label="Single File Selection",width=600,height=150):
+        dpg.add_input_text( id='filename',  label="Filename",   default_value="~No File Selected~", enabled=False,  width=500)
+        dpg.add_button(     id='fileselect',label="Select File",callback=individFileSelect,         user_data=filepath)
+        #----------------------------------------
+        dpg.add_separator()
+        #----------------------------------------
+        dpg.add_button(id='process_import-to-master',    width=600,  label="Convert Import to Master_inv",       enabled=False,callback=beginSingleImport)
+        dpg.add_button(id='process_master-to-WIX',       width=600,  label="Convert Master_inv to WIX format",   enabled=False,callback=beginIndivMasterWix)
+        dpg.add_button(id='process_WIX-to-site',         width=600,  label="Upload WIX to website.",             enabled=False,callback=beginIndivWIX)
+        #----------------------------------------
+        dpg.set_item_disabled_theme('process_import-to-master','disabled_btn')
+        dpg.set_item_disabled_theme('process_master-to-WIX','disabled_btn')
+        dpg.set_item_disabled_theme('process_WIX-to-site','disabled_btn')
+
+#====================================================
+# INDIVIDUAL FILE MANIP
+
+def display_group_import(sender, app_data, user_data):
+    # Folder selection window for group imports.
+    # Default information is used unless a custom (and temporary) input folder is given.
+    #====================================================
+    filepath=user_data
+    #====================================================
+    with dpg.window(tag='input_folderWindow',label="Group Import Selection",width=600,height=350):
+        #----------------------------------------
+        dpg.add_button(tag='defaultselect',label="Use Default Input path?",width=590,callback=beginMultiImport,user_data="default")
+        dpg.add_separator()
+        dpg.add_text("\t\t\t\tOR")
+        dpg.add_separator()
+        dpg.add_button(tag='folderselect',label="Select New Temporary Input Folder",width=590,callback=inputFolderSelect,user_data=filepath)
+        #----------------------------------------
+        dpg.add_input_text(tag='foldername',label="Input Folder Name",default_value="~No Folder Selected~",enabled=False,width=500)
+        dpg.add_separator()
+        #----------------------------------------
+        dpg.add_input_text(tag='parent_directory',   parent='input_folderWindow',enabled=False,default_value =   filepath               ,label="Parent Directory")
+        dpg.add_input_text(tag='input_path',         parent='input_folderWindow',enabled=False,default_value =   filepath+"\\INPUT"     ,label="Input Path")
+        dpg.add_input_text(tag='output_path',        parent='input_folderWindow',enabled=False,default_value =   filepath+"\\OUTPUT"    ,label="Output Path")
+        dpg.add_input_text(tag='processed_path',     parent='input_folderWindow',enabled=False,default_value =   filepath+"\\PROCESSED" ,label="Processed Path")
+        dpg.add_input_text(tag='rubric_path',        parent='input_folderWindow',enabled=False,default_value =   filepath+"\\Rubric"    ,label="Rubric Path")
+
+def updateDefaultSelect(sender, app_data, user_data):
+    # Given the general filepath, sets the default items to be whats expected.
+    # TO DO:
+    #       If these files dont actually exist, create them.
+    #====================================================
+    foldername=app_data['file_path_name']
+    #====================================================
+    dpg.configure_item('base_parent_directory',default_value =   foldername                  )
+    dpg.configure_item('base_input_path',      default_value =   foldername+"\\INPUT"        )
+    dpg.configure_item('base_output_path',     default_value =   foldername+"\\OUTPUT"       )
+    dpg.configure_item('base_processed_path',  default_value =   foldername+"\\PROCESSED"    )
+    dpg.configure_item('base_rubric_path',     default_value =   foldername+"\\Rubric"       )
+    #====================================================
+    dpg.configure_item('save_base_selection',   show=True)
+
+def defaultFolderSelect(sender, app_data, user_data):
+    # Default Folder select Dialogue
+    #-------------------------------------------
+    with dpg.file_dialog(
+        modal           =   True,
+        default_path    =   user_data, 
+        id              =   "default_dialog_id",
+        directory_selector = True,
+        height = 400,
+        width = 600,
+        callback        =   updateDefaultSelect):
+        pass
+
+def get_default_dir(outfile=".\\Data\\default_dir.txt"):
+    #--------------
+    last_processed = pickle.load(open(outfile,'rb'))
+    #--------------
+    return last_processed
+
+def set_default_dir(data,outfile=".\\Data\\default_dir.txt",):
+    if not os.path.exists(".\\Data"): os.mkdir(".\\Data")
+    #--------------
+    pickle.dump(data,open(outfile,'wb'))
+
+def saveDefault(sender,app_data,user_data):
+
+    parent      = dpg.get_value('base_parent_directory')
+    dpg.configure_item('saved_notify',show=True)
+
+    i = dpg.get_value('base_input_path')
+    o = dpg.get_value('base_output_path')
+    p = dpg.get_value('base_processed_path')
+    r = dpg.get_value('base_rubric_path')
+
+    if not os.path.exists(i):
+        dpg.add_text(parent='dd',default_value='--> Created Input folder; Add files here.')
+        os.mkdir(i)
+    if not os.path.exists(o):
+        dpg.add_text(parent='dd',default_value='--> Created Output folder; This is what you want.')
+        os.mkdir(o)
+    if not os.path.exists(p):
+        dpg.add_text(parent='dd',default_value='--> Created Processed folder; input files that have been used.')
+        os.mkdir(p)
+    if not os.path.exists(r):
+        dpg.add_text(parent='dd',default_value='--> Created Rubric folder; add rubric here.')
+        os.mkdir(r)
+
+    set_default_dir(data=parent)
 
 def main():
 

@@ -27,6 +27,10 @@
     <Compile Include="Utilities.py" />
     <Compile Include="DPG_Theme_Editor.py" />
     <Compile Include="DPG_Themes.py" />
+    <Compile Include="File_Operations.py" />
+    <Compile Include="OLD.py" />
+    <Compile Include="Gspread_Rubric.py" />
+    <Compile Include="Importer.py" />
     <Compile Include="Vendorfile.py" />
     <Compile Include="DPG_311.py" />
   </ItemGroup>

@@ -1,139 +1,111 @@
 from dataclasses import dataclass, field
+import File_Operations
 
 @dataclass
 class vendorfile:
     #==============================
-    name: str 
+    # Clerical
+    fullPath: str   = field(repr=False)
+    name: str       = field(init=False) 
+    extension: str  = field(init=False,repr=False) 
     #==============================
-    header: list = field(init=False)
-    rows : list = field(init=False)
+    # Contents
+    header: list    = field(init=False,repr=True)
+    rows : list     = field(init=False,repr=False)
     #==============================
+    # User Input
+    vendorName: str = field(init=False,repr=False)
+    vendorCode: str = field(init=False,repr=False)
     department: int = field(init=False)
-    extension: str  = field(init=False) 
+    taxCode: str    = field(init=False,repr=False)
     #==============================
+    note: str                   = field(init=False,repr=False)
+    formatting_dict_name: str   = field(init=False,repr=False)
+    formatting_dict: dict       = field(init=False,repr=False)
+
+    def __post_init__(self):
+        splitFullPath   = self.fullPath.split("\\")
+        self.name       = splitFullPath[-1]
+        splitName       = self.name.split(".")
+        temp_name       = splitName[0]
+        self.extension  = splitName[-1]
+        # =================================================
+        self.taxCode = "TX" #Default
+        # =================================================
+        '''match self.extension:
+            case "csv":
+                output_array,errorMsg    =   File_Operations.csv_to_list(self.fullPath)
+
+            case "xlsx":
+                output_array,errorMsg    =   File_Operations.excel_to_list(self.fullPath)'''
+
+        if(self.extension=="csv"):
+            output_array,errorMsg    =   File_Operations.csv_to_list(self.fullPath)
+        elif(self.extension=="xlsx"):
+            output_array,errorMsg    =   File_Operations.excel_to_list(self.fullPath)
 
 
-class vendorfileOld:
-    filename                =   ""
-    header                  =   []
-    rows                    =   []
-    department              =   0
-    filetype                =   ""
+        if output_array==False: 
+            print("\t"+errorMsg+"\n")
+            self.header = []
+            self.rows   = []
+            return
 
-    filename_items          =   ["Vendor","Notes","Dept.","Extension"]
-    filename_info           =   {}
-    
-    tax_code                =   ""
-    vendor_code             =   0
+        self.header = output_array[0]
+        self.rows   = output_array[1:]
+        
+        # =================================================
+        # Try to populate rest using our common naming conventions
+        #if temp_name.count("-") > temp_name.count("_"):
+        #    delim = '-'
+        #else:
+        #    delim = '_'
+        delim       =   '-'
+        temp_name   =   temp_name.split(delim)
 
-    formatting_dict_name    =   ""
-    formatting_dict         =   {}
+        if self.name.startswith("Inventory-format-"):
+            temp_info   =   temp_name[2:]
+        elif self.name.startswith("Inventory-"):
+            temp_info   =   temp_name[1:]
+        else:
+            temp_info   =   temp_name
 
-    def parse_name(self):
+        print (temp_info)
+
         try:
-            #--------------------
-            #splits name into relevant sections
-            temp            =   self.filename.split(".")
-            temp_info       =   temp[0].split("-")
-            file_extension  =   temp[1]
-            #--------------------
-            self.filetype   =   file_extension
+            self.vendorName = temp_info[0]
+            self.vendorCode = ""
+            self.note       = temp_info[1]
 
-            if self.filename.startswith("Inventory-format-"):
-                temp_info   =   temp_info[2:]
-            elif self.filename.startswith("Inventory-"):
-                temp_info   =   temp_info[1:]
-            else:
-                temp_info   =   temp_info
+            self.department = temp_info[2]
+            self.department = self.department.replace("Dept","")
+            self.department = self.department.replace(" ","")
+            self.department = ''.join(i for i in self.department if i.isdigit())
+        except Exception as e:
+            print (f'Error formatting {self.name}:\t{e}')
+            self.vendorName = "None Found"
+            self.vendorCode = ""
+            self.note       = ""
+            self.department = 0
 
-            temp_info.append(file_extension)
-            #--------------------
-            # Separates the extension because its not clear how many notes there will be
-            for item in self.filename_items:
-                if item=="Extension":
-                    self.filename_info.update({item:file_extension})
-                elif item=="Dept.":
-
-                    temp_dept = temp_info[self.filename_items.index(item)]
-
-                    temp_dept = temp_dept.replace("Dept","")
-                    temp_dept = temp_dept.replace(" ","")
-
-
-                    self.filename_info.update({item:temp_dept})
-                else:
-                    self.filename_info.update({item:temp_info[self.filename_items.index(item)]})
-            #--------------------
-            # Removes all extraneous alphabetic characters from dept, isolating numeric
-            temp_dept   =   self.filename_info["Dept."]
-            temp_dept   =   ''.join(i for i in temp_dept if i.isdigit())
-            self.filename_info.update({"Dept.":temp_dept})
-            #--------------------
-        except:
-            print (f'{self.filename} cannot be read due to incorrect filename conventions.')
-
-    def __init__(self, vendor_dict):
-
-
-        self.filename       = list(vendor_dict.keys())[0]
-        print (self.filename)
-        print (type(self.filename))
-        self.header         = vendor_dict[self.filename][0]
-        self.rows           = vendor_dict[self.filename][1:]
-        self.parse_name()
-        #=================
-        #import random
-        #fixer = random.randint(1, 9999)
-        #self.filename       = list(vendor_dict.keys())[0]+"_"+str(fixer)
-        #print (self.filename)
-
-    def set_manual_input(self,tax,code,dept):
-        self.tax_code       =   tax
-        self.vendor_code    =   code
-        self.department     =   dept
-
-    def visualize(self):
-        pass
-
-    def print_info(self):
-        print ("Name:\t",self.filename)
-        print ("Header:\t",self.header)
-        print ("Rows:")
-        for x in self.rows:
-            print ("\t",x)
+    def displayContents(self):
+        print (self.header)
+        for row in self.rows:
+            print (row)
 
     def set_formatting_dict(self,name,format):
         self.formatting_dict_name   =   name
         self.formatting_dict        =   format
+    
+    def set_manual_input(self,tax,code,dept):
+        self.taxCode       =   tax
+        self.vendorCode    =   code
+        self.department     =   dept
 
-    def expandedView(self,sender):
-        #parent = self.filename+"_expandTest"
+if __name__=="__main__":
 
-        #borders_innerH (bool, optional) – Draw horizontal borders between rows.
-        #borders_outerH (bool, optional) – Draw horizontal borders at the top and bottom.
-        #borders_innerV (bool, optional) – Draw vertical borders between columns.
-        #borders_outerV (bool, optional) – Draw vertical borders on the left and right sides
+    dir = "C:\\Users\\Andrew\\source\\repos\\VENDOR_FILES\\INPUT"
+    file = "Inventory-twoscompany-288c-35.xlsx"
 
-        with dpg.window(label=f"Expanded view of {self.filename}",id=self.filename+'_expandWindow',width=900,height=500):
-            
-            with dpg.table(header_row=True,borders_innerH=True,borders_outerH=True,borders_innerV=True,borders_outerV=True,no_clip=True,resizable=True,hideable =True):
-
-                xx=0;    yy=0
-                table_id=self.filename+f'_{xx},{yy}'
-
-                for item in self.header:
-                    #if item != 'None' and item != None:
-                    dpg.add_table_column(label=item,no_reorder=False)
-                    table_id=self.filename+f'_{xx},{yy}'
-                    yy+=1
-
-                table_id=self.filename+f'_{xx},{yy}'
-
-                for row in self.rows:
-                    yy=0
-                    for item in row:
-                        table_id=self.filename+f'_{xx},{yy}'
-                        dpg.add_text(id=table_id,default_value=item)
-                        dpg.add_table_next_column()
-                        yy+=1
-                    xx+=1
+    testfile = vendorfile(f'{dir}\\{file}')
+    print (testfile.displayContents())

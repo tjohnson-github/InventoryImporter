@@ -22,9 +22,7 @@ class SQLClient:
             print ("_____ERROR_____")
             print ("Cursor object not initialized correctly. Please run Setup and retry.")
    
-            
-
-
+           
 @dataclass
 class Department:
     code: int               = field(repr=True)
@@ -220,7 +218,7 @@ class JFGC_Data:
             self.dptByName.update({tempDept.name:tempDept})
 
     def getDptByCode(self,code):
-        return self.dptByCode.get(code,f"No department found with code {code}!")
+        return self.dptByCode.get(int(code),f"No department found with code {code}!")
     
     def getDptByDptStr(self,dptStr):
         return self.dptByStr.get(dptStr,f"No department found with dptStr {dptStr}!")
