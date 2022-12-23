@@ -1,0 +1,36 @@
+
+
+
+
+-- Create new staging behaviour:
+	1. user chooses input/output folders
+	2. user prepares first pass (manualCheck from Importer
+		- Allow options to:
+			- skip duplicate lines (or combine into single new QTY)
+			- enable barcode lookup for items to grab photo URL
+		- all checked files go to staged area
+	3. program goes into ~waiting~ mode while we do one last physical check (can be killed here, i.e. 'do later': save session details)
+		- add new waiting window that recommends doing all sorts of things 
+			- minor changes to price/name/dept/
+		- add button that pretty much says "CONTINUE"
+	4. above Continue button should go to same window as new "Post-Staged" section
+		- that is meant to skip over importer step (as stuff can come in at any stage)
+	
+-- Instead of BOTH have (BOTH (COPY)) and (BOTH (DIVIDE))
+
+
+
+-- New Process:
+	0. Change Input Folders
+	1. import files to stage
+		- traditional import step; 
+		- files moved out of input into staging
+	2. move stage to commit
+		- Instantiate FLAGGING process here:
+			- products whose name/upc have changed
+		- Allow for Options to:
+			- directly upload to website (invisible even if have definite qty as needs media)
+	3. auto-cleanup
+		- files moved out of staging into new output schema?
+			- by dept?
+			- by 

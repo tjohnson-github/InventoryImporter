@@ -1,6 +1,9 @@
 from dataclasses import dataclass, field
 import pyodbc
 
+
+from File_Operations import saveVariable,getVariable
+
 class SQLClient:
 
     server      =   '192.168.4.13'
@@ -47,8 +50,8 @@ class JFGC_Data:
     #   { READABLE DISPLAY VALUE : IM_INV-formatted-value }
     #=====================================================
     # The actual hardcoded info
-    tax_codes  = ["TX","DEL","NT","DE"]
-    tax_names  = ["Taxable","Delivery","Nontaxed","Edible"]
+    #tax_codes  = ["TX","DEL","NT","DE"]
+    #tax_names  = ["Taxable","Delivery","Nontaxed","Edible"]
 
     taxDict   = {
         "Taxable"   :   "TX",
@@ -190,6 +193,7 @@ class JFGC_Data:
             if new_entry[vendor_num_location].startswith("00"):
                 vendorDict.update({str(new_entry[vendor_nam_location]):new_entry[vendor_num_location]})
 
+        saveVariable("vendorDict.txt",vendorDict)
         self.vendorDict = vendorDict
 
     def __post_init__(self):
