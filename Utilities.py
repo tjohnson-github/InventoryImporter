@@ -34,6 +34,11 @@ class Markup:
                 enabled         =   False,
                 label           =   "Price",
                 width           =   120)
+            dpg.add_text(
+                parent = price_group,
+                tag             = 'markup-text',
+                default_value   = ''
+                )
 
     def markupUpdater(self,sender,app_data,user_data):
         #======================================================

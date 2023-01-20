@@ -70,6 +70,7 @@ class vendorfile:
         else:
             temp_info   =   temp_name
 
+        print("---------NAME format begin------")
         print (temp_info)
 
         try:

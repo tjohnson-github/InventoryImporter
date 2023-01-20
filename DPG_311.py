@@ -235,8 +235,8 @@ def defaultFolderSelect(sender, app_data, user_data):
         default_path    =   user_data, 
         id              =   "default_dialog_id",
         directory_selector = True,
-        height = 400,
-        width = 600,
+        height          =   400,
+        width           =   600,
         callback        =   updateDefaultSelect):
         pass
 
@@ -329,6 +329,38 @@ def main():
     #===================================================
     return
 
+
+def customZip():
+
+    import File_Operations
+
+    # did this for some lake valley bullshit
+    f1 = File_Operations.excel_to_list("C:\\Users\\Andrew\\source\\repos\\VENDOR_FILES\\INPUT\\ALT_3_Lak_OrderConfirmation380441_JOHNSON'S FLORIST & GARDEN JOH772C_11.xlsx")
+    f2 = File_Operations.excel_to_list("C:\\Users\\Andrew\\source\\repos\\VENDOR_FILES\\INPUT\\Johnsons Florist Olney UPC.xlsx")
+
+    print (f1[0][0])
+    print (f2[0][0])
+
+    f1_upc_loc = f1[0][0].index("UPC")
+    f2_upc_loc = f2[0][0].index("UPC")
+    f2_retail_loc = f2[0][0].index("Retail")
+
+    temp_list =[]
+
+    for f1row in f1[0][1:]:
+
+        temp_row = []
+        temp_row.append(f1row[f1_upc_loc])
+
+        for f2row in f2[0][1:]:
+            if f1row[f1_upc_loc] == f2row[f2_upc_loc]:
+                temp_row.append(f2row[f2_retail_loc])
+
+        temp_list.append(temp_row)
+
+    File_Operations.list_to_excel(temp_list,"C:\\Users\\Andrew\\source\\repos\\VENDOR_FILES\\INPUT\\zipped.xlsx")
+    
+
 if __name__=="__main__":
 
     dpg.create_context()
@@ -342,4 +374,4 @@ if __name__=="__main__":
     dpg.start_dearpygui()
     dpg.destroy_context()
 
- 
+    #customZip()
