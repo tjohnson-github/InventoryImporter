@@ -25,8 +25,9 @@ def formatPathingDict(input_type):
     #====================================================
     pathingDict: dict = {}
     pathingDict['parent_path']          =   dpg.get_value('base_parent_directory')+ "\\"
+    pathingDict['staged_filepath']       =   dpg.get_value('base_staged_path')+ "\\"
     pathingDict['ouput_filepath']       =   dpg.get_value('base_output_path')+ "\\"
-    pathingDict['processed_path']       =   dpg.get_value('base_processed_path')+ "\\"
+    pathingDict['processed_filepath']       =   dpg.get_value('base_processed_path')+ "\\"
     pathingDict['rubric_path']          =   dpg.get_value('base_rubric_path')+ "\\"
     #====================================================
     if input_type=="default":
@@ -115,8 +116,9 @@ def beginSingleImport(sender, app_data, user_data):
     #====================================================
     pathing_dict:   dict    = {}
     pathing_dict['parent_path']     = user_data #dpg.get_value('base_parent_directory')
+    pathing_dict['staged_filepath']  = dpg.get_value('base_staged_path')
     pathing_dict['ouput_filepath']  = dpg.get_value('base_output_path')
-    pathing_dict['processed_path']  = dpg.get_value('base_processed_path')
+    pathing_dict['processed_filepath']  = dpg.get_value('base_processed_path')
     pathing_dict['rubric_path']     = dpg.get_value('base_rubric_path')
     pathing_dict['input_filepath']  = user_data #dpg.get_value('base_input_path')
     #====================================================
@@ -208,6 +210,7 @@ def display_group_import(sender, app_data, user_data):
         #----------------------------------------
         dpg.add_input_text(tag='parent_directory',   parent='input_folderWindow',enabled=False,default_value =   filepath               ,label="Parent Directory")
         dpg.add_input_text(tag='input_path',         parent='input_folderWindow',enabled=False,default_value =   filepath+"\\INPUT"     ,label="Input Path")
+        dpg.add_input_text(tag='staged_path',        parent='input_folderWindow',enabled=False,default_value =   filepath+"\\STAGED"    ,label="Staged Path")
         dpg.add_input_text(tag='output_path',        parent='input_folderWindow',enabled=False,default_value =   filepath+"\\OUTPUT"    ,label="Output Path")
         dpg.add_input_text(tag='processed_path',     parent='input_folderWindow',enabled=False,default_value =   filepath+"\\PROCESSED" ,label="Processed Path")
         dpg.add_input_text(tag='rubric_path',        parent='input_folderWindow',enabled=False,default_value =   filepath+"\\Rubric"    ,label="Rubric Path")
@@ -221,6 +224,7 @@ def updateDefaultSelect(sender, app_data, user_data):
     #====================================================
     dpg.configure_item('base_parent_directory',default_value =   foldername                  )
     dpg.configure_item('base_input_path',      default_value =   foldername+"\\INPUT"        )
+    dpg.configure_item('base_staged_path',      default_value =   foldername+"\\STAGED"        )
     dpg.configure_item('base_output_path',     default_value =   foldername+"\\OUTPUT"       )
     dpg.configure_item('base_processed_path',  default_value =   foldername+"\\PROCESSED"    )
     dpg.configure_item('base_rubric_path',     default_value =   foldername+"\\Rubric"       )
@@ -257,6 +261,7 @@ def saveDefault(sender,app_data,user_data):
     dpg.configure_item('saved_notify',show=True)
 
     i = dpg.get_value('base_input_path')
+    s = dpg.get_value('base_staged_path')
     o = dpg.get_value('base_output_path')
     p = dpg.get_value('base_processed_path')
     r = dpg.get_value('base_rubric_path')
@@ -264,11 +269,14 @@ def saveDefault(sender,app_data,user_data):
     if not os.path.exists(i):
         dpg.add_text(parent='dd',default_value='--> Created Input folder; Add files here.')
         os.mkdir(i)
+    if not os.path.exists(i):
+        dpg.add_text(parent='dd',default_value='--> Created Staged folder; Check files here before final formatting as processes can directly upload if allowed.')
+        os.mkdir(s)    
     if not os.path.exists(o):
         dpg.add_text(parent='dd',default_value='--> Created Output folder; This is what you want.')
         os.mkdir(o)
     if not os.path.exists(p):
-        dpg.add_text(parent='dd',default_value='--> Created Processed folder; input files that have been used.')
+        dpg.add_text(parent='dd',default_value='--> Created Processed folder; input and staged files that have been used.')
         os.mkdir(p)
     if not os.path.exists(r):
         dpg.add_text(parent='dd',default_value='--> Created Rubric folder; add rubric here.')
@@ -312,6 +320,7 @@ def main():
                     #add_input_text(tag='rubric_filename',label="Rubric",default_value="~No File Selected~",enabled=False,width=500)
                     dpg.add_input_text(tag='base_parent_directory',   enabled=False,default_value =   parent_folder               ,label="Parent Directory")
                     dpg.add_input_text(tag='base_input_path',         enabled=False,default_value =   parent_folder+"\\INPUT"     ,label="Input Path")
+                    dpg.add_input_text(tag='base_staged_path',        enabled=False,default_value =   parent_folder+"\\STAGED"    ,label="Staged Path")
                     dpg.add_input_text(tag='base_output_path',        enabled=False,default_value =   parent_folder+"\\OUTPUT"    ,label="Output Path")
                     dpg.add_input_text(tag='base_processed_path',     enabled=False,default_value =   parent_folder+"\\PROCESSED" ,label="Processed Path")
                     dpg.add_input_text(tag='base_rubric_path',        enabled=False,default_value =   parent_folder+"\\Rubric"    ,label="Rubric Path")
@@ -322,7 +331,7 @@ def main():
                 #-----------------------------------------------
             with dpg.tab(label="Utilities"):
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-                Utilities.Markup(width=400,height=120)
+                Utilities.Markup(width=400,height=120,visualize=True)
                 Utilities.PrcBreakdown(width=400,height=150)
             #-----------------------------------------------
 

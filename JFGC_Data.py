@@ -30,7 +30,7 @@ class SQLClient:
 class Department:
     code: int               = field(repr=True)
     name: str               = field(repr=True)
-    margin: float           = field(repr=False)
+    margin: float           = field(repr=False,default=None)
     formatted_code: str     = field(init=False,repr=False)
     dptStr: str             = field(init=False,repr=False)
 
@@ -42,6 +42,59 @@ class Department:
             self.formatted_code = f'0{self.code}'
 
         self.dptStr = f'{self.code} : {self.name}'
+
+allDepartments: list = [
+        Department(code=1,name="Cut Flowers",margin=65.2),
+        Department(code=2,name="Ribbons & Bows",margin=59.0),
+        Department(code=3,name="Design - Cut",margin=59.0),
+        Department(code=4,name="Holiday Silk",margin=64.2),
+        Department(code=5,name="Dried & Silk",margin=64.7),
+        Department(code=6,name="Candles",margin=64.2),
+        Department(code=7,name="Balloons",margin=64.7),
+        #Department(code=8,name="",margin=),
+        #Department(code=9,name="",margin=),
+        Department(code=10,name="Green Houseplants",margin=69.5),
+        Department(code=11,name="Bloom Houseplants",margin=69.5),
+        Department(code=12,name="Potted Bulbs - Hp",margin=69.5),
+        #Department(code=13,name="",margin=),
+        Department(code=14,name="Pottery-Inside/Outside",margin=60.32),
+        Department(code=15,name="Bedding Plants",margin=66.0),
+        Department(code=16,name="Perennials",margin=69.27),
+        Department(code=17,name="Vegetables",margin=66.0),
+        #Department(code=18,name="",margin=),
+        #Department(code=19,name="",margin=),
+        Department(code=20,name="Woodies",margin=66.0),
+        Department(code=21,name="Holiday Live Trees",margin=66.0),
+        #Department(code=22,name="",margin=),
+        Department(code=23,name="Bulbs & Tubers",margin=64.2),
+        Department(code=24,name="Seeds - Flwr/Veg",margin=56.2),
+        Department(code=25,name="Garden Supplies",margin=59.5),
+        Department(code=26,name="Bagged Goods - Gs",margin=56.2),
+        Department(code=27,name="Ponds & Supplies",margin=56.2),
+        #Department(code=28,name="",margin=),
+        Department(code=29,name="Patio Living",margin=64.0),
+        Department(code=30,name="Contributions"),
+        Department(code=31,name="Concrete - All",margin=61.0),
+        Department(code=32,name="Bagged Goods - LS",margin=64.2),
+        Department(code=33,name="Fashion",margin=64.0),
+        Department(code=34,name="Propane",margin=64.49),
+        Department(code=35,name="Nature/Gift",margin=62.5),
+        Department(code=36,name="Cards & Gift Wrap",margin=63.0),
+        Department(code=37,name="Seasonal Gift",margin=63.0),
+        Department(code=38,name="Gift - Corp"),
+        Department(code=39,name="Cookies/Candy/Food",margin=64.0),
+        Department(code=40,name="Jewelry",margin=64.0),
+        #Department(code=41,name="",margin=),
+        #Department(code=42,name="",margin=),
+        #Department(code=43,name="",margin=),
+        #Department(code=44,name="",margin=),
+        Department(code=45,name="Christmas Ornaments",margin=63.0),
+        Department(code=46,name="Christmas Greens & Wreaths",margin=61.0),
+        Department(code=47,name="Cut Christmas Trees",margin=62.2),
+        #Department(code=48,name="",margin=),
+        Department(code=49,name="Pumpkins",margin=66.0)]
+    
+
 
 @dataclass
 class JFGC_Data:
@@ -59,6 +112,8 @@ class JFGC_Data:
         "Nontaxed"  :   "NT",
         "Edible"    :   "DE"
         }
+
+    allDepartments: list = field(default_factory=list)
 
     deptMargin =   {
         "1": 65.20,

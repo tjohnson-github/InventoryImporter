@@ -22,8 +22,17 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Auto_Assigner.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="JFGC_Data.py" />
     <Compile Include="Logging.py" />
+    <Compile Include="Gspread_WIX.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="UPC_Lookup.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Utilities.py" />
     <Compile Include="DPG_Theme_Editor.py" />
     <Compile Include="DPG_Themes.py" />
@@ -33,6 +42,12 @@
     <Compile Include="Importer.py" />
     <Compile Include="Vendorfile.py" />
     <Compile Include="DPG_311.py" />
+    <Compile Include="WIX_Json.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="WIX_Utilities.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.11" />

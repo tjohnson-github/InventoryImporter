@@ -8,37 +8,38 @@ JFGC = JFGC_Data.JFGC_Data()
 
 class Markup:
 
-    def __init__(self,width,height):
-        with dpg.child_window(width=width,height=height):     
-            #======================================================
-            dpg.add_text("Price Markup Test")
-            #======================================================
-            dpg.add_input_float(
-                tag             =   'cost_test',
-                width           =   100,
-                label           =   "Cost")
-            dpg.add_combo(
-                tag             =   "test_dept", 
-                items           =   list(x.dptStr for x in JFGC.allDepartments), #list(JFGC.departmentsSTRByCode.values()),
-                default_value   =   list(x.dptStr for x in JFGC.allDepartments)[0])
-            #======================================================
-            price_group = dpg.add_group(horizontal = True)
-            dpg.add_button(
-                parent          =   price_group,
-                label           =   "Check Markup",
-                callback        =   self.markupUpdater)
-            dpg.add_input_text(
-                parent          =   price_group,
-                tag             =   'markup-output',
-                default_value   =   0.00,
-                enabled         =   False,
-                label           =   "Price",
-                width           =   120)
-            dpg.add_text(
-                parent = price_group,
-                tag             = 'markup-text',
-                default_value   = ''
-                )
+    def __init__(self,width=0,height=0,visualize=False):
+        if visualize: 
+            with dpg.child_window(width=width,height=height):     
+                #======================================================
+                dpg.add_text("Price Markup Test")
+                #======================================================
+                dpg.add_input_float(
+                    tag             =   'cost_test',
+                    width           =   100,
+                    label           =   "Cost")
+                dpg.add_combo(
+                    tag             =   "test_dept", 
+                    items           =   list(x.dptStr for x in JFGC.allDepartments), #list(JFGC.departmentsSTRByCode.values()),
+                    default_value   =   list(x.dptStr for x in JFGC.allDepartments)[0])
+                #======================================================
+                price_group = dpg.add_group(horizontal = True)
+                dpg.add_button(
+                    parent          =   price_group,
+                    label           =   "Check Markup",
+                    callback        =   self.markupUpdater)
+                dpg.add_input_text(
+                    parent          =   price_group,
+                    tag             =   'markup-output',
+                    default_value   =   0.00,
+                    enabled         =   False,
+                    label           =   "Price",
+                    width           =   120)
+                dpg.add_text(
+                    parent = price_group,
+                    tag             = 'markup-text',
+                    default_value   = ''
+                    )
 
     def markupUpdater(self,sender,app_data,user_data):
         #======================================================

@@ -158,8 +158,8 @@ def list_to_csv(temp_list, filename_to_save, delimiter = ','):
 def cleanup(filename, input, processed):
     import shutil
 
-    source      = f"{input}\\{filename}"
-    destination = f"{processed}\\{filename}"
+    source      = f"{input}{filename}"
+    destination = f"{processed}{filename}"
 
     shutil.move(source,destination)
 

@@ -1,544 +1,58 @@
 from Vendorfile import vendorfile
 import Gspread_Rubric
 import dearpygui.dearpygui as dpg
-
-import datetime
+from typing import List
+import datetime,os
 from datetime import date
 
-class Processor:
+import Gspread_WIX 
+import Auto_Assigner
+import UPC_Lookup
+import WIX_Utilities
+import Utilities
+
+import File_Operations
+
+class StagedProcessor:
+    __count=0
     
-    def test():
-        #log=[]
-        print ("=========================================")
-        print ("============PROCESSING INPUTS============")            
-        print ("=========================================")
-        annotations=True
-        #====================================================
-        input_filepath = pathing_dict['input_filepath']+'\\'
-        ouput_filepath = pathing_dict['ouput_filepath']+'\\'
-        processed_path = pathing_dict['processed_path']+'\\'
-        rubrics  ,  vends  ,  all_headers  ,  tags =Gspread_Rubric.read_formatting_gsheet() #read_formatting_spreadsheet(pathing_dict['rubric_path'])
-    
-        #====================================================
-        annotations=False
-        '''if annotations:
-            print ("=========================================")
-            print (rubrics.keys())
-            for entry in rubrics.values():
-                print ("\t\t"+str(entry))
-            print (vends.keys())
-            for entry in vends.values():
-                print ("\t\t"+str(entry))
-            print (all_headers.keys())
-            for entry in all_headers.values():
-                print ("\t\t"+str(entry))
-            print (tags.keys())
-            for entry in tags.values():
-                print ("\t\t"+str(entry))
-            print ("=========================================")'''
-        #====================================================
-        # For each file currently waiting in the master_dict, find the formatting dict whose header matches feed its name to the zipped_dict
-        match_count     =   1    
-        saved_filenames =   []
-        rubric_counter  =   1
-        #====================================================
-        temp_AA = []
-        #====================================================
-        for i,savefile_format in enumerate(rubrics):
-            #===========================================
-            # Begin initializing the final output array  the header as the first line of the final list to format.
-            output_order        = reorder_rubric_dict(rubrics[savefile_format])
-            #===========================================
-            final_KENS_output_array     = [output_order]
-            final_OLNEY_output_array    = [output_order]
-            final_BOTH_output_array     = [output_order]
-            #===========================================
-            formatted_count=0
-            AA_count = 0
-            #===========================================
-            for file in vendorfileobj_list:
-                # TO DO: 
-                #   - MAKE THE PRINTING OF THE SMALLER RUBRICS USE INFORMATION SAVED ON FILE FOR THE OBJECTS.
-                #   - ESSENTIALLY, MAKE A TEMP ROW ITEM FOR THE VF OBJs
-                #-----------------------------------
-                if annotations:
-                    print ("=========================================")
-                    print ("\t\t\t\tNEW VENDOR\t\t\t\t\t\t")
-                    print (file)
-                    print ('\n')
-                    print ("______________________")
-                #-----------------------------------
-                #start=time.clock()
-                #-----------------------------------
-                vendor              =   file.formatting_dict_name
-                vendor_format_dict  =   file.formatting_dict
-                #-----------------------------------
-                if vendor!=None:
-                    #--------------------
-                    #success
-                    if annotations:
-                        print ( "\t"+str(file.filename)+" is to be formatted with "+str(vendor)+"\n")
-                    #--------------------
-                    header  = file.header
-                    rows    = file.rows
-                    #--------------------
-                    # Now that we have: 
-                    #   1) the vendorfile dataclass
-                    #   2) that file's header's matching rubric header
-                    # It is time to begin 
-                    #--------------------
-                    #errors=[False for x in range(0,len(rows))]
-                    for ii,row in enumerate(rows):
-                        temp_list=[]
-                        #--------------------
-                        #SQL Full:	ITEM_NO	, PROF_ALPHA_2 , DESCR , LST_COST , PRC_1 , TAX_CATEG_COD , CATEG_COD , ACCT_COD , ITEM_VEND_NO , PROF_COD_4 , PROF_ALPHA_3 , PROF_DAT_1 , QTY , ImageUrl , ImageUrl2 , Description , ProductType , Collection , OptionName , OptionType , OptionDescription
-                        #SQL csv:	ITEM_NO	, PROF_ALPHA_2 , DESCR , LST_COST , PRC_1 , TAX_CATEG_COD , CATEG_COD , ACCT_COD , ITEM_VEND_NO , PROF_COD_4 , PROF_ALPHA_3 , PROF_DAT_1 , QTY
-                        #--------------------
-                        print("_______________________________________________________")
-                        print (row)
+    def __init__(self):
+        
+        #stagedFiles = self.scan_staged()
+        stagedFiles=[1,1,1,1,1]
 
-                        if annotations:
-                            print ("\t",rows.index(row)," out of ",len(rows))
+        with dpg.window(label="Staged File Manager",tag=f'stagedManager_{self.__count}',width=830,height=(300+(115*int(len(stagedFiles))))):
 
-                        if rubric_counter==1:
-                            percent_complete=(rows.index(row)/len(rows))
-                            dpg.configure_item(file.filename+"_prog",show=True,default_value=percent_complete,overlay=f"{int(percent_complete*100)}%")
-            
-                        #--------------------
-                        ignore_threshold = False
-                        if not ignore_threshold:
-                            """ 
-                            This section tries to determine if the row is empty save for one or two typos.
-                                Often at the end of a vendorfile were there rows with no entries save for a "_" or "#"
-                                Or empty rows used as spacers between rows with valid information.
-                            """
-                            '''
-                            cutoff_threshold = 4
-                            # If the number of empty cells in a row is greater than or equal to the full length of the row minus the threshold, go to next row. 
-                            if (row.count('')+row.count(None))>=len(row)-cutoff_threshold and (len(row)-cutoff_threshold>0):
+            dpg.add_checkbox(tag="process_wix",label="Process files into WIX format?",default_value=True),
+            dpg.add_checkbox(tag="auto_wix",label="Automatically update website?",default_value=False)
+            dpg.add_checkbox(tag="combine_files",label="Combine files into one Counterpoint8?",default_value=True,callback=self.showOptions)
+            dpg.add_combo(tag='combine_files_options',label="Reorganize by:",items=["Original File","Department","Vendor","Ticket"],show=False)
 
-                                if annotations: 
-                                    print ("\t\t",str(row.count('')+row.count(None))," out of ",len(row)," cells blank. Skipping...")
-                                continue
-                            '''
-                            if (row.count('')+row.count(None)+row.count('None')==len(row)):
-                                print ("\t\t",str(row.count('')+row.count(None)+row.count('None'))," out of ",len(row)," cells blank. Skipping...")
-                                continue
-                        #--------------------
-                        sku = None
-                        remainders=False
-                        for column in output_order:
+        self.__count+=1
+        print(self.__count)
 
-                            #print (column)
+    def scan_staged(self,pathing_dict):
+        #self.input_filepath = pathing_dict['input_filepath']+'\\'
+        self.staged_filepath= pathing_dict['staged_filepath']
+        self.ouput_filepath = pathing_dict['ouput_filepath']
+        #self.ouput_filepath = pathing_dict['staged_filepath']+'\\History\\'
+        self.processed_filepath = pathing_dict['processed_filepath']+'fromStaged\\'
 
-                            try: 
-                                # MAIN FILTER HERE
-                                # V V V V V V V V V       
-                                if column == 'ITEM_NO':
-                                    # <<<<<<<<<<< UPC >>>>>>>>>>>
-                                    print(row[header.index(vendor_format_dict[column])] == None)
-                                    #--------------------
-                                    if (column not in vendor_format_dict.keys()):
+        #if not os.path.exists(self.staged_ouput_filepath): os.mkdir(self.staged_ouput_filepath)
+        if not os.path.exists(self.processed_filepath): os.mkdir(self.processed_filepath)
 
-                                        if i==0:
-                                            temp_upc = Auto_Assigner.getNextUPC()
-                                            temp_AA.append(temp_upc)
-                                        else:
-                                            temp_upc = temp_AA[AA_count]
-                                            AA_count+=1
+        excel_files_to_process  =   fnmatch.filter(os.listdir(self.staged_filepath), '*.xlsx')
 
+    def showOptions(self,sender):
 
-                                        temp_list.append(temp_upc)
-                                        #temp_list.append("(AUTO-ASSIGN)")
-                                        AA=True
-                                    elif (row[header.index(vendor_format_dict[column])] == '') or (row[header.index(vendor_format_dict[column])] == None)or (row[header.index(vendor_format_dict[column])] == ' ')or (row[header.index(vendor_format_dict[column])] == 'None'):
-                                        # If there is no UPC code found, begin autoassign. 
-                                        #temp_list.append("(AUTO-ASSIGN)")
+        print(sender)
 
-                                        if i==0:
-                                            temp_upc = Auto_Assigner.getNextUPC()
-                                            temp_AA.append(temp_upc)
-                                        else:
-                                            temp_upc = temp_AA[AA_count]
-                                            AA_count+=1
+        if dpg.get_value(sender)==False:
+            dpg.configure_item('combine_files_options',show=True)
+        else:             
+            dpg.configure_item('combine_files_options',show=False)
 
-
-                                        temp_list.append(temp_upc)
-
-                                        AA=True
-                                    else: 
-                                        temp_sku = row[header.index(vendor_format_dict[column])]
-                                        #---------- FORMAT HERE
-                                        temp_sku = str(temp_sku).replace("-","")
-                                        temp_sku = str(temp_sku).replace(" ","")
-                                        #---------- FORMAT END
-                                        temp_list.append(temp_sku)
-                                        sku      = row[header.index(vendor_format_dict[column])]
-                                        if talk_to_wix:
-                                            resp = Wix_Utilities.get_product(sku)
-                                        AA=False
-                                    #--------------------
-                                elif column == 'PROF_DAT_1':
-                                    # <<<<<<<<<<< Today's Date >>>>>>>>>>>
-                                    #--------------------
-                                    temp_list.append(today.strftime("%m/%d/%y"))
-                                    #--------------------
-                                elif column == 'LST_COST':
-                                    # <<<<<<<<<<< Last Cost >>>>>>>>>>>
-                                    # What we bought it for
-                                    #--------------------
-                                    temp_price = row[header.index(vendor_format_dict['LST_COST'])]
-                                    temp_price = str(temp_price).replace("$",'')
-                                    temp_price = str(temp_price).replace(" ",'')
-                                    temp_list.append(temp_price)
-                                    #--------------------
-                                elif column == 'ACCT_COD' or column == "CATEG_COD":
-                                    # <<<<<<<<<<< Dept >>>>>>>>>>>
-                                    #--------------------
-                                    if len(str(file.department))==1:
-                                        dept="00"+str(file.department)
-                                    elif len(str(file.department))==2:
-                                        dept="0"+str(file.department)
-                                    temp_list.append(dept)
-                                    #--------------------
-                                elif column == 'PROF_ALPHA_3':
-                                    # <<<<<<<<<<< Man # >>>>>>>>>>>    
-                                    # Same as Manufacturing #
-                                    #--------------------
-                                    temp_list.append(row[header.index(vendor_format_dict['PROF_ALPHA_2'])])
-                                    #--------------------
-                                elif column == 'PRC_1':
-                                   # <<<<<<<<<<< Retail Price >>>>>>>>>>>          
-                                    #--------------------
-                                    overwrite_price  =      dpg.get_value(f"{file.filename}_overwritePrice")
-                                    use_cost=False
-                                    #print (f"Test Fly: {temp_price}")
-                                    #--------------------
-                                    if ('PRC_1' in vendor_format_dict.keys() and not overwrite_price):
-                                        # This should only work if the rubric has a column correspondence for PRC_1...
-                                        #   as in... we should know what files will have price overrides, and can accomodate in the rubric file
-                                        temp_price       =      row[header.index(vendor_format_dict['PRC_1'])]
-                                        #print (vendor_format_dict['PRC_1'])
-                                        #print (header.index(vendor_format_dict['PRC_1']))
-                                        #print (temp_price)
-
-                                        print (temp_price,"\t0\t",type(temp_price))
-
-
-                                        if temp_price is None:
-                                            print (temp_price,"\t1\t",type(temp_price))
-                                            use_cost=True
-                                        elif temp_price=='':
-                                            print (temp_price,"\t2\t",type(temp_price))
-                                            use_cost=True
-                                        elif temp_price.count(' ')==len(list(temp_price)):
-                                            print (temp_price,"\t3\t",type(temp_price))
-                                            use_cost=True
-                                        elif temp_price=="None":
-                                            print (temp_price,"\t4\t",type(temp_price))
-                                            use_cost=True
-                                        else:
-                                            #print ("A")
-                                            print (temp_price,"\t5\t",type(temp_price))
-                                            #print (temp_list)
-                                            #print ("B")
-                                            temp_price  =   str(temp_price).replace("$",'')
-                                            price       =   temp_price
-                                            #print("C")
-                                            #temp_list.append(price)
-                                            #use_cost=False
-                                    else:
-                                        use_cost=True
-                                    
-                                    if use_cost:
-                                        # -------------
-                                        dept                    =    file.department
-                                        temp_price              =    row[header.index(vendor_format_dict['LST_COST'])]
-                                        temp_price              =    str(temp_price).replace("$","")
-                                        temp_price              =    str(temp_price).replace(" ","")
-                                        # -------------
-                                        try:
-                                            strPrice            =   temp_price
-                                            strBasedPrice       =   get_price_markup(strPrice,dept)
-                                            price               =   strBasedPrice
-                                        except:
-                                            intFloatPrice       =   int(float(temp_price))
-                                            intFloatBasedprice  =   get_price_markup(intFloatPrice,dept)
-                                            price               =   intFloatBasedprice
-                                        # -------------
-                                    temp_list.append(price)
-                                    #--------------------
-                                elif column == 'TAX_CATEG_COD':
-                                    # <<<<<<<<<<< TAX CODE >>>>>>>>>>>    
-                                    #--------------------
-                                    temp_list.append(file.tax_code)
-                                    #--------------------
-                                elif column == 'ITEM_VEND_NO':
-                                    # <<<<<<<<<<< Vendor Code >>>>>>>>>>>    
-                                    #--------------------
-                                    temp_list.append(file.vendor_code)
-                                    #--------------------
-                                elif column == 'PROF_COD_4':   # ITEM PRICE CODE
-                                    # <<<<<<<<<<< Item Price Code >>>>>>>>>>>    
-                                    #--------------------
-                                    dept=int(file.department)
-                                    if (dept >=1 and dept<=14) or (dept>=34 and dept<=53): 
-                                        temp_list.append("A")
-                                    elif (dept >=15 and dept<=24):
-                                        temp_list.append("B")
-                                    elif (dept >=25 and dept<=31):
-                                        temp_list.append("C")
-                                    #--------------------
-                                elif column == 'ImageUrl':
-                                    # <<<<<<<<<<< Image URL (if it exists) >>>>>>>>>>>    
-                                    #--------------------
-                                    temp_str_barcode =''
-                                    if AA==False:
-                                        #------------------------------------------------------------
-                                        # If the UPC has not been auto-assigned.
-                                        if (row[header.index(vendor_format_dict[column])] == None) or (row[header.index(vendor_format_dict[column])] == 'None')or (row[header.index(vendor_format_dict[column])].strip() == ''):
-                                            # If the url column is empty, try wix.
-                                            if talk_to_wix:
-                                                temp_url = Wix_Utilities.get_url(resp)
-                                                temp_str_barcode=temp_url
-                                            else:
-                                                temp_str_barcode = ''
-                                        else: 
-                                            # If the url column has data, take that info.
-                                            temp_str_barcode = row[header.index(vendor_format_dict[column])]
-                                        #------------------------------------------------------------
-                                        # Prioritizes WIX over Barcode; 
-                                        if (temp_str_barcode == '') and (dpg.get_value('barcode_lookup')==True):
-                                            from UPCLookup import upcLookup
-                                            temp_barcode = upcLookup(sku)
-                                            temp_str_barcode = temp_barcode['productImageUrl']
-                                        #------------------------------------------------------------
-                                    else:
-                                        temp_str_barcode = ''
-
-                                    temp_list.append(temp_str_barcode)
-                                    #--------------------
-                                elif column == "Collection":
-                                    # <<<<<<<<<<< Collection >>>>>>>>>>>    
-                                    #--------------------
-                                    if AA==False:
-                                        if talk_to_wix:
-                                            collection = Wix_Utilities.get_collection(resp)
-                                            temp_list.append(collection)
-                                        else:
-                                            temp_list.append('')
-                                    else: 
-                                        temp_list.append('')
-                                    #--------------------
-                                elif column == "QTY":
-                                    # <<<<<<<<<<< Quantity >>>>>>>>>>>    
-                                    #--------------------
-                                    temp_qty = ''
-
-                                    if (column not in vendor_format_dict.keys()):
-                                        #temp_list.append('0')
-                                        temp_qty = '0'
-                                    elif row[header.index(vendor_format_dict[column])] != '' and  row[header.index(vendor_format_dict[column])] != None:
-                                        #temp_list.append(row[header.index(vendor_format_dict[column])])
-                                        temp_qty = str(row[header.index(vendor_format_dict[column])])
-                                    else: 
-                                        #temp_list.append('0')
-                                        temp_qty = '0'
-                                
-                                    if dpg.get_value(file.filename+"_qtyDivide")=="Divide Evenly" and temp_qty!='0':
-                                        if int(float(temp_qty))%2==0:
-
-                                            #print (temp_qty)
-                                            #print (type(temp_qty))
-                                            #print (int(temp_qty)/2)
-
-                                            halved_qty = str(int(float(temp_qty))/2)
-                                            halved_qty = halved_qty.replace('.0','')
-
-                                            temp_list.append(halved_qty)
-                                        else:
-
-
-                                            halved_qty = str((int(float(temp_qty))-1)/2)
-                                            halved_qty = halved_qty.replace('.0','')
-                                            temp_list.append(halved_qty)
-
-                                            remainders=True
-                                        
-
-                                    elif dpg.get_value(file.filename+"_qtyDivide")=="Copy Quantities":
-                                        temp_list.append(str(temp_qty))
-                                    else:
-                                        temp_list.append(str(temp_qty))
-                                    #--------------------
-                                else:
-                                    # <<<<<<<<<<< UNDEFINED >>>>>>>>>>>    
-                                    #--------------------
-                                    temp_list.append(row[header.index(vendor_format_dict[column])])
-                                    #--------------------
-                            except Exception as e:
-                                if annotations: print (column,"\t",e)
-                                print (column,"\t",e)
-                                temp_list.append('')
-                        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                        # AFTER ALL COLUMNS LOOPED FROM CURRENT ROW:
-                        # For each cell in the line we're appending, if any of them aren't empty, its not an empty line
-                        #==================================================
-                        #--------------------
-                        # Checks each entry in the temp_list. If even one of them isn't empty, the whole thing isnt empty.
-                        is_empty=True
-                        for cell in temp_list:
-                            if cell!=None and cell!='': 
-                                is_empty=False; break
-                        #--------------------
-                        # Checks to see if the entry already exists in the final output array. 
-                        # If it already does, then it's a duplicate.
-                        # TO DO:
-                        #   - We had an error before whereby the file had 2x each entry, as opposed to one of each with double the inventory.
-                        if is_empty==False:
-                            if dpg.get_value("skipDuplicates")==False:
-
-                                if dpg.get_value(file.filename+"_storeLoc")=="Kens":
-                                    final_KENS_output_array.append(temp_list)
-                                    #==========================================================================
-                                elif dpg.get_value(file.filename+"_storeLoc")=="Olney":
-                                    final_OLNEY_output_array.append(temp_list)
-                                    #==========================================================================
-                                else:
-                                    if remainders==True:
-                                        modified_list   =   temp_list.copy()
-                                        fixed_qty       =   str(int(float(temp_list[output_order.index('QTY')]))+1)
-                                        fixed_qty       =   fixed_qty.replace('.0','')
-                                        modified_list[output_order.index('QTY')]=fixed_qty
-                                        final_KENS_output_array.append(modified_list)
-                                    else:
-                                        final_KENS_output_array.append(temp_list)
-                                    final_OLNEY_output_array.append(temp_list)
-                                    #==========================================================================
-                            else: 
-                                if dpg.get_value(file.filename+"_storeLoc")=="Kens" and (temp_list not in final_KENS_output_array):
-                                    if temp_list not in final_KENS_output_array: 
-                                        final_KENS_output_array.append(temp_list)
-                                    else: 
-                                        print (f"DUPLICATE line not added to Kens_Array\n\t{temp_list}")
-                                    #==========================================================================
-
-                                elif dpg.get_value(file.filename+"_storeLoc")=="Olney" and (temp_list not in final_OLNEY_output_array):
-                                    if temp_list not in final_OLNEY_output_array: 
-                                        final_OLNEY_output_array.append(temp_list)
-                                    else:
-                                        print (f"DUPLICATE line not added to Olney_Array\n\t{temp_list}")
-                                    #==========================================================================
-                                else:
-                                    # = = = = = = = = = = =
-                                    if remainders==True:
-                                            modified_list   =   temp_list.copy()
-                                            fixed_qty       =   str(int(float(temp_list[output_order.index('QTY')]))+1)
-                                            fixed_qty       =   fixed_qty.replace('.0','')
-                                            modified_list[output_order.index('QTY')]=fixed_qty
-                                    # = = = = = = = = = = =
-                                    if modified_list not in final_KENS_output_array: 
-                                        final_KENS_output_array.append(modified_list)
-                                    else: 
-                                        print (f"DUPLICATE line not added to Kens_Array\n\t{modified_list}")
-                                    # = = = = = = = = = = =
-                                    if temp_list not in final_OLNEY_output_array: 
-                                        final_OLNEY_output_array.append(temp_list)
-                                    else:
-                                        print (f"DUPLICATE line not added to Olney_Array\n\t{temp_list}")
-                                    #==========================================================================
-                        #if is_empty==False:
-                            #if temp_list not in final_output_array:
-
-                            #    if dpg.get_value(file.filename+"_storeLoc")=="Kens":
-                            #        final_KENS_output_array.append(temp_list)
-                            #    elif dpg.get_value(file.filename+"_storeLoc")=="Olney":
-                            ##        final_OLNEY_output_array.append(temp_list)
-                            #   else:
-                            ##        final_KENS_output_array.append(temp_list)
-                            #        final_OLNEY_output_array.append(temp_list)
-
-
-                                #final_output_array.append(temp_list)
-
-                        #--------------------
-                    # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                    # AFTER ALL ROWS LOOPED IN CURRENT FILE: 
-                    #=============================================================
-                    formatted_count+=1
-                    #--------------------------------------------------------------
-                    # If this is the last rubric, move the file, otherwise
-                    if rubric_counter>=len(list(rubrics.keys())):
-                        print( "\t\t"+"All Formatting Complete."+"\n")
-                        #log.append( "\t\t"+"All Formatting Complete."+"\n")
-                        if dpg.get_value("move_files")==True:
-                            #log.append( "\t\t"+"--> Moving file"+"\n")
-                            print( "\t\t"+"--> Moving file"+"\n")
-                            try: 
-                                File_Operations.cleanup(file.filename,input_filepath,processed_path)
-                                #log.append( "\t\t\t"+"File transferred correctly."+"\n\n")
-                                print("\t\t\t"+"File transferred correctly."+"\n\n")
-                            except:
-                                #log.append( "\t\t\t"+"File did not transfer correctly."+"\n")
-                                print("\t\t\t"+"File did not transfer correctly."+"\n")
-                                #log.append( "\t\t\t"+"File unmoved."+"\n\n")
-                                print("\t\t\t"+"File unmoved."+"\n\n")
-                    else: 
-                        #log.append( "\t\t"+"Formatting Complete."+"\n\n")
-                        print("\t\t"+"Formatting Complete."+"\n\n")
-                    #--------------------------------------------------------------
-                else: # If the vendorfile object doesn't have a formatting dict to go with it, moves to next file. 
-                    #--------------------
-                    #log.append( "\t"+str(file.filename)+" has no matching vendor_format in the rubric. Skipping...\n\n")
-                    print ("\t"+str(file.filename)+" has no matching vendor_format in the rubric. Skipping...\n\n")
-                    dpg.configure_item(file.filename+'_error',default_value= str(file.filename)+" has no matching vendor_format in the rubric. Skipping...\n"+str(file.header),show=True)
-                    continue            # heads to next file. 
-                    #--------------------
-                #=============================================================
-                # The first rubric is the longest.
-                #if rubric_counter==1:
-                    #time_elapsed = time.clock() - start
-                #    dpg.configure_item(file.filename+"_prog",default_value=1,overlay=f"100% in {round(time_elapsed,3)} secs")
-                # End of current file. 
-            #--------------------------------------------------------------
-            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-            # AFTER ALL FILES PROCESSED THROUGH CURRENT FORMAT
-            #==================================================
-            rubric_counter+=1
-            #---------------------------------
-            #log.append( " -->"+"For "+savefile_format+":"+"\n")
-            #log.append( "\t\t"+str(formatted_count)+" out of "+str(len(vendorfileobj_list))+" files processed without any errors.\n")
-            print( " -->"+"For "+savefile_format+":"+"\n")
-            print( "\t\t"+str(formatted_count)+" out of "+str(len(vendorfileobj_list))+" files processed without any errors.\n")
-            #---------------------------------
-            print ("SAVING FILES!!!!!!!!!!!!!!!!!")
-            #---------------------------------
-            for i,output_array in enumerate([final_KENS_output_array,final_OLNEY_output_array]):
-
-                if len(output_array)==1: 
-                    #aka IT'S ONLY THE HEADER
-                    continue
-
-                if i == 0:
-                    store_loc = "Kens"
-                elif i == 1: 
-                    store_loc = "Olney"
-
-                if dpg.get_value("defaultSave?")==True:
-                    # Weekday / Month / Day
-                    savefile_name   =   'Inventory-'+store_loc+"-"+savefile_format
-                else: 
-                    savefile_name   =   dpg.get_value("outputFileName")+"-"+store_loc+"-"+savefile_format
-
-                saved_filenames.append(savefile_name)
-                #---------------------------------
-                # If the partial is saving, save it as CSV for better Counterpoint integration in addition to an excel, which Full will also be saved as.
-                if savefile_format.lower() == 'SQL Partial'.lower():
-                    File_Operations.list_to_csv(output_array,ouput_filepath+savefile_name+".csv")
-                File_Operations.list_to_excel(output_array,ouput_filepath+savefile_name+".xlsx")
-        # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        # AFTER ALL SAVEFILE FORMATS SAVED
-        #==================================================
+    def formatFiles(self):
         #==================================================
         # Create wix_format from the XLSX with the full header, as it is the one with possible URLs in the body.
         savefiles       =   dpg.get_value("process_wix")
@@ -546,28 +60,28 @@ class Processor:
         #==================================================
         if savefiles==True or update_website==True :
 
-            all_with = []
-            all_without =[]
-            recently_added_skus =[]
-            header = []
+            all_with            =   []
+            all_without         =   []
+            recently_added_skus =   []
+            header              =   []
+
             for file in saved_filenames:
                 if 'Full' in file:
                     #log.append( " --> Generating WIX formats now.\n")
                     print(f" --> Generating WIX formats now for {file}:\n")
                     #==================================================
-                    withUrl,withoutUrl=Wix_Utilities.generate_wix_files_from_xlsx(file,ouput_filepath)
+                    withUrl,withoutUrl=WIX_Utilities.generate_wix_files_from_xlsx(file,ouput_filepath)
                     #==================================================
                     #write both files
                     if savefiles==True:
                         File_Operations.list_to_excel(withUrl,     ouput_filepath+file+'-wix-URL.xlsx')
-                        import Gspread_WIX 
                         File_Operations.list_to_excel(withoutUrl,  ouput_filepath+file+'-wix-NO_URL.xlsx')
                         Gspread_WIX.createSheetAndPopulate(ouput_filepath+file+'-wix-NO_URL.xlsx',withoutUrl,folderID="1OLYcoDQ6E6tihDngWIInv3h6MMXzKQFi")
                     #==================================================
                     #updates website
                     if update_website==True:
                         header = withUrl[0]
-                        #print("header test:"+header)
+
                         for entry in withUrl[1:]:
 
                             if entry[header.index('handleId')] not in recently_added_skus:
@@ -583,14 +97,484 @@ class Processor:
                     #==================================================
             if update_website==True:
                 print ("Beginning website Auto-Update")
-                Wix_Utilities.autoupdateWebsite(header,all_with,all_without)
-        #==================================================
-        # Writes LOGS (if we're still doing this... Needs update)
-        print("\n<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
-        print("<><><><><><><><><><><><><><    DONE!!!   ><><><><><><><><><><><><><><><>")
-        print("<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
-        #update_error_logs((processed_path+str(today.strftime("%Y-%m-%d"))+'.txt'),log,False,False,False)
+                WIX_Utilities.autoupdateWebsite(header,all_with,all_without)
 
+    def processbyWIXRubric():
+        pass
+
+class InputProcessor:
+    vendorfileobj_list          : List[vendorfile]
+    final_KENS_output_array     : List[any]=[]
+    final_OLNEY_output_array    : List[any]=[]
+    final_BOTH_output_array     : List[any]=[]
+
+    
+    def __init__(self,JFGC,list_to_process,pathing_dict):
+        print ("=========================================")
+        print ("============PROCESSING INPUTS============")            
+        print ("=========================================")
+        self.rubrics  ,  self.vends  ,  self.all_headers  ,  self.tags =Gspread_Rubric.read_formatting_gsheet()
+
+        self.input_filepath = pathing_dict['input_filepath']
+        self.staged_filepath= pathing_dict['staged_filepath']
+        #self.ouput_filepath = pathing_dict['ouput_filepath']+'\\'
+        self.processed_filepath = pathing_dict['processed_filepath']+'fromInput\\'
+        
+        if not os.path.exists(self.processed_filepath): os.mkdir(self.processed_filepath)
+
+        self.talk_to_wix = dpg.get_value(item="talk_to_wix")
+        self.vendorfileobj_list = list_to_process
+        self.temp_AA=[]
+        self.JFGC = JFGC
+        # Instead of doing both, we print ONE FULL
+        # and then after a final check period; (with a refresh button to validate that files have been checked)
+        #   (can also start program from this check period which looks at special folder that has all FULLs)
+        # give the option to format into:
+        #   partial.csv (no edits necessary now; and full acts as record
+        #   wix found
+        #   wix missing
+
+        self.processbyRubric(self.rubrics["SQL Full"])
+        self.saveFilesToStaged(self.rubrics["SQL Full"],"SQL Full")
+        
+    def processbyRubric(self,rubric,annotations=True):
+
+        output_order        = self.reorder_rubric_dict(rubric)
+        print(output_order)
+        #===========================================
+        final_KENS_output_array     = [output_order]
+        final_OLNEY_output_array    = [output_order]
+        final_BOTH_output_array     = [output_order]
+        #===========================================
+        self.formatted_count =   1 # counts how many files have so far been processed... mostly for print()
+        self.AA_count        =   0 # counts how many auto assigned UPCs have been requested
+        # temp_AA and AA_count were on different levels before so that subsequent rubric marching would not request doubles and instead use the old.
+        #===========================================
+        for file in self.vendorfileobj_list:
+            #-----------------------------------
+            if annotations:
+                print ("=========================================")
+                print ("\t\t\t\tNEW VENDOR\t\t\t\t\t\t")
+                print (file)
+                print ('\n')
+                print ("______________________")
+            #-----------------------------------
+            vendor              =   file.formatting_dict_name
+            vendor_format_dict  =   file.formatting_dict
+            #-----------------------------------
+            if vendor==None:  
+                #--------------------
+                #log.append( "\t"+str(file.name)+" has no matching vendor_format in the rubric. Skipping...\n\n")
+                print ("\t"+str(file.name)+" has no matching vendor_format in the rubric. Skipping...\n\n")
+                dpg.configure_item(file.name+'_error',default_value= f'{file.name} has no matching vendor_format in the rubric. Skipping...\n{str(file.header)}',show=True)
+                continue           
+                #--------------------
+            if annotations:
+                print ( "\t"+str(file.name)+" is to be formatted with "+str(vendor)+"\n")
+            #--------------------
+            header  = file.header
+            rows    = file.rows
+            #--------------------
+            # Now that we have: 
+            #   1) the vendorfile dataclass
+            #   2) that file's header's matching rubric header
+            # It is time to begin 
+            #--------------------
+            for ii,row in enumerate(rows):
+                #--------------------
+                #SQL Full:	ITEM_NO	, PROF_ALPHA_2 , DESCR , LST_COST , PRC_1 , TAX_CATEG_COD , CATEG_COD , ACCT_COD , ITEM_VEND_NO , PROF_COD_4 , PROF_ALPHA_3 , PROF_DAT_1 , QTY , ImageUrl , ImageUrl2 , Description , ProductType , Collection , OptionName , OptionType , OptionDescription
+                #SQL csv:	ITEM_NO	, PROF_ALPHA_2 , DESCR , LST_COST , PRC_1 , TAX_CATEG_COD , CATEG_COD , ACCT_COD , ITEM_VEND_NO , PROF_COD_4 , PROF_ALPHA_3 , PROF_DAT_1 , QTY
+                #--------------------
+                if annotations:
+                    print("_______________________________________________________")
+                    print ("\t",rows.index(row)," out of ",len(rows))
+                    print ("\t\t",row)
+                #--------------------
+                percent_complete=(rows.index(row)/len(rows))
+                dpg.configure_item(f'{file.name}_prog',show=True,default_value=percent_complete,overlay=f"{int(percent_complete*100)}%")
+                #--------------------
+                ignore_threshold = False
+                if not ignore_threshold:
+                    """ 
+                    This section tries to determine if the row is empty save for one or two typos.
+                        Often at the end of a vendorfile were there rows with no entries save for a "_" or "#"
+                        Or empty rows used as spacers between rows with valid information.
+                    """
+                    '''
+                    cutoff_threshold = 4
+                    # If the number of empty cells in a row is greater than or equal to the full length of the row minus the threshold, go to next row. 
+                    if (row.count('')+row.count(None))>=len(row)-cutoff_threshold and (len(row)-cutoff_threshold>0):
+
+                        if annotations: 
+                            print ("\t\t",str(row.count('')+row.count(None))," out of ",len(row)," cells blank. Skipping...")
+                        continue
+                    '''
+                    if (row.count('')+row.count(None)+row.count('None')==len(row)):
+                        print ("\t\t",str(row.count('')+row.count(None)+row.count('None'))," out of ",len(row)," cells blank. Skipping...")
+                        continue
+                #--------------------
+                # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+                temp_list,remainders = self.iterateColumns(row,file,vendor_format_dict,output_order,annotations)
+                # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                # AFTER ALL COLUMNS LOOPED FROM CURRENT ROW:
+                #==================================================
+                #       CHECK EMPTY TEMP_LIST
+                # For each cell in the line we're appending, if any of them aren't empty, its not an empty line
+                # Checks each entry in the temp_list. If even one of them isn't empty, the whole thing isnt empty.
+                print (temp_list)
+                print("<><><><><><>||||||||<><><><><>||||||||<><><><><><>")
+                is_empty=True
+                for cell in temp_list:
+                    if cell!=None and cell!='': 
+                        is_empty=False; break
+                if is_empty: 
+                    print(f'Row {ii} generated empty output format! Check:\t{row}')
+                    continue # go to next row
+                #==================================================
+                #       CHECK DUPLICATE TEMP_LIST
+                # Checks to see if the entry already exists in the final output array. 
+                # If it already does, then it's a duplicate.
+                # TO DO:
+                #   - We had an error before whereby the file had 2x each entry, as opposed to one of each with double the inventory.
+                if dpg.get_value("skipDuplicates")==False:
+                    if dpg.get_value(file.name+"_storeLoc")=="Kens":
+                        final_KENS_output_array.append(temp_list)
+                        #==========================================================================
+                    elif dpg.get_value(file.name+"_storeLoc")=="Olney":
+                        final_OLNEY_output_array.append(temp_list)
+                        #==========================================================================
+                    else:
+                        if remainders==True:
+                            modified_list   =   temp_list.copy()
+                            fixed_qty       =   str(int(float(temp_list[output_order.index('QTY')]))+1)
+                            fixed_qty       =   fixed_qty.replace('.0','')
+                            modified_list[output_order.index('QTY')]=fixed_qty
+                            final_KENS_output_array.append(modified_list)
+                        else:
+                            final_KENS_output_array.append(temp_list)
+                        final_OLNEY_output_array.append(temp_list)
+                else: 
+                    if dpg.get_value(file.name+"_storeLoc")=="Kens" and (temp_list not in final_KENS_output_array):
+                        if temp_list not in final_KENS_output_array: 
+                            final_KENS_output_array.append(temp_list)
+                        else: 
+                            print (f"DUPLICATE line not added to Kens_Array\n\t{temp_list}")
+                        #==========================================================================
+                    elif dpg.get_value(file.name+"_storeLoc")=="Olney" and (temp_list not in final_OLNEY_output_array):
+                        if temp_list not in final_OLNEY_output_array: 
+                            final_OLNEY_output_array.append(temp_list)
+                        else:
+                            print (f"DUPLICATE line not added to Olney_Array\n\t{temp_list}")
+                        #==========================================================================
+                    else:
+                        # If both stores; give remainder to one store
+                        # Currently hardcoded as KENS but could make a button or switcher
+                        # = = = = = = = = = = =
+                        if remainders==True:
+                                modified_list   =   temp_list.copy()
+                                fixed_qty       =   str(int(float(temp_list[output_order.index('QTY')]))+1)
+                                fixed_qty       =   fixed_qty.replace('.0','')
+                                modified_list[output_order.index('QTY')]=fixed_qty
+                        # = = = = = = = = = = =
+                        if modified_list not in final_KENS_output_array: 
+                            final_KENS_output_array.append(modified_list)
+                        else: 
+                            print (f"DUPLICATE line not added to Kens_Array\n\t{modified_list}")
+                        # = = = = = = = = = = =
+                        if temp_list not in final_OLNEY_output_array: 
+                            final_OLNEY_output_array.append(temp_list)
+                        else:
+                            print (f"DUPLICATE line not added to Olney_Array\n\t{temp_list}")
+            #==================================================
+            #       MOVE FILE
+            self.formatted_count+=1
+            #--------------------------------------------------------------               
+            print( "\t\t"+"--> Moving file"+"\n")
+            try: 
+                File_Operations.cleanup(file.name,self.input_filepath,self.processed_filepath)
+                print("\t\t\t"+"File transferred correctly."+"\n\n")
+            except Exception as e:
+                print("\t\t\t"+"File did not transfer correctly."+str(e)+"\n")
+                print("\t\t\t"+"File unmoved."+"\n\n")
+                
+            print("\t\t"+"Formatting Complete."+"\n\n")
+        #===========================================
+        self.final_KENS_output_array  = final_KENS_output_array
+        self.final_OLNEY_output_array = final_OLNEY_output_array
+        self.final_BOTH_output_array  = final_BOTH_output_array
+
+    def iterateColumns(self,row,file,vendor_format_dict,output_order,annotations=False):
+        temp_list   =   []
+        remainders  =   False
+        header=file.header
+        #============================================================
+        # v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
+        print (f'::------------ Problematic Columns Start:')
+
+        for column in output_order:
+            #print (f'CURRENT COLUMN:\t{column}')
+            try: 
+                if column == 'ITEM_NO':
+                    # <<<<<<<<<<< UPC >>>>>>>>>>>
+                    #print(row[header.index(vendor_format_dict[column])] == None)
+                    #--------------------
+                    if (column not in vendor_format_dict.keys()):
+
+                        if i==0:
+                            temp_upc = Auto_Assigner.getNextUPC()
+                            self.temp_AA.append(temp_upc)
+                        else:
+                            temp_upc = self.temp_AA[self.AA_count]
+                            self.AA_count+=1
+
+                        temp_list.append(temp_upc)
+                        AA=True
+                    elif (row[header.index(vendor_format_dict[column])] == '') or (row[header.index(vendor_format_dict[column])] == None)or (row[header.index(vendor_format_dict[column])] == ' ')or (row[header.index(vendor_format_dict[column])] == 'None'):
+                        # If there is no UPC code found, begin autoassign. 
+                        #temp_list.append("(AUTO-ASSIGN)")
+
+                        if i==0:
+                            temp_upc = Auto_Assigner.getNextUPC()
+                            temp_AA.append(temp_upc)
+                        else:
+                            temp_upc = temp_AA[AA_count]
+                            AA_count+=1
+
+
+                        temp_list.append(temp_upc)
+
+                        AA=True
+                    else: 
+                        temp_sku = row[header.index(vendor_format_dict[column])]
+                        #---------- FORMAT HERE
+                        temp_sku = str(temp_sku).replace("-","")
+                        temp_sku = str(temp_sku).replace(" ","")
+                        #---------- FORMAT END
+                        temp_list.append(temp_sku)
+                        sku      = row[header.index(vendor_format_dict[column])]
+                        if self.talk_to_wix:
+                            resp = WIX_Utilities.get_product(sku)
+                            print(f"Did Wix find a product?\t{resp}")
+                        AA=False
+                    #--------------------
+                elif column == 'PROF_DAT_1':
+                    # <<<<<<<<<<< Today's Date >>>>>>>>>>>
+                    #--------------------
+                    today = date.today()
+                    temp_list.append(today.strftime("%m/%d/%y"))
+                    #--------------------
+                elif column == 'LST_COST':
+                    # <<<<<<<<<<< Last Cost >>>>>>>>>>>
+                    # What we bought it for
+                    #--------------------
+                    temp_price = row[header.index(vendor_format_dict['LST_COST'])]
+                    temp_price = str(temp_price).replace("$",'')
+                    temp_price = str(temp_price).replace(" ",'')
+                    temp_list.append(temp_price)
+                    #--------------------
+                elif column == 'ACCT_COD' or column == "CATEG_COD":
+                    # <<<<<<<<<<< Dept >>>>>>>>>>>
+                    #--------------------
+                    dept="00"+str(file.department)
+                    if len(dept)>3: dept=dept[1:]
+                    temp_list.append(dept)
+                    #--------------------
+                elif column == 'PROF_ALPHA_3':
+                    # <<<<<<<<<<< Man # >>>>>>>>>>>    
+                    # Same as Manufacturing #
+                    #--------------------
+                    temp_list.append(row[header.index(vendor_format_dict['PROF_ALPHA_2'])])
+                    #--------------------
+                elif column == 'PRC_1':
+                    # <<<<<<<<<<< Retail Price >>>>>>>>>>>          
+                    #--------------------
+                    overwrite_price     =   dpg.get_value(f"{file.name}_overwritePrice")
+                    use_cost            =   False
+                    #--------------------
+                    if ('PRC_1' in vendor_format_dict.keys() and not overwrite_price):
+                        # This should only work if the rubric has a column correspondence for PRC_1...
+                        #   as in... we should know what files will have price overrides, and can accomodate in the rubric file
+                        temp_price       =      row[header.index(vendor_format_dict['PRC_1'])]
+
+                        if temp_price is None:
+                            print (temp_price,"\t1\t",type(temp_price))
+                            use_cost=True
+                        elif temp_price=='':
+                            print (temp_price,"\t2\t",type(temp_price))
+                            use_cost=True
+                        elif temp_price.count(' ')==len(list(temp_price)):
+                            print (temp_price,"\t3\t",type(temp_price))
+                            use_cost=True
+                        elif temp_price=="None":
+                            print (temp_price,"\t4\t",type(temp_price))
+                            use_cost=True
+                        else:
+                            print (temp_price,"\t5\t",type(temp_price))
+                            temp_price  =   str(temp_price).replace("$",'')
+                            price       =   temp_price
+                    else:   use_cost=True
+                    #--------------------            
+                    if use_cost:
+
+                        markup = Utilities.Markup()
+
+                        # -------------
+                        deptCode                =    file.department
+                        temp_price              =    row[header.index(vendor_format_dict['LST_COST'])]
+                        temp_price              =    str(temp_price).replace("$","")
+                        temp_price              =    str(temp_price).replace(" ","")
+                        # -------------
+                        try:
+                            strPrice            =   temp_price
+                            strBasedPrice       =   markup.markupCalculator(strPrice,self.JFGC.getDptByCode(deptCode))
+                            price               =   strBasedPrice
+                        except:
+                            intFloatPrice       =   int(float(temp_price))
+                            intFloatBasedprice  =   markup.markupCalculator(intFloatPrice,self.JFGC.getDptByCode(deptCode))
+                            price               =   intFloatBasedprice
+                        # -------------
+                    temp_list.append(price)
+                    #--------------------
+                elif column == 'TAX_CATEG_COD':
+                    # <<<<<<<<<<< TAX CODE >>>>>>>>>>>    
+                    #--------------------
+                    temp_list.append(file.taxCode)
+                    #--------------------
+                elif column == 'ITEM_VEND_NO':
+                    # <<<<<<<<<<< Vendor Code >>>>>>>>>>>    
+                    #--------------------
+                    temp_list.append(file.vendorCode)
+                    #--------------------
+                elif column == 'PROF_COD_4':   # ITEM PRICE CODE
+                    # <<<<<<<<<<< Item Price Code >>>>>>>>>>>    
+                    #--------------------
+                    dept=int(file.department)
+                    if (dept >=1 and dept<=14) or (dept>=34 and dept<=53): 
+                        temp_list.append("A")
+                    elif (dept >=15 and dept<=24):
+                        temp_list.append("B")
+                    elif (dept >=25 and dept<=31):
+                        temp_list.append("C")
+                    #--------------------
+                elif column == 'ImageUrl':
+                    # <<<<<<<<<<< Image URL (if it exists) >>>>>>>>>>>    
+                    #--------------------
+                    temp_str_barcode =''
+                    print(f'Autoassigned?\t{AA}')
+                    if AA==False:
+                        format_dict_label = vendor_format_dict.get(column,None)
+                        if format_dict_label==None:
+                            # If the url column is empty, try wix.
+                            if self.talk_to_wix:
+                                temp_url = WIX_Utilities.get_url(resp)
+                                print (temp_url)
+                                temp_str_barcode=temp_url
+                            else:
+                                temp_str_barcode = ''
+                        else: 
+                            # If the url column has data, take that info.
+                            temp_str_barcode = row[header.index(format_dict_label)]
+                        #------------------------------------------------------------
+                        # Only uses barcode lookup if wix's URL returned nothing
+                        if (temp_str_barcode == '') and (dpg.get_value('barcode_lookup')==True):
+                            temp_barcode = UPCLookup.upcLookup(sku)
+                            temp_str_barcode = temp_barcode['productImageUrl']
+                        #------------------------------------------------------------
+                    print("does it get here? C")
+
+                    temp_list.append(temp_str_barcode)
+                    #--------------------
+                elif column == "Collection":
+                    # <<<<<<<<<<< Collection >>>>>>>>>>>    
+                    #--------------------
+                    temp_collection = ''
+                    if AA==False:
+                        if self.talk_to_wix:
+                            temp_collection = WIX_Utilities.get_collection(resp)
+                    temp_list.append(temp_collection)
+                    #--------------------
+                elif column == "QTY":
+                    # <<<<<<<<<<< Quantity >>>>>>>>>>>    
+                    #--------------------
+                    temp_qty = ''
+
+                    if (column not in vendor_format_dict.keys()):
+                        temp_qty = '0'
+                    elif row[header.index(vendor_format_dict[column])] != '' and  row[header.index(vendor_format_dict[column])] != None:
+                        temp_qty = str(row[header.index(vendor_format_dict[column])])
+                    else: 
+                        temp_qty = '0'
+
+                    if dpg.get_value(file.name+"_qtyDivide")=="Divide Evenly" and temp_qty!='0':
+                        if int(float(temp_qty))%2==0:
+                            halved_qty = str(int(float(temp_qty))/2)
+                            halved_qty = halved_qty.replace('.0','')
+                        else:
+                            halved_qty = str((int(float(temp_qty))-1)/2)
+                            halved_qty = halved_qty.replace('.0','')
+                            remainders = True
+                        temp_qty = halved_qty
+
+                    temp_list.append(str(temp_qty))
+                    #--------------------
+                else:
+                    # <<<<<<<<<<< UNDEFINED >>>>>>>>>>>    
+                    #--------------------
+                    if column in vendor_format_dict.keys():
+                        temp_list.append(row[header.index(vendor_format_dict[column])])
+                    else: temp_list.append('')
+                    #--------------------
+            except Exception as e:
+                #if annotations: print (column,"\t",e)
+                print (column,"\t",e)
+                temp_list.append('*!ERROR!*')
+        print("----- problematic columns end::")
+        #============================================================
+        return temp_list, remainders
+
+    def saveFilesToStaged(self,savefile_format,format_name):
+        temp_saved_filenames=[]
+        #---------------------------------
+        print( " -->"+"For "+format_name+":"+"\n")
+        print( "\t\t"+str(self.formatted_count)+" out of "+str(len(self.vendorfileobj_list))+" files processed without any errors.\n")
+        print ("SAVING FILES!!!!!!!!!!!!!!!!!")
+        #---------------------------------
+        for i,output_array in enumerate([self.final_KENS_output_array,self.final_OLNEY_output_array]):
+            #---------------------------------
+            if len(output_array)==1: continue #aka IT'S ONLY THE HEADER
+            if i==0:    store_loc = "Kens"
+            elif i== 1: store_loc = "Olney"
+            #---------------------------------
+            if dpg.get_value("defaultSave?")==True:
+                # Weekday / Month / Day
+                savefile_name   =   'Inventory-'+store_loc+"-"+format_name
+            else: 
+                savefile_name   =   dpg.get_value("outputFileName")+"-"+store_loc+"-"+format_name
+
+            temp_saved_filenames.append(savefile_name)
+            #---------------------------------
+            # If the partial is saving, save it as CSV for better Counterpoint integration in addition to an excel, which Full will also be saved as.
+            #if savefile_format.lower() == 'SQL Partial'.lower():
+            #    File_Operations.list_to_csv(output_array,self.staged_filepath+savefile_name+".csv")
+            #else:
+            File_Operations.list_to_excel(output_array,self.staged_filepath+savefile_name+".xlsx")
+        
+        self.saved_filenames = temp_saved_filenames
+        # ^ in the future, will be replaced by another file rubric reading of the STAGED section (not input)
+
+
+    def reorder_rubric_dict(self,unordered_dict):
+        # Each dict passed here should have the same length
+        #----------------------
+        dict_as_list_header=[]
+        #----------------------
+        i=0
+        while i<=len(unordered_dict.keys()):
+            try:dict_as_list_header.append(unordered_dict[i])
+            except: pass
+            i+=1
+        #----------------------
+        return dict_as_list_header
 
 class Importer:
     # Is there a way to make it so you never have to close the program to restart functionality?
@@ -626,7 +610,6 @@ class Importer:
         dpg.configure_item(user_data+'_window',show=app_data)
         dpg.configure_item(user_data+"_entireChild",height=height)
         dpg.configure_item(user_data+'_tabBar',show=app_data)
-
 
         if not app_data: 
             dpg.configure_item(user_data+'_save',label="")
@@ -674,9 +657,20 @@ class Importer:
             dpg.configure_item(user_data+'_combo', items=temp_vendor_names,default_value="~NONE FOUND~")
         dpg.configure_item(user_data+'_vendorCodeDisplay',default_value=self.vendor_codes[dpg.get_value(user_data+'_combo')])
 
-    def helper_update_headerCheck(self,sender,app_data,user_data):
-        pass
+    def helper_update_headerCheck(self,vendorfileObj):
+        # updates the rubric portion of header check
+        print(vendorfileObj.formatting_dict)
 
+        vendor_name=vendorfileObj.vendorName
+        # assuming vendorfile vendor has been found
+        dpg.configure_item(vendorfileObj.name+"_headerName",default_value=vendor_name,show=True,color=(127, 255, 212))
+        
+        for index,item in enumerate(vendorfileObj.header):
+            if item != 'None' and item != None:
+                #print(f'CONFIG: {vendorfileObj.name}_rubric_headercheck_{index}')
+
+                dpg.configure_item(f'{vendorfileObj.name}_rubric_headercheck_{index}',default_value=f'| {item} ')
+ 
     def helper_showQtyAlloc(self,sender,app_data,user_data):
         # Helper function for displaying a special combo box that specifies what to do with a given file's QTY if 'BOTH' stores are selected
         box_name    = f"{user_data}_qtyDivide"
@@ -766,20 +760,26 @@ class Importer:
                     pass
 
             vendorfileObj.set_formatting_dict(name=temp_name,format=vendor_format_dict)
+            helper_update_headerCheck(vendorfileObj)
         #----------------------------------
         return status
 
     def find_rubric(self,vendorfileObj,annotations=False):
+        # attach rubric to obj
 
         # Vendorfile headers are messy. 
         # They sometimes have tons of extra 'None' values returned with them, and are full of variations that will need to be accounted for.
         # The base vendor_rubrics we have, though, represent the minimum needed column values for successfully autoformatting. 
         found = False
 
+        # check all vendors
         for vendor_name in self.vends.keys():
-                                
+            # if the headers match                    
             if self.all_headers[vendor_name] == vendorfileObj.header:
-                                
+                #--------------------
+                found = True
+                header_to_display   = self.all_headers[vendor_name]
+                #--------------------
                 if annotations: 
                     #print ("MATCH: ",str(match_count)); match_count+=1
                     print ("\t"+str(vendorfileObj.name))
@@ -787,11 +787,6 @@ class Importer:
                     print ("\t\t"+str(vendorfileObj.header))
                     print ("\t\t"+str(self.all_headers[vendor_name]))
                     print ("============================")
-
-                #--------------------
-                found = True
-
-                header_to_display   = self.all_headers[vendor_name]
                 #--------------------
                 vendor_format_dict={}
                 for column in self.vends[vendor_name].keys():
@@ -805,14 +800,16 @@ class Importer:
                 #--------------------
                 #vendor_format_dict  = zip_formatting_dict(self.rubrics[list(self.rubrics.keys())[0]],self.vends[vendor_name])                
                 vendorfileObj.set_formatting_dict(vendor_name, vendor_format_dict)
-                dpg.configure_item(vendorfileObj.name+"_headerName",default_value=vendor_name,show=True,color=(127, 255, 212))
+                self.helper_update_headerCheck(vendorfileObj)
+
+                '''dpg.configure_item(vendorfileObj.name+"_headerName",default_value=vendor_name,show=True,color=(127, 255, 212))
                 #--------------------
                 #rubric_header_group = dpg.add_group(horizontal = True)
                 for index,item in enumerate(header_to_display):
                     if item != 'None' and item != None:
                         print(f'CONFIG: {vendorfileObj.name}_rubric_headercheck_{index}')
 
-                        dpg.configure_item(f'{vendorfileObj.name}_rubric_headercheck_{index}',default_value=f'| {item} ')
+                        dpg.configure_item(f'{vendorfileObj.name}_rubric_headercheck_{index}',default_value=f'| {item} ')'''
                 #--------------------
                 break
       
@@ -830,8 +827,8 @@ class Importer:
         #---------------------------
         vendorfile_list =   user_data[0]
         pathing_dict    =   user_data[1]
-        today           =   user_data[2]
-        annotations     =   user_data[3]
+        #today           =   user_data[2]
+        annotations     =   user_data[2]
         #---------------------------
         list_to_process =   []
         #---------------------------
@@ -860,7 +857,9 @@ class Importer:
                 dpg.add_text("No vendorfiles selected!\nPlease check which files are ready to process.")
                 return
         #---------------------------
-        process_inputs(list_to_process,pathing_dict,today,annotations)
+        processor = InputProcessor(self.JFGC,list_to_process,self.pathing_dict)
+        #process_inputs(list_to_process,pathing_dict,today,annotations)
+        # go to next stage
 
     def vendorChildWindow(self,vendorfileObj: vendorfile):
         #============================================================== 
@@ -944,7 +943,7 @@ class Importer:
                         dpg.add_combo(width=160,id=vendorfileObj.name+"_dept",items = list(self.JFGC.dptByStr.keys()),default_value='~None Found~',parent=dept_group,callback=self.helper_update_deptCode)
 
                         try:
-                            temp_def_val = self.JFGC.getDptByCode(vendorfileObj.department).dptStr
+                            temp_def_val = self.JFGC.getDptByCode(vendorfileObj.department.dptStr)
                             print("__________"+temp_def_val)
                             print(vendorfileObj.department)
                             print(type(temp_def_val))
@@ -984,6 +983,8 @@ class Importer:
                     with dpg.child_window(tag=vendorfileObj.name+"_headerCheckWindow", width=790, height=100,no_scrollbar=False,horizontal_scrollbar=True):
                             dpg.add_text(tag=vendorfileObj.name+"_headerName",default_value = "NO FORMAT FOUND --> Create a new one with the next tab!",show=False)
 
+                            #self.helper_update_headerCheck(vendorfileObj)
+
                             temp_header = vendorfileObj.header
 
                             for index,item in enumerate(vendorfileObj.header):
@@ -1003,7 +1004,7 @@ class Importer:
                             dpg.add_input_text(default_value=f"RUBRIC:", readonly=True,parent=rubric_header_group,width=55)
                             for index,item in enumerate(temp_header):
                                 if item != 'None' and item != None:
-                                    print(f'BUILD: {vendorfileObj.name}_rubric_headercheck_{index}')
+                                    #print(f'BUILD: {vendorfileObj.name}_rubric_headercheck_{index}')
                                     dpg.add_text(f'| {"~"*len(item)} ',parent=rubric_header_group,tag=f'{vendorfileObj.name}_rubric_headercheck_{index}')
                             #====================================================
                             self.find_rubric(vendorfileObj)
@@ -1036,12 +1037,6 @@ class Importer:
                                 default_fiddle = rubric_combo_items[0]
 
                             dpg.add_combo(id=f"{vendorfileObj.name}_{item}_combo",items=rubric_combo_items,default_value = default_fiddle,parent=fiddle_row_2,width=component_width)
-
-                            #try:
-                            #except:
-                            #    print("----------------------- Duplicate name: trying")
-                            #    print (f"HERE::::::::::::::: {vendorfileObj.name}_{item}_combo")
-                            #    dpg.add_combo(id=f"{vendorfileObj.name}_{item}_combo",items=rubric_combo_items,default_value = default_fiddle,parent=fiddle_row_2,width=component_width)
             #===================================================
             dpg.set_item_callback(vendorfileObj.name+'_save',self.lock_info)
             dpg.set_item_user_data(vendorfileObj.name+'_save',vendorfileObj.name)
@@ -1062,10 +1057,10 @@ class Importer:
             options_group = dpg.add_group(horizontal = True)
             dpg.add_button(tag="process_button",label="Begin Processing",width=120,height=60,parent=options_group)
             options_col_a = dpg.add_group(horizontal = False,parent=options_group)
-            dpg.add_checkbox(tag="process_wix",label="Process files into WIX format?",default_value=True,parent=options_col_a),
-            dpg.add_checkbox(tag="auto_wix",label="Automatically update website?",default_value=False,parent=options_col_a)
-            dpg.add_checkbox(tag="move_files",label="Move files after completion?",default_value=True,parent=options_col_a)
+            #dpg.add_checkbox(tag="move_files",label="Move files after completion?",default_value=True,parent=options_col_a)
             options_col_b = dpg.add_group(horizontal = False,parent=options_group)
+            dpg.add_checkbox(tag="talk_to_wix",label="Ping wix for UPCs,Collections,Images?",default_value=True,parent=options_col_a)
+
             dpg.add_checkbox(tag="barcode_lookup",label="Enable Barcode Lookup?",default_value=False,parent=options_col_b)
             dpg.add_checkbox(tag="skipDuplicates",label="Skip Duplicate Lines?",default_value=False,parent=options_col_b)
             #----------------------------------------------------
@@ -1085,7 +1080,23 @@ class Importer:
                 saveStr+=item+'-'
             #===================================================
             dpg.configure_item("outputFileName",default_value=saveStr)
-            today = date.today()
+            #today = date.today()
 
-            dpg.set_item_user_data("process_button",user_data=[vendorfileObjList,self.pathing_dict,today,True])
+            dpg.set_item_user_data("process_button",user_data=[vendorfileObjList,self.pathing_dict,True])
             dpg.set_item_callback("process_button",self.processing_helper)
+
+
+
+if __name__=="__main__":
+
+    dpg.create_context()
+    dpg.create_viewport(title='importer test', width=830, height=700)
+    dpg.setup_dearpygui()
+
+    b = StagedProcessor()   
+    
+    dpg.show_viewport()
+    #dpg.set_primary_window("Primary Window", True)
+    dpg.start_dearpygui()
+    dpg.destroy_context()
+
