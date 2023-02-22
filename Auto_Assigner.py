@@ -18,13 +18,13 @@ def createAvailableUPCsListObj(targetLength = 6,annotations=False):
     CURSOR_STR = f"SELECT * FROM JFGC.dbo.IM_ITEM ORDER BY ITEM_NO ASC;"
 
     sqlClient.cursor.execute(CURSOR_STR)
-    header =   [i[0] for i in cursor.description]
+    header =   [i[0] for i in sqlClient.cursor.description]
 
     all_skus=[]
 
     lengths = [[] for x in range(0,30)]
 
-    for entry in cursor:
+    for entry in sqlClient.cursor:
         all_skus.append(entry[header.index("ITEM_NO")])
 
     for sku in all_skus: 
@@ -190,9 +190,11 @@ def getNextUPC(targetLength=6):
     working_directory = os.getcwd()
     saveName = f"{working_directory}\\Data\\available_AA_UPCs_{targetLength}.txt"
 
-
+    #print (saveName)
     continuous = getVariable(saveName)
 
+    #print (continuous)
+    #print("----")
     next_available_UPC = str(continuous[0])
 
     continuous.remove(next_available_UPC)
@@ -229,6 +231,8 @@ def test():
 
 
 if __name__=="__main__":
-    print (getMultipleUPCs())
-
-
+    pass
+    #print (getMultipleUPCs())
+    #createAvailableUPCsListObj()
+    #createAvailableUPCsListObj(annotations=True)
+    #getNextUPC()

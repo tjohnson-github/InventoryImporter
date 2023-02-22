@@ -82,12 +82,14 @@ def add_rubric(name,subname,values):
 
         # Print first of two rows
         for i,item in enumerate(temp_row_A):
+            #if i+1!=38:
             wk.update_cell(last_cell,i+1,item)
 
         last_cell+=1
 
         # Print second of two rows
         for i,item in enumerate(temp_row_B):
+            #if i+1!=38:
             wk.update_cell(last_cell,i+1,item)
 
         last_cell+=1
@@ -176,10 +178,12 @@ def read_formatting_gsheet(gsheetName="JFGC Formatting Rubrics"):
         #=======================
         temp_row=[]
         #=======================
-        for cell in row[1:]:
+        for index,cell in enumerate(row[1:]):
             #----------------------------
             # If there's no value in the final 
+            #if (cell=="STOP" or index+1>=38) and is_header: break
             if cell=="STOP" and is_header: break
+            #if index+1==38 and is_header: break
             #if cell.value==None and is_header: continue
             #elif cell.value==None and not is_header: 
             #----------------------------

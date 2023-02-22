@@ -41,11 +41,15 @@ class vendorfile:
             case "xlsx":
                 output_array,errorMsg    =   File_Operations.excel_to_list(self.fullPath)'''
 
-        if(self.extension=="csv"):
-            output_array,errorMsg    =   File_Operations.csv_to_list(self.fullPath)
-        elif(self.extension=="xlsx"):
-            output_array,errorMsg    =   File_Operations.excel_to_list(self.fullPath)
+        
+        try:
 
+            if(self.extension=="csv"):
+                output_array,errorMsg    =   File_Operations.csv_to_list(self.fullPath)
+            elif(self.extension=="xlsx"):
+                output_array,errorMsg    =   File_Operations.excel_to_list(self.fullPath)
+        except Exception as e:
+            print(f"Failure reading {self.fullPath}\t:\t{e}")
 
         if output_array==False: 
             print("\t"+errorMsg+"\n")
@@ -53,7 +57,11 @@ class vendorfile:
             self.rows   = []
             return
 
+        #print("-----------------------------")
+        #print(self.name)
+        #print (f"OUTPUT ARRAY [0]:\t{output_array[0]}")
         self.header = output_array[0]
+        #print (f"OUTPUT ARRAY [0]:\t{self.header}")
         self.rows   = output_array[1:]
         
         # =================================================
@@ -72,8 +80,8 @@ class vendorfile:
         else:
             temp_info   =   temp_name
 
-        print("---------NAME format begin------")
-        print (temp_info)
+        #print("---------NAME format begin------")
+        #print (temp_info)
 
         try:
             self.vendorName = temp_info[0]

@@ -11,20 +11,20 @@ import tabula
 #           PICKLING
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
-def saveVariable(save_Name,save_Data):
+def saveVariable(saveName,saveData):
     #--------------
     try:
-        pickle.dump(save_Data,open(save_Name,'wb'))
+        pickle.dump(saveData,open(saveName,'wb'))
     except Exception as e:
         print (f"{saveName} not saved correctly. Check permissions")
         print (e)
         return e
     
-def getVariable(save_Name):
+def getVariable(saveName):
     #--------------
     try:
-        saved_Data = pickle.load(open(save_Name,'rb'))
-        return saved_Data
+        savedData = pickle.load(open(saveName,'rb'))
+        return savedData
     except Exception as e:
         print (f"{saveName} not loaded correctly. Check permissions")
         print (e)
@@ -110,7 +110,7 @@ def excel_to_list(excel_file):
                     noneCount=0
 
                 if ii==len(temp_list)-1 and noneCount>0:
-                    temp_list = temp_list[:ii-noneCount]
+                    temp_list = temp_list[:ii-noneCount+1]
         else:
             temp_list = temp_list[:len(temp_list)-noneCount]
 
@@ -129,6 +129,7 @@ def list_to_excel(temp_list,filename_to_save):
         ws = wb.active
         #------------------------
         for row in temp_list:
+            print(row)
             ws.append(row)
         #------------------------
         wb.save(filename_to_save)
@@ -163,3 +164,8 @@ def cleanup(filename, input, processed):
 
     shutil.move(source,destination)
 
+
+
+if __name__=="__main__":
+    a = excel_to_list("C:\\Users\\Andrew\\source\\repos\\VENDOR_FILES\\INPUT\\Lotus-322-14.xlsx")
+    print(a)

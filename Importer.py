@@ -10,94 +10,203 @@ import Auto_Assigner
 import UPC_Lookup
 import WIX_Utilities
 import Utilities
+import fnmatch
 
 import File_Operations
 
 class StagedProcessor:
     __count=0
     
-    def __init__(self):
+    def updatePreview(self,sender):
+        for stagedFile in self.stagedFiles:
+
+            dpg.configure_item(item=f'{stagedFile}_{sender}',show=dpg.get_value(sender))
+
+    def hidePreview(self,sender,app_data,user_data):
+
+        status = dpg.get_value(sender)
+        stagedFile = user_data
+
+        dpg.configure_item(item=f'{stagedFile}_default',show=dpg.get_value(sender))
+        dpg.configure_item(item=f'{stagedFile}_process_wix',show=dpg.get_value('process_wix'))
+        dpg.configure_item(item=f'{stagedFile}_auto_wix',show=dpg.get_value('auto_wix'))
+
+
+    def formatName(self,full):
+
+        temp_partial = full[:-9]
+        temp_partial+="Partial.csv"
+
+        return temp_partial
+
+    def __init__(self,JFGC,pathing_dict,cloudRubric=True):
         
-        #stagedFiles = self.scan_staged()
-        stagedFiles=[1,1,1,1,1]
+        self.staged_filepath    = pathing_dict['staged_filepath']
+        self.ouput_filepath     = pathing_dict['ouput_filepath']
+        self.processed_filepath = pathing_dict['processed_filepath']+'fromStaged\\'
 
-        with dpg.window(label="Staged File Manager",tag=f'stagedManager_{self.__count}',width=830,height=(300+(115*int(len(stagedFiles))))):
 
-            dpg.add_checkbox(tag="process_wix",label="Process files into WIX format?",default_value=True),
-            dpg.add_checkbox(tag="auto_wix",label="Automatically update website?",default_value=False)
-            dpg.add_checkbox(tag="combine_files",label="Combine files into one Counterpoint8?",default_value=True,callback=self.showOptions)
-            dpg.add_combo(tag='combine_files_options',label="Reorganize by:",items=["Original File","Department","Vendor","Ticket"],show=False)
+        try:
+            self.scan_staged(self.staged_filepath)
+        except Exception as e:
+            with dpg.window(popup=True):
+                dpg.add_text(f"Cannot read files from staged location!\t{e}")
+
+        #====================================================
+        if len(self.stagedFiles)<=0:
+            with dpg.window(popup=True):
+                dpg.add_text("No xlsx files found at input folder selected!")
+            return
+        #====================================================
+        with dpg.window(label="Staged File Manager",tag=f'stagedManager_{self.__count}',width=830,height=(300+(115*int(len(self.stagedFiles))))):
+            #----------------------------------------------------
+            options_group = dpg.add_group(horizontal = True)
+            dpg.add_button(tag="staged_process_button",label="Begin Processing",width=120,height=60,parent=options_group)
+            #----------------------------------------------------
+            options_col_a = dpg.add_group(horizontal = False,parent=options_group)
+
+            dpg.add_checkbox(tag="process_wix",label="Process files into WIX format?",default_value=True,parent=options_col_a,callback=self.updatePreview),
+            dpg.add_checkbox(tag="auto_wix",label="Automatically update website?",default_value=False,parent=options_col_a,callback=self.updatePreview)
+            dpg.add_checkbox(tag="combine_files",label="Combine files into one Counterpoint8 per store?",default_value=False,callback=self.showOptions,parent=options_col_a)
+            dpg.add_combo(tag='combine_files_options',label="Reorganize by:",items=["Original File","Department","Vendor","Ticket"],show=True,parent=options_col_a,default_value="Original File")
+            #----------------------------------------------------
+            dpg.add_separator()
+            #----------------------------------------------------
+            with dpg.child_window():
+                dpg.add_text("This process will create the following things:")
+                dpg.add_separator()
+                dpg.add_separator()
+                #----------------------------------------------------
+                for stagedFile in self.stagedFiles:
+                    _ = dpg.add_group(horizontal=True)
+                    dpg.add_checkbox(tag=f'{stagedFile}_confirmation',label="Process ",default_value=True,parent=_,callback=self.hidePreview,user_data=stagedFile)
+                    dpg.add_text(f"{stagedFile}?",parent=_)
+
+                    dpg.add_text(tag=f"{stagedFile}_default",bullet=True,default_value=self.formatName(stagedFile))
+                    dpg.add_text(tag=f'{stagedFile}_process_wix',bullet=True,default_value=f"Two WIX-formatted import excels; one for products already on website with images, and one without",show=dpg.get_value('process_wix'))
+                    dpg.add_text(tag=f'{stagedFile}_auto_wix',bullet=True,default_value=f"New products on WIX for those not already on WIX; updates for products already on WIX",show=dpg.get_value('auto_wix'))
+
+                    dpg.add_separator()
+            #----------------------------------------------------
+  
+            #===================================================
+            #dpg.set_item_user_data("process_button",user_data=[vendorfileObjList,self.pathing_dict,True])
+            dpg.set_item_callback("staged_process_button",self.processing_helper)
+
 
         self.__count+=1
         print(self.__count)
 
     def scan_staged(self,pathing_dict):
-        #self.input_filepath = pathing_dict['input_filepath']+'\\'
-        self.staged_filepath= pathing_dict['staged_filepath']
-        self.ouput_filepath = pathing_dict['ouput_filepath']
-        #self.ouput_filepath = pathing_dict['staged_filepath']+'\\History\\'
-        self.processed_filepath = pathing_dict['processed_filepath']+'fromStaged\\'
-
-        #if not os.path.exists(self.staged_ouput_filepath): os.mkdir(self.staged_ouput_filepath)
+  
         if not os.path.exists(self.processed_filepath): os.mkdir(self.processed_filepath)
 
-        excel_files_to_process  =   fnmatch.filter(os.listdir(self.staged_filepath), '*.xlsx')
+        excel_files_to_process  =  fnmatch.filter(os.listdir(self.staged_filepath), '*.xlsx')
+        self.stagedFiles = excel_files_to_process
 
     def showOptions(self,sender):
 
-        print(sender)
+        #print(sender)
 
         if dpg.get_value(sender)==False:
             dpg.configure_item('combine_files_options',show=True)
         else:             
             dpg.configure_item('combine_files_options',show=False)
 
-    def formatFiles(self):
+    def processing_helper(self):
         #==================================================
         # Create wix_format from the XLSX with the full header, as it is the one with possible URLs in the body.
-        savefiles       =   dpg.get_value("process_wix")
+        process_wix     =   dpg.get_value("process_wix")
         update_website  =   dpg.get_value("auto_wix")
         #==================================================
-        if savefiles==True or update_website==True :
+        all_with            =   []
+        all_without         =   []
+        recently_added_skus =   []
+        header              =   []
+        #==================================================
+        for file in self.stagedFiles:
 
-            all_with            =   []
-            all_without         =   []
-            recently_added_skus =   []
-            header              =   []
+            if dpg.get_value(item=f'{file}_confirmation')!=True:
+                continue
 
-            for file in saved_filenames:
-                if 'Full' in file:
-                    #log.append( " --> Generating WIX formats now.\n")
-                    print(f" --> Generating WIX formats now for {file}:\n")
-                    #==================================================
-                    withUrl,withoutUrl=WIX_Utilities.generate_wix_files_from_xlsx(file,ouput_filepath)
-                    #==================================================
-                    #write both files
-                    if savefiles==True:
-                        File_Operations.list_to_excel(withUrl,     ouput_filepath+file+'-wix-URL.xlsx')
-                        File_Operations.list_to_excel(withoutUrl,  ouput_filepath+file+'-wix-NO_URL.xlsx')
-                        Gspread_WIX.createSheetAndPopulate(ouput_filepath+file+'-wix-NO_URL.xlsx',withoutUrl,folderID="1OLYcoDQ6E6tihDngWIInv3h6MMXzKQFi")
-                    #==================================================
-                    #updates website
-                    if update_website==True:
-                        header = withUrl[0]
+            SQL_Full=['ITEM_NO'	, 'PROF_ALPHA_2' , 'DESCR' , 'LST_COST' , 'PRC_1' , 'TAX_CATEG_COD' , 'CATEG_COD' , 'ACCT_COD' , 'ITEM_VEND_NO' , 'PROF_COD_4' , 'PROF_ALPHA_3' , 'PROF_DAT_1' , 'QTY' , 'ImageUrl' , 'ImageUrl2' , 'Description' , 'ProductType' , 'Collection' , 'OptionName' , 'OptionType' , 'OptionDescription']
+            SQL_csv =['ITEM_NO'	, 'PROF_ALPHA_2' , 'DESCR' , 'LST_COST' , 'PRC_1' , 'TAX_CATEG_COD' , 'CATEG_COD' , 'ACCT_COD' , 'ITEM_VEND_NO' , 'PROF_COD_4' , 'PROF_ALPHA_3' , 'PROF_DAT_1' , 'QTY']
+            old_list,error = File_Operations.excel_to_list(self.staged_filepath+file)
+            #print(old_list)
 
-                        for entry in withUrl[1:]:
+            temp_list = [SQL_csv]
 
-                            if entry[header.index('handleId')] not in recently_added_skus:
-                                all_with.append(entry)
-                                recently_added_skus.append(entry[header.index('handleId')])
+            for rowIndex, row in enumerate(old_list):
 
-                        for entry in withoutUrl[1:]:
+                if rowIndex==0: 
+                    temp_header=row
+                    continue
 
-                            if entry[header.index('handleId')] not in recently_added_skus:
-                                all_without.append(entry)
-                                recently_added_skus.append(entry[header.index('handleId')])
-                        #Wix_Utilities.autoupdateWebsite(withUrl,withoutUrl)
-                    #==================================================
+                temp_row = []
+
+                for columnIndex,column in enumerate(row):
+                    if temp_header[columnIndex] not in SQL_csv:
+                        continue
+                    else:
+                        if column==None or column=="None" or column=="" or column==" ":
+                            temp_row.append('')
+                        else:
+                            temp_row.append(column)
+                
+                temp_list.append(temp_row)
+
+            #print(temp_list)
+            #print("--------------------")
+            #print(self.ouput_filepath)
+            #print(self.formatName(file))
+            savename = self.ouput_filepath +self.formatName(file)
+            #print()
+            File_Operations.list_to_csv(temp_list,     self.ouput_filepath+self.formatName(file))
+
+            if process_wix==True:
+                #==================================================
+                print(f" --> Generating WIX formats now for {file}:\n")
+                #==================================================
+                #write both files
+                withUrl,withoutUrl=WIX_Utilities.generate_wix_files_from_xlsx(file,self.staged_filepath)
+                File_Operations.list_to_excel(withUrl,     self.ouput_filepath+file+'-wix-URL.xlsx')
+                File_Operations.list_to_excel(withoutUrl,  self.ouput_filepath+file+'-wix-NO_URL.xlsx')
+                Gspread_WIX.createSheetAndPopulate(self.ouput_filepath+file+'-wix-NO_URL.xlsx',withoutUrl,folderID="1OLYcoDQ6E6tihDngWIInv3h6MMXzKQFi")
+                #==================================================
             if update_website==True:
-                print ("Beginning website Auto-Update")
-                WIX_Utilities.autoupdateWebsite(header,all_with,all_without)
+                #==================================================
+                if process_wix==False:
+                    withUrl,withoutUrl=WIX_Utilities.generate_wix_files_from_xlsx(file,self.ouput_filepath)
+                #==================================================
+                header = withUrl[0]
+                #==================================================
+                for entry in withUrl[1:]:
+                    if entry[header.index('handleId')] not in recently_added_skus:
+                        all_with.append(entry)
+                        recently_added_skus.append(entry[header.index('handleId')])
+                #==================================================
+                for entry in withoutUrl[1:]:
+                    if entry[header.index('handleId')] not in recently_added_skus:
+                        all_without.append(entry)
+                        recently_added_skus.append(entry[header.index('handleId')])
+                #==================================================
+            else:
+                print(f"Not processing {file} because it lacks the right file naming convention.")
+                print(f"In the future should ignore and actually have means by which to meausure the header.")
+            #==================================================
+            print( "\t\t"+"--> Moving file"+"\n")
+            try: 
+                File_Operations.cleanup(file,self.staged_filepath,self.processed_filepath)
+                print("\t\t\t"+"File transferred correctly."+"\n\n")
+            except Exception as e:
+                print("\t\t\t"+"File did not transfer correctly."+str(e)+"\n")
+                print("\t\t\t"+"File unmoved."+"\n\n")  
+            #==================================================
+
+        if update_website==True:
+            print ("Beginning website Auto-Update")
+            # be sure to track these updates
+            WIX_Utilities.autoupdateWebsite(header,all_with,all_without)
 
     def processbyWIXRubric():
         pass
@@ -140,7 +249,7 @@ class InputProcessor:
     def processbyRubric(self,rubric,annotations=True):
 
         output_order        = self.reorder_rubric_dict(rubric)
-        print(output_order)
+        #print(output_order)
         #===========================================
         final_KENS_output_array     = [output_order]
         final_OLNEY_output_array    = [output_order]
@@ -148,6 +257,7 @@ class InputProcessor:
         #===========================================
         self.formatted_count =   1 # counts how many files have so far been processed... mostly for print()
         self.AA_count        =   0 # counts how many auto assigned UPCs have been requested
+        self.temp_AA =[]
         # temp_AA and AA_count were on different levels before so that subsequent rubric marching would not request doubles and instead use the old.
         #===========================================
         for file in self.vendorfileobj_list:
@@ -310,7 +420,6 @@ class InputProcessor:
         #============================================================
         # v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
         print (f'::------------ Problematic Columns Start:')
-
         for column in output_order:
             #print (f'CURRENT COLUMN:\t{column}')
             try: 
@@ -319,26 +428,26 @@ class InputProcessor:
                     #print(row[header.index(vendor_format_dict[column])] == None)
                     #--------------------
                     if (column not in vendor_format_dict.keys()):
+                        #if i==0:
+                        temp_upc = Auto_Assigner.getNextUPC()
 
-                        if i==0:
-                            temp_upc = Auto_Assigner.getNextUPC()
-                            self.temp_AA.append(temp_upc)
-                        else:
-                            temp_upc = self.temp_AA[self.AA_count]
-                            self.AA_count+=1
+                        #self.temp_AA.append(temp_upc)
+                        #else:
+                        #    temp_upc = self.temp_AA[self.AA_count]
+                        #    self.AA_count+=1
 
                         temp_list.append(temp_upc)
                         AA=True
-                    elif (row[header.index(vendor_format_dict[column])] == '') or (row[header.index(vendor_format_dict[column])] == None)or (row[header.index(vendor_format_dict[column])] == ' ')or (row[header.index(vendor_format_dict[column])] == 'None'):
+                    elif (row[header.index(vendor_format_dict[column])] == '') or (row[header.index(vendor_format_dict[column])] == None) or (row[header.index(vendor_format_dict[column])] == ' ')or (row[header.index(vendor_format_dict[column])] == 'None'):
                         # If there is no UPC code found, begin autoassign. 
                         #temp_list.append("(AUTO-ASSIGN)")
 
-                        if i==0:
-                            temp_upc = Auto_Assigner.getNextUPC()
-                            temp_AA.append(temp_upc)
-                        else:
-                            temp_upc = temp_AA[AA_count]
-                            AA_count+=1
+                        #if i==0:
+                        temp_upc = Auto_Assigner.getNextUPC()
+                        #temp_AA.append(temp_upc)
+                        #else:
+                        #    temp_upc = temp_AA[AA_count]
+                        #    AA_count+=1
 
 
                         temp_list.append(temp_upc)
@@ -383,7 +492,10 @@ class InputProcessor:
                     # <<<<<<<<<<< Man # >>>>>>>>>>>    
                     # Same as Manufacturing #
                     #--------------------
-                    temp_list.append(row[header.index(vendor_format_dict['PROF_ALPHA_2'])])
+                    if row[header.index(vendor_format_dict['PROF_ALPHA_2'])]==None or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]=="None" or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]==" " or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]=="":
+                        temp_list.append('')
+                    else:
+                        temp_list.append(row[header.index(vendor_format_dict['PROF_ALPHA_2'])])
                     #--------------------
                 elif column == 'PRC_1':
                     # <<<<<<<<<<< Retail Price >>>>>>>>>>>          
@@ -480,7 +592,7 @@ class InputProcessor:
                             temp_barcode = UPCLookup.upcLookup(sku)
                             temp_str_barcode = temp_barcode['productImageUrl']
                         #------------------------------------------------------------
-                    print("does it get here? C")
+                    #print("does it get here? C")
 
                     temp_list.append(temp_str_barcode)
                     #--------------------
@@ -498,12 +610,30 @@ class InputProcessor:
                     #--------------------
                     temp_qty = ''
 
-                    if (column not in vendor_format_dict.keys()):
-                        temp_qty = '0'
-                    elif row[header.index(vendor_format_dict[column])] != '' and  row[header.index(vendor_format_dict[column])] != None:
-                        temp_qty = str(row[header.index(vendor_format_dict[column])])
-                    else: 
-                        temp_qty = '0'
+
+
+                    if '****' in vendor_format_dict[column]:
+
+                        
+                        print("<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+                        print(vendor_format_dict)
+
+                        temp_cols = vendor_format_dict[column].split('****')
+                        try:
+                            col1_Val=row[header.index(temp_cols[0])]
+                            col2_Val=row[header.index(temp_cols[1])]
+                            temp_qty = str(int(col1_Val)*int(col2_Val))
+                        except Exception as e:
+                            print (f'<><><>:\t{e}')
+                    else:
+                        if (column not in vendor_format_dict.keys()):
+                            temp_qty = '0'
+                        elif row[header.index(vendor_format_dict[column])] != '' and  row[header.index(vendor_format_dict[column])] != None:
+                            temp_qty = str(row[header.index(vendor_format_dict[column])])
+                        else: 
+                            temp_qty = '0'
+
+                    
 
                     if dpg.get_value(file.name+"_qtyDivide")=="Divide Evenly" and temp_qty!='0':
                         if int(float(temp_qty))%2==0:
@@ -521,7 +651,11 @@ class InputProcessor:
                     # <<<<<<<<<<< UNDEFINED >>>>>>>>>>>    
                     #--------------------
                     if column in vendor_format_dict.keys():
-                        temp_list.append(row[header.index(vendor_format_dict[column])])
+
+                        if row[header.index(vendor_format_dict[column])]==None or row[header.index(vendor_format_dict[column])]=="None":
+                            temp_list.append('')
+                        else:
+                            temp_list.append(row[header.index(vendor_format_dict[column])])
                     else: temp_list.append('')
                     #--------------------
             except Exception as e:
@@ -627,12 +761,12 @@ class Importer:
         dpg.configure_item(user_data,default_value=self.vendor_codes[app_data])
 
     def helper_update_deptCode(self,sender,app_data,user_data):
-        print("helper_update_deptCode START:")
-        print(sender)
-        print(app_data)
-        print(user_data)
+        #print("helper_update_deptCode START:")
+        #print(sender)
+        #print(app_data)
+        #print(user_data)
         dpg.configure_item(f'{sender}Str',default_value=self.JFGC.getDptByDptStr(app_data).code)
-        print("helper_update_deptCode END")
+        #print("helper_update_deptCode END")
 
     def helper_update_vendorlist(self,sender,app_data,user_data):
         #---------------------------
@@ -650,7 +784,7 @@ class Importer:
             num_helper  =   1
         #---------------------------
         temp_vendor_names   =   [i for i in vend if i.startswith(guess_val[0:num_helper])]
-        print(temp_vendor_names)
+        #print(temp_vendor_names)
         try:
             dpg.configure_item(user_data+'_combo', items=temp_vendor_names,default_value=temp_vendor_names[0])
         except:
@@ -659,15 +793,38 @@ class Importer:
 
     def helper_update_headerCheck(self,vendorfileObj):
         # updates the rubric portion of header check
-        print(vendorfileObj.formatting_dict)
+        #print("checking header-----")
+        #print(vendorfileObj.formatting_dict)
 
-        vendor_name=vendorfileObj.vendorName
+
+        vendor_name=vendorfileObj.formatting_dict_name
         # assuming vendorfile vendor has been found
-        dpg.configure_item(vendorfileObj.name+"_headerName",default_value=vendor_name,show=True,color=(127, 255, 212))
+        dpg.configure_item(f"{vendorfileObj.name}_headerName",default_value=vendor_name,show=True,color=(127, 255, 212))
         
+        #=====================
+        derivedQtyPresent=False
+        col1 = "";col2=""
+        for item in vendorfileObj.formatting_dict.keys():
+            if '****' in vendorfileObj.formatting_dict[item]:
+                derivedQtyPresent=True
+                temp_cols = vendorfileObj.formatting_dict[item].split('****')
+                col1=temp_cols[0]
+                col2=temp_cols[1]
+                derivedStr = f"Qty derived from `{col1}` x `{col2}`."
+                #print(derivedStr)
+
+
+        if dpg.get_value(f'{vendorfileObj.name}__derivedQty')==True:
+            col1=dpg.get_value(f'{vendorfileObj.name}_derivedQtyColumn1')
+            col2=dpg.get_value(f'{vendorfileObj.name}_derivedQtyColumn2')
+            derivedStr = f"Qty derived from `{col1}` x `{col2}`."
+            dpg.configure_item(f'{vendorfileObj.name}_derivedStatus',default_value=derivedStr,show=True)
+        elif derivedQtyPresent:
+            dpg.configure_item(f'{vendorfileObj.name}_derivedStatus',default_value=derivedStr,show=True)
+
         for index,item in enumerate(vendorfileObj.header):
             if item != 'None' and item != None:
-                #print(f'CONFIG: {vendorfileObj.name}_rubric_headercheck_{index}')
+                #print(f'CONFIG: {vendorfileObj.name}_rubric_headercheck_{index}:\t{item}')
 
                 dpg.configure_item(f'{vendorfileObj.name}_rubric_headercheck_{index}',default_value=f'| {item} ')
  
@@ -700,7 +857,7 @@ class Importer:
         if guess_val!="":   return value
         else:               return guess_val
 
-    def helper_saveRubricFiddle(sender,app_data,user_data):
+    def helper_saveRubricFiddle(self,sender,app_data,user_data):
         # Accepts the UI data for a new on-the-fly rubric and either sends a good popup or a bad.
         #   If good, will also create that rubric in the Google Doc Rubric File
         #----------------------------------
@@ -732,53 +889,83 @@ class Importer:
             #=================
             rubric_vals.update({item:weird_format})
         #----------------------------------
+        # Make special considerations for derived qty
+        if dpg.get_value(f"{vendorfileObj.name}_derivedQty")==True:
+
+            col1 = dpg.get_value(f"{vendorfileObj.name}_derivedQtyColumn1")
+            col2 = dpg.get_value(f"{vendorfileObj.name}_derivedQtyColumn2")
+
+            derivedFormat = f'{col1}****{col2}'
+            #print(derivedFormat)
+
+            rubric_vals.update({derivedFormat:13})
+        #----------------------------------
+        # Make sure there are no duplicates
         for val in rubric_vals.values():
             if val!='' and list(rubric_vals.values()).count(val)>1:
                 with dpg.window(popup=True):
                     dpg.add_text(f"Multiple instances of cell value claimed for new rubric! Can only have one of each!")
                 return False
         #----------------------------------
+        # Try and update gsheet and print response
         status,msg = Gspread_Rubric.add_rubric(rubric_name,subname,rubric_vals)
         with dpg.window(popup=True):
             dpg.add_text(msg)
         #----------------------------------
+        # If the status is good, immediately set that vendorfile object's rubric to format as the one that was just created. 
         if status:
-            # If the status is good, immediately set that vendorfile object's rubric to format as the one that was just created. 
             self.rubrics  ,  self.vends  ,  self.all_headers  ,  self.tags = Gspread_Rubric.read_formatting_gsheet() 
 
             temp_name           = rubric_name+"_"+subname
 
             vendor_format_dict  =   {}
-            for column in self.vends[temp_name].keys():
+            for i,column in enumerate(self.vends[temp_name].keys()):
                 #-----------------
-                index = vendor_dict[column]
+                #index = vendor_dict[column]
                 #-----------------
                 try: 
                     # Tries to update the temp_dict with the 
-                    vendor_format_dict.update({self.rubrics[list(self.rubrics.keys())[0]][index]:column})
+                    vendor_format_dict.update({self.rubrics[list(self.rubrics.keys())[0]][i]:column})
                 except:
                     pass
 
             vendorfileObj.set_formatting_dict(name=temp_name,format=vendor_format_dict)
-            helper_update_headerCheck(vendorfileObj)
+            self.helper_update_headerCheck(vendorfileObj)
         #----------------------------------
         return status
 
     def find_rubric(self,vendorfileObj,annotations=False):
         # attach rubric to obj
+        #print("FIND RUBRIC START")
+        #print(vendorfileObj.header)
 
         # Vendorfile headers are messy. 
         # They sometimes have tons of extra 'None' values returned with them, and are full of variations that will need to be accounted for.
         # The base vendor_rubrics we have, though, represent the minimum needed column values for successfully autoformatting. 
         found = False
-
+        derivedQtyPresent=False
         # check all vendors
         for vendor_name in self.vends.keys():
-            # if the headers match                    
-            if self.all_headers[vendor_name] == vendorfileObj.header:
+            # if the headers match    
+            # 
+            temp_vendorHeader = self.all_headers[vendor_name]
+            #print(f"A:{temp_vendorHeader}")
+            for i,column in enumerate(temp_vendorHeader):
+                #print(column)
+                if column!=None and column!='':
+                    if '****' in column:
+                        derivedQtyPresent=True
+                        derivedQtyColumn=column
+                        temp_vendorHeader.remove(column)
+            #print(f"B:{temp_vendorHeader}")
+            if temp_vendorHeader == vendorfileObj.header:
                 #--------------------
                 found = True
                 header_to_display   = self.all_headers[vendor_name]
+                #--------------------
+                #if derivedQtyPresent:
+                #    temp_vendorHeader = 
+
                 #--------------------
                 if annotations: 
                     #print ("MATCH: ",str(match_count)); match_count+=1
@@ -797,7 +984,8 @@ class Importer:
                     except:
                         #temp_dict.update({rubrics[rubric][index]:column}
                         pass
-                #--------------------
+  
+
                 #vendor_format_dict  = zip_formatting_dict(self.rubrics[list(self.rubrics.keys())[0]],self.vends[vendor_name])                
                 vendorfileObj.set_formatting_dict(vendor_name, vendor_format_dict)
                 self.helper_update_headerCheck(vendorfileObj)
@@ -842,7 +1030,7 @@ class Importer:
                     return
                 else:
                     #------------
-                    tax         =   dpg.get_value(vendorfileObj.name+"_tax")
+                    tax         =   dpg.get_value(vendorfileObj.name+"_taxinfo")
                     code        =   dpg.get_value(vendorfileObj.name+"_vendorCodeDisplay")
                     #temp_dept   =   dpg.get_value(vendorfileObj.name+"_dept")
                     dept        =   int(dpg.get_value(f'{vendorfileObj.name}_deptStr'))
@@ -943,18 +1131,20 @@ class Importer:
                         dpg.add_combo(width=160,id=vendorfileObj.name+"_dept",items = list(self.JFGC.dptByStr.keys()),default_value='~None Found~',parent=dept_group,callback=self.helper_update_deptCode)
 
                         try:
-                            temp_def_val = self.JFGC.getDptByCode(vendorfileObj.department.dptStr)
-                            print("__________"+temp_def_val)
-                            print(vendorfileObj.department)
-                            print(type(temp_def_val))
+                            #print(type(vendorfileObj.department))
+
+                            temp_def_val = self.JFGC.getDptByCode(vendorfileObj.department)
+                            #print("__________"+temp_def_val)
+                            #print(vendorfileObj.department)
+                            #print(type(temp_def_val))
 
                             if temp_def_val==f"No department found with code {vendorfileObj.department}!": 
                                 raise Exception 
 
-                            dpg.configure_item(f'{vendorfileObj.name}_dept',default_value=temp_def_val)
-                            dpg.configure_item(f'{vendorfileObj.name}_deptStr',default_value=vendorfileObj.department)
+                            dpg.configure_item(f'{vendorfileObj.name}_dept',default_value=temp_def_val.dptStr)
+                            dpg.configure_item(f'{vendorfileObj.name}_deptStr',default_value=temp_def_val.code)
                         except Exception as e:
-                            print (f"special error:\t{e}")
+                            print (f"special error formatting {vendorfileObj.name} dept:\t{e}")
                         
                         #--------------------
                         # TAX
@@ -981,17 +1171,24 @@ class Importer:
                             pass
                 with dpg.tab(label="Header Check"):
                     with dpg.child_window(tag=vendorfileObj.name+"_headerCheckWindow", width=790, height=100,no_scrollbar=False,horizontal_scrollbar=True):
-                            dpg.add_text(tag=vendorfileObj.name+"_headerName",default_value = "NO FORMAT FOUND --> Create a new one with the next tab!",show=False)
+                            headerGroup = dpg.add_group(horizontal=True)
+                            dpg.add_text(tag=vendorfileObj.name+"_headerName",default_value = "NO FORMAT FOUND --> Create a new one with the next tab!",show=False,parent=headerGroup)
+                            dpg.add_spacer(width=40,parent=headerGroup)
+                            dpg.add_text(tag=vendorfileObj.name+"_derivedStatus",default_value = "",show=False,parent=headerGroup)
 
                             #self.helper_update_headerCheck(vendorfileObj)
+                            #print (f"Header: {vendorfileObj.header} for {vendorfileObj.name}")
 
                             temp_header = vendorfileObj.header
 
                             for index,item in enumerate(vendorfileObj.header):
                                 try:
                                     temp_header[index]=item.strip()
-                                except:
+                                except Exception as e:
+                                    print(e)
                                     temp_header[index]=item
+
+                            #print (f"Temp_Header: {temp_header} for {vendorfileObj.name}")
                             #====================================================
                             file_header_group = dpg.add_group(horizontal = True)
                             dpg.add_input_text(default_value=f"FILE:", readonly=True,parent=file_header_group,width=55)
@@ -1021,28 +1218,80 @@ class Importer:
                         dpg.add_button(id=f"{vendorfileObj.name}_rubric_fiddleSave",label="Save Rubric",callback=self.helper_saveRubricFiddle,user_data=vendorfileObj,parent=fiddle_row_0,width=40)
                         dpg.add_input_text(id=f"{vendorfileObj.name}_rubric_fiddleName",label="Rubric Name",parent=fiddle_row_0,width=120)
                         dpg.add_input_text(id=f"{vendorfileObj.name}_rubric_subName",label="Subtitle",parent=fiddle_row_0,width=80)
+                        
+                        dpg.add_spacer(width=100)
+                        dpg.add_checkbox(tag=f"{vendorfileObj.name}_derivedQty",label="Quantity derived from two columns?",parent=fiddle_row_0,callback=self.prepareforDerivedQty,user_data=(vendorfileObj,rubric_combo_items))
+                        self.qtyColumn1 = dpg.add_combo(tag=f"{vendorfileObj.name}_derivedQtyColumn1", items=vendorfileObj.header,default_value='~',parent=fiddle_row_0,width=100,callback=self.derivedQtyHelper,user_data=vendorfileObj)
+                        dpg.add_text("x",parent=fiddle_row_0)
+                        self.qtyColumn2 = dpg.add_combo(tag=f"{vendorfileObj.name}_derivedQtyColumn2", items=vendorfileObj.header,default_value='~',parent=fiddle_row_0,width=100,callback=self.derivedQtyHelper,user_data=vendorfileObj)
+
 
                         fiddle_row_1 = dpg.add_group(horizontal=True)
                         fiddle_row_2 = dpg.add_group(horizontal=True)
 
-                        print(vendorfileObj.header)
+                        #print("\tHEADER")
+                        #print(vendorfileObj.header)
 
                         for item in vendorfileObj.header:
-                            component_width=8*len(f"{item}")
-                            dpg.add_input_text(default_value=f"{item}", readonly=True,parent=fiddle_row_1,width=component_width)
+                            try:
+                                #print(item)
+                                component_width=8*len(f"{item}")
+                                dpg.add_input_text(default_value=f"{item}", readonly=True,parent=fiddle_row_1,width=component_width)
 
-                            if item in rubric_combo_items:
-                                default_fiddle = rubric_combo_items[rubric_combo_items.index(item)]
-                            else:
-                                default_fiddle = rubric_combo_items[0]
+                                if item in rubric_combo_items:
+                                    default_fiddle = rubric_combo_items[rubric_combo_items.index(item)]
+                                else:
+                                    default_fiddle = rubric_combo_items[0]
 
-                            dpg.add_combo(id=f"{vendorfileObj.name}_{item}_combo",items=rubric_combo_items,default_value = default_fiddle,parent=fiddle_row_2,width=component_width)
+                                dpg.add_combo(id=f"{vendorfileObj.name}_{item}_combo",items=rubric_combo_items,default_value = default_fiddle,parent=fiddle_row_2,width=component_width)
+                            except Exception as e:
+                                print(f"Error adding header item {item}:\t{e}")
             #===================================================
             dpg.set_item_callback(vendorfileObj.name+'_save',self.lock_info)
             dpg.set_item_user_data(vendorfileObj.name+'_save',vendorfileObj.name)
             # After Save button: logs all the appropriate data into the vendorfile OBJ and continues.
             # logs based on names, so be sure that when we're calling down below, we are calling the items saved here, NOT the ones created below.
         dpg.add_separator()
+
+    def prepareforDerivedQty(self,sender,app_data,user_data):
+
+        vendorfileObj = user_data[0]
+        rubric_combo_items = user_data[1]
+        column = 'Quantity'
+
+        if dpg.get_value(sender)==True:
+
+            qtyIndex = rubric_combo_items.index(column)
+            rubric_combo_items.pop(qtyIndex)
+
+            for item in vendorfileObj.header:
+                dpg.configure_item(f"{vendorfileObj.name}_{item}_combo",items=rubric_combo_items)
+
+                if dpg.get_value(f"{vendorfileObj.name}_{item}_combo")==column:
+                    dpg.configure_item(f"{vendorfileObj.name}_{item}_combo",default_value='~')
+
+        elif dpg.get_value(sender)==False:
+
+            if column not in rubric_combo_items:
+                rubric_combo_items.append(column)
+
+            for item in vendorfileObj.header:
+                dpg.configure_item(f"{vendorfileObj.name}_{item}_combo",items=rubric_combo_items)
+
+    def derivedQtyHelper(self,sender,app_data,user_data):
+
+        vendorfileObj = user_data
+
+        #print(dpg.get_value(f"{vendorfileObj.name}_derivedQtyColumn1"))
+        #print(dpg.get_value(f"{vendorfileObj.name}_derivedQtyColumn2"))
+
+        if dpg.get_value(f"{vendorfileObj.name}_derivedQtyColumn1") == dpg.get_value(f"{vendorfileObj.name}_derivedQtyColumn2"):
+            with dpg.window(popup=True):
+                dpg.add_text(f"Derived Quantity columns for {vendorfileObj.name} cannot be the same column!")
+                dpg.configure_item(f"{vendorfileObj.name}_rubric_fiddleSave",enabled=False)
+        else: 
+            dpg.configure_item(f"{vendorfileObj.name}_rubric_fiddleSave",enabled=True)
+
 
     def importerWindow(self,vendorfileObjList):
         #====================================================
@@ -1052,7 +1301,7 @@ class Importer:
             return
         #====================================================
         # Begin UI
-        with dpg.window(label="Manual Input Required",tag=f'manual_input_{self.__count}',width=830,height=(300+(115*int(len(vendorfileObjList))))):
+        with dpg.window(label="Manual Input Required",tag=f'manual_input_{self.__count}',width=830,height=400): #height=(300+(115*int(len(vendorfileObjList))))
             #----------------------------------------------------
             options_group = dpg.add_group(horizontal = True)
             dpg.add_button(tag="process_button",label="Begin Processing",width=120,height=60,parent=options_group)
@@ -1086,17 +1335,4 @@ class Importer:
             dpg.set_item_callback("process_button",self.processing_helper)
 
 
-
-if __name__=="__main__":
-
-    dpg.create_context()
-    dpg.create_viewport(title='importer test', width=830, height=700)
-    dpg.setup_dearpygui()
-
-    b = StagedProcessor()   
-    
-    dpg.show_viewport()
-    #dpg.set_primary_window("Primary Window", True)
-    dpg.start_dearpygui()
-    dpg.destroy_context()
 

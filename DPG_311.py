@@ -43,11 +43,15 @@ def formatPathingDict(input_type):
     #====================================================
     return pathingDict
 
-def manualInput(vendorfileObjList,pathing_dict,cloudRubric=True):
-    importer = Importer.Importer(JFGC,pathing_dict,cloudRubric)
-    importer.importerWindow(vendorfileObjList)
+def manualInput(vendorfileObjList,pathing_dict,step=1,cloudRubric=True):
+
+    if step==1:
+        importer = Importer.Importer(JFGC,pathing_dict,cloudRubric)
+        importer.importerWindow(vendorfileObjList)
+    elif step==2:
+        exporter = Importer.StagedProcessor(JFGC,pathing_dict,cloudRubric)
   
-def beginMultiImport(sender, app_data, user_data):
+def beginMultiStage(sender, app_data, user_data):
     #====================================================
     print (f"Userdata1:\t{user_data}")
     input_type          =   "default"
@@ -72,7 +76,28 @@ def beginMultiImport(sender, app_data, user_data):
     #for file in pdf_files_to_process:
     #    print (f'Cannot convert {file} to CSV in the same step as processing CSVs.\tPDFs too often require manual validation.')
     #====================================================
-    manualInput(vendorfileObjList,pathingDict,"multiple")
+    manualInput(vendorfileObjList,pathingDict,1,"multiple")
+
+def beginMultiExport(sender, app_data, user_data):
+    #====================================================
+    print (f"Userdata1:\t{user_data}")
+    input_type          =   "default"
+    pathingDict         =   formatPathingDict(input_type)
+    #====================================================
+    # Given a set of filepaths, scan all possible files in the INPUT folder and create the appropriate
+    #   UI-based objects which will allow for manual input to more accurately process the vendorfiles.
+    #====================================================
+    vendorfileObjList    =   []
+    #====================================================
+    excel_files_to_process  =   fnmatch.filter(os.listdir(pathingDict['input_filepath']), '*.xlsx')
+    #pdf_files_to_process    =   fnmatch.filter(os.listdir(pathingDict['input_filepath']), '*.pdf') if automatePDF else []
+    #====================================================
+    print ("=========================================")
+    #====================================================
+    for file in excel_files_to_process:
+        vendorfileObjList.append(vendorfile(pathingDict["input_filepath"]+file))
+    #====================================================
+    manualInput(vendorfileObjList,pathingDict,2,"multiple")
 
 #====================================================
 # MISC
@@ -94,7 +119,7 @@ def updateFolderSelect(sender, app_data, user_data):
     dpg.configure_item('input_path',default_value=foldername,label="Input Path")
     dpg.add_text(parent='input_folderWindow',default_value="**Note**: Input path changed; all other paths will remain the default.")
     dpg.add_separator(parent='input_folderWindow')
-    dpg.add_button(id='beginScan',width=600,label="Begin Processing Files",callback=beginMultiImport,user_data="custom",enabled=True,parent='input_folderWindow')    
+    dpg.add_button(id='beginScan',width=600,label="Begin Processing Files",callback=beginMultiStage,user_data="custom",enabled=True,parent='input_folderWindow')    
 
 def inputFolderSelect(sender, app_data, user_data):
     # Input Folder select Dialogue
@@ -195,11 +220,21 @@ def display_group_import(sender, app_data, user_data):
     # Folder selection window for group imports.
     # Default information is used unless a custom (and temporary) input folder is given.
     #====================================================
-    filepath=user_data
+    filepath=user_data[0]
+    step = user_data[1]
+
+    specific_stage_import_fn = beginMultiStage if step==1 else beginMultiExport
+    print(specific_stage_import_fn)
     #====================================================
-    with dpg.window(tag='input_folderWindow',label="Group Import Selection",width=600,height=350):
+    try:
+        dpg.delete_item(f'input_folderWindow')
+    except Exception as e:
+        print(f"Cannot delete inputfolder:\t{e}")
+    #====================================================
+
+    with dpg.window(tag=f'input_folderWindow',label="Group Import Selection",width=600,height=350):
         #----------------------------------------
-        dpg.add_button(tag='defaultselect',label="Use Default Input path?",width=590,callback=beginMultiImport,user_data="default")
+        dpg.add_button(tag='defaultselect',label="Use Default Input path?",width=590,callback=specific_stage_import_fn,user_data="default")
         dpg.add_separator()
         dpg.add_text("\t\t\t\tOR")
         dpg.add_separator()
@@ -291,7 +326,7 @@ def main():
     except:
         parent_folder="<no_directory_selected>"
 
-    with dpg.window(tag="Primary Window",label="Import Inventory JFGC",width=620,height=400):
+    with dpg.window(tag="Primary Window",label="Import Inventory JFGC",width=650,height=400):
         
         from DPG_Themes import global_theme
         dpg.bind_theme(global_theme)
@@ -305,10 +340,46 @@ def main():
                     dpg.add_text("Welcome to JFGC Import Inventory Helper.\nBegin by selecting a single file, or a folder of files.")
                     dpg.add_text("Files must be of format:\n\t[vendorname]-[tags]-[department #].[extension]")
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-                dpg.add_button(label="Process Individual File",     width=300,  callback=display_indiv_fileSelector,    user_data=parent_folder)
-                dpg.add_button(label="Process Multiple Files",      width=300,  callback=display_group_import,          user_data=parent_folder)
-                dpg.add_button(label="Convert PDF to CSV",          width=300,  callback=display_pdf_transformer,       user_data=parent_folder)
-                dpg.add_button(label="Combine Duplicate Entries",   width=300,  callback=display_duplicate_cleaner,     user_data=parent_folder)
+                dpg.add_text("Input -> Stage -> Process")
+                first_step_group = dpg.add_group(horizontal=True)
+                '''dpg.add_button(label="Stage Individual File",     
+                               width        =   300,  
+                               callback     =   display_indiv_fileSelector,    
+                               user_data    =   [parent_folder,],
+                               parent       =   first_step_group)
+                dpg.add_button(label="Process Individual File",     
+                               width        =   300,  
+                               callback     =   display_indiv_fileSelector,    
+                               user_data    =   [parent_folder,],
+                               parent       =   first_step_group)'''
+
+                second_step_group = dpg.add_group(horizontal=True)
+                dpg.add_button(label="Stage Multiple Files",      
+                               width        =   300,  
+                               callback     =   display_group_import,          
+                               user_data    =   [parent_folder,1],
+                               parent       =   second_step_group)
+                dpg.add_button(label="Process Multiple Files",      
+                               width        =   300,  
+                               callback     =   display_group_import,          
+                               user_data    =   [parent_folder,2],
+                               parent       =   second_step_group)
+
+                third_step_group = dpg.add_group(horizontal=True)
+                dpg.add_spacer(width=150,parent=third_step_group)
+                dpg.add_button(label="Convert PDF to CSV",          
+                               width        =   300,  
+                               callback     =   display_pdf_transformer,       
+                               user_data    =   parent_folder,
+                               parent       =   third_step_group)
+                
+                fourth_step_group = dpg.add_group(horizontal=True)
+                dpg.add_spacer(width=150,parent=fourth_step_group)
+                dpg.add_button(label="Combine Duplicate Entries",   
+                               width        =   300,  
+                               callback     =   display_duplicate_cleaner,     
+                               user_data    =   parent_folder,
+                               parent       =   fourth_step_group)
                 #-----------------------------------------------
             with dpg.tab(label="Default Directories",tag='dd'):
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
@@ -316,7 +387,7 @@ def main():
                     dpg.add_text("When selecting a folder, make sure \\Rubric is present and that it contains a valid formatting rubric.")
                     dpg.add_text("All other directories will be auto-created.")
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-                with dpg.child_window(width=600,height=130):
+                with dpg.child_window(width=600,height=170):
                     #add_input_text(tag='rubric_filename',label="Rubric",default_value="~No File Selected~",enabled=False,width=500)
                     dpg.add_input_text(tag='base_parent_directory',   enabled=False,default_value =   parent_folder               ,label="Parent Directory")
                     dpg.add_input_text(tag='base_input_path',         enabled=False,default_value =   parent_folder+"\\INPUT"     ,label="Input Path")
@@ -373,7 +444,7 @@ def customZip():
 if __name__=="__main__":
 
     dpg.create_context()
-    dpg.create_viewport(title='JFGC Import Inventory Assistant', width=830, height=700)
+    dpg.create_viewport(title='JFGC Import Inventory Assistant', width=900, height=700)
     dpg.setup_dearpygui()
 
     main()
