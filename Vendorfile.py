@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 import File_Operations
-
+import dearpygui.dearpygui as dpg
 
 
 @dataclass
@@ -51,19 +51,24 @@ class vendorfile:
         except Exception as e:
             print(f"Failure reading {self.fullPath}\t:\t{e}")
 
-        if output_array==False: 
-            print("\t"+errorMsg+"\n")
-            self.header = []
-            self.rows   = []
-            return
+        try:
+            if output_array==False: 
+                print("\t"+errorMsg+"\n")
+                self.header = []
+                self.rows   = []
+                return
 
-        #print("-----------------------------")
-        #print(self.name)
-        #print (f"OUTPUT ARRAY [0]:\t{output_array[0]}")
-        self.header = output_array[0]
-        #print (f"OUTPUT ARRAY [0]:\t{self.header}")
-        self.rows   = output_array[1:]
-        
+            #print("-----------------------------")
+            #print(self.name)
+            #print (f"OUTPUT ARRAY [0]:\t{output_array[0]}")
+            self.header = output_array[0]
+            #print (f"OUTPUT ARRAY [0]:\t{self.header}")
+            self.rows   = output_array[1:]
+        except UnboundLocalError as e:
+            #with dpg.window(popup=True):
+            #    dpg.add_text(f"{self.fullPath} could not be read! Be sure you saved it with correct extension instead of manually changing.")
+            self.note = "COULD NOT READ"
+            return
         # =================================================
         # Try to populate rest using our common naming conventions
         #if temp_name.count("-") > temp_name.count("_"):
@@ -86,7 +91,7 @@ class vendorfile:
         try:
             self.vendorName = temp_info[0]
             self.vendorCode = ""
-            self.note       = temp_info[1]
+            self.note       = f'{self.vendorName}_{temp_info[1]}'
 
             self.department = temp_info[2]
             self.department = self.department.replace("Dept","")

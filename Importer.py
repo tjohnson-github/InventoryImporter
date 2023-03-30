@@ -27,10 +27,9 @@ class StagedProcessor:
         status = dpg.get_value(sender)
         stagedFile = user_data
 
-        dpg.configure_item(item=f'{stagedFile}_default',show=dpg.get_value(sender))
+        dpg.configure_item(item=f"{stagedFile}_default_group",show=dpg.get_value(sender))
         dpg.configure_item(item=f'{stagedFile}_process_wix',show=dpg.get_value('process_wix'))
         dpg.configure_item(item=f'{stagedFile}_auto_wix',show=dpg.get_value('auto_wix'))
-
 
     def formatName(self,full):
 
@@ -44,8 +43,7 @@ class StagedProcessor:
         self.staged_filepath    = pathing_dict['staged_filepath']
         self.ouput_filepath     = pathing_dict['ouput_filepath']
         self.processed_filepath = pathing_dict['processed_filepath']+'fromStaged\\'
-
-
+        #====================================================
         try:
             self.scan_staged(self.staged_filepath)
         except Exception as e:
@@ -82,32 +80,29 @@ class StagedProcessor:
                     dpg.add_checkbox(tag=f'{stagedFile}_confirmation',label="Process ",default_value=True,parent=_,callback=self.hidePreview,user_data=stagedFile)
                     dpg.add_text(f"{stagedFile}?",parent=_)
 
-                    dpg.add_text(tag=f"{stagedFile}_default",bullet=True,default_value=self.formatName(stagedFile))
-                    dpg.add_text(tag=f'{stagedFile}_process_wix',bullet=True,default_value=f"Two WIX-formatted import excels; one for products already on website with images, and one without",show=dpg.get_value('process_wix'))
-                    dpg.add_text(tag=f'{stagedFile}_auto_wix',bullet=True,default_value=f"New products on WIX for those not already on WIX; updates for products already on WIX",show=dpg.get_value('auto_wix'))
+                    __ = dpg.add_group(tag=f"{stagedFile}_default_group",horizontal=True)
+                    dpg.add_text(bullet=True,default_value="Name:",parent=__)
+
+                    dpg.add_input_text(tag=f"{stagedFile}_default",default_value=self.formatName(stagedFile),parent=__)
+                    dpg.add_checkbox(tag=f'{stagedFile}_process_wix',default_value=True,label=f"Two WIX-formatted import excels; one for products already on website with images, and one without\nThe one without will be automatically sent to our gDrive",show=dpg.get_value('process_wix'))
+                    dpg.add_checkbox(tag=f'{stagedFile}_auto_wix',default_value=True,label=f"New products on WIX for those not already on WIX; updates for products already on WIX",show=dpg.get_value('auto_wix'))
 
                     dpg.add_separator()
             #----------------------------------------------------
-  
             #===================================================
-            #dpg.set_item_user_data("process_button",user_data=[vendorfileObjList,self.pathing_dict,True])
             dpg.set_item_callback("staged_process_button",self.processing_helper)
-
-
+        #====================================================
         self.__count+=1
         print(self.__count)
 
     def scan_staged(self,pathing_dict):
-  
+
         if not os.path.exists(self.processed_filepath): os.mkdir(self.processed_filepath)
 
         excel_files_to_process  =  fnmatch.filter(os.listdir(self.staged_filepath), '*.xlsx')
         self.stagedFiles = excel_files_to_process
 
     def showOptions(self,sender):
-
-        #print(sender)
-
         if dpg.get_value(sender)==False:
             dpg.configure_item('combine_files_options',show=True)
         else:             
@@ -115,6 +110,8 @@ class StagedProcessor:
 
     def processing_helper(self):
         #==================================================
+
+
         # Create wix_format from the XLSX with the full header, as it is the one with possible URLs in the body.
         process_wix     =   dpg.get_value("process_wix")
         update_website  =   dpg.get_value("auto_wix")
@@ -124,7 +121,7 @@ class StagedProcessor:
         recently_added_skus =   []
         header              =   []
         #==================================================
-        for file in self.stagedFiles:
+        for i,file in enumerate(self.stagedFiles):
 
             if dpg.get_value(item=f'{file}_confirmation')!=True:
                 continue
@@ -132,7 +129,6 @@ class StagedProcessor:
             SQL_Full=['ITEM_NO'	, 'PROF_ALPHA_2' , 'DESCR' , 'LST_COST' , 'PRC_1' , 'TAX_CATEG_COD' , 'CATEG_COD' , 'ACCT_COD' , 'ITEM_VEND_NO' , 'PROF_COD_4' , 'PROF_ALPHA_3' , 'PROF_DAT_1' , 'QTY' , 'ImageUrl' , 'ImageUrl2' , 'Description' , 'ProductType' , 'Collection' , 'OptionName' , 'OptionType' , 'OptionDescription']
             SQL_csv =['ITEM_NO'	, 'PROF_ALPHA_2' , 'DESCR' , 'LST_COST' , 'PRC_1' , 'TAX_CATEG_COD' , 'CATEG_COD' , 'ACCT_COD' , 'ITEM_VEND_NO' , 'PROF_COD_4' , 'PROF_ALPHA_3' , 'PROF_DAT_1' , 'QTY']
             old_list,error = File_Operations.excel_to_list(self.staged_filepath+file)
-            #print(old_list)
 
             temp_list = [SQL_csv]
 
@@ -155,28 +151,23 @@ class StagedProcessor:
                 
                 temp_list.append(temp_row)
 
-            #print(temp_list)
-            #print("--------------------")
-            #print(self.ouput_filepath)
-            #print(self.formatName(file))
-            savename = self.ouput_filepath +self.formatName(file)
-            #print()
+            savename = self.ouput_filepath + dpg.get_value(f"{file}_default")
             File_Operations.list_to_csv(temp_list,     self.ouput_filepath+self.formatName(file))
 
-            if process_wix==True:
+            if process_wix==True and dpg.get_value(f'{file}_process_wix')==True:
                 #==================================================
                 print(f" --> Generating WIX formats now for {file}:\n")
                 #==================================================
                 #write both files
-                withUrl,withoutUrl=WIX_Utilities.generate_wix_files_from_xlsx(file,self.staged_filepath)
+                withUrl,withoutUrl=WIX_Utilities.generate_wix_files_from_xlsx(file,self.staged_filepath,i)
                 File_Operations.list_to_excel(withUrl,     self.ouput_filepath+file+'-wix-URL.xlsx')
                 File_Operations.list_to_excel(withoutUrl,  self.ouput_filepath+file+'-wix-NO_URL.xlsx')
-                Gspread_WIX.createSheetAndPopulate(self.ouput_filepath+file+'-wix-NO_URL.xlsx',withoutUrl,folderID="1OLYcoDQ6E6tihDngWIInv3h6MMXzKQFi")
+                Gspread_WIX.createSheetAndPopulate(file+'-wix-NO_URL.xlsx',withoutUrl,folderID="1OLYcoDQ6E6tihDngWIInv3h6MMXzKQFi")
                 #==================================================
             if update_website==True:
                 #==================================================
                 if process_wix==False:
-                    withUrl,withoutUrl=WIX_Utilities.generate_wix_files_from_xlsx(file,self.ouput_filepath)
+                    withUrl,withoutUrl=WIX_Utilities.generate_wix_files_from_xlsx(file,self.ouput_filepath,i+len(self.stagedFiles))
                 #==================================================
                 header = withUrl[0]
                 #==================================================
@@ -208,6 +199,11 @@ class StagedProcessor:
             # be sure to track these updates
             WIX_Utilities.autoupdateWebsite(header,all_with,all_without)
 
+        #==================================================
+        # Hide windows
+        #dpg.configure_item()
+        #==================================================
+
     def processbyWIXRubric():
         pass
 
@@ -215,14 +211,17 @@ class InputProcessor:
     vendorfileobj_list          : List[vendorfile]
     final_KENS_output_array     : List[any]=[]
     final_OLNEY_output_array    : List[any]=[]
-    final_BOTH_output_array     : List[any]=[]
+    #final_BOTH_output_array     : List[any]=[]
+    nonbatched_kens             : dict={}
+    nonbatched_olney            : dict={}
+    #nonbatched_both             : List[any]=[]
+    # f"{vendorfileObj.name}_nobatch"
 
-    
     def __init__(self,JFGC,list_to_process,pathing_dict):
         print ("=========================================")
         print ("============PROCESSING INPUTS============")            
         print ("=========================================")
-        self.rubrics  ,  self.vends  ,  self.all_headers  ,  self.tags =Gspread_Rubric.read_formatting_gsheet()
+        self.rubrics  ,  self.vends  ,  self.all_headers  ,  self.tags = Gspread_Rubric.read_formatting_gsheet()
 
         self.input_filepath = pathing_dict['input_filepath']
         self.staged_filepath= pathing_dict['staged_filepath']
@@ -249,11 +248,10 @@ class InputProcessor:
     def processbyRubric(self,rubric,annotations=True):
 
         output_order        = self.reorder_rubric_dict(rubric)
-        #print(output_order)
         #===========================================
         final_KENS_output_array     = [output_order]
         final_OLNEY_output_array    = [output_order]
-        final_BOTH_output_array     = [output_order]
+        #final_BOTH_output_array     = [output_order]
         #===========================================
         self.formatted_count =   1 # counts how many files have so far been processed... mostly for print()
         self.AA_count        =   0 # counts how many auto assigned UPCs have been requested
@@ -262,6 +260,12 @@ class InputProcessor:
         #===========================================
         for file in self.vendorfileobj_list:
             #-----------------------------------
+            #f"{vendorfileObj.name}_nobatch"
+            _temp_KENS_output_array  = []
+            _temp_OLNEY_output_array = []
+            #_temp_BOTH_output_array  = []
+            #-----------------------------------
+
             if annotations:
                 print ("=========================================")
                 print ("\t\t\t\tNEW VENDOR\t\t\t\t\t\t")
@@ -274,7 +278,6 @@ class InputProcessor:
             #-----------------------------------
             if vendor==None:  
                 #--------------------
-                #log.append( "\t"+str(file.name)+" has no matching vendor_format in the rubric. Skipping...\n\n")
                 print ("\t"+str(file.name)+" has no matching vendor_format in the rubric. Skipping...\n\n")
                 dpg.configure_item(file.name+'_error',default_value= f'{file.name} has no matching vendor_format in the rubric. Skipping...\n{str(file.header)}',show=True)
                 continue           
@@ -348,10 +351,10 @@ class InputProcessor:
                 #   - We had an error before whereby the file had 2x each entry, as opposed to one of each with double the inventory.
                 if dpg.get_value("skipDuplicates")==False:
                     if dpg.get_value(file.name+"_storeLoc")=="Kens":
-                        final_KENS_output_array.append(temp_list)
+                        _temp_KENS_output_array.append(temp_list)
                         #==========================================================================
                     elif dpg.get_value(file.name+"_storeLoc")=="Olney":
-                        final_OLNEY_output_array.append(temp_list)
+                        _temp_OLNEY_output_array.append(temp_list)
                         #==========================================================================
                     else:
                         if remainders==True:
@@ -359,20 +362,20 @@ class InputProcessor:
                             fixed_qty       =   str(int(float(temp_list[output_order.index('QTY')]))+1)
                             fixed_qty       =   fixed_qty.replace('.0','')
                             modified_list[output_order.index('QTY')]=fixed_qty
-                            final_KENS_output_array.append(modified_list)
+                            _temp_KENS_output_array.append(modified_list)
                         else:
-                            final_KENS_output_array.append(temp_list)
-                        final_OLNEY_output_array.append(temp_list)
+                            _temp_KENS_output_array.append(temp_list)
+                        _temp_OLNEY_output_array.append(temp_list)
                 else: 
-                    if dpg.get_value(file.name+"_storeLoc")=="Kens" and (temp_list not in final_KENS_output_array):
-                        if temp_list not in final_KENS_output_array: 
-                            final_KENS_output_array.append(temp_list)
+                    if dpg.get_value(file.name+"_storeLoc")=="Kens":
+                        if temp_list not in _temp_KENS_output_array: 
+                            _temp_KENS_output_array.append(temp_list)
                         else: 
                             print (f"DUPLICATE line not added to Kens_Array\n\t{temp_list}")
                         #==========================================================================
-                    elif dpg.get_value(file.name+"_storeLoc")=="Olney" and (temp_list not in final_OLNEY_output_array):
-                        if temp_list not in final_OLNEY_output_array: 
-                            final_OLNEY_output_array.append(temp_list)
+                    elif dpg.get_value(file.name+"_storeLoc")=="Olney" :
+                        if temp_list not in _temp_OLNEY_output_array: 
+                            _temp_OLNEY_output_array.append(temp_list)
                         else:
                             print (f"DUPLICATE line not added to Olney_Array\n\t{temp_list}")
                         #==========================================================================
@@ -387,14 +390,35 @@ class InputProcessor:
                                 modified_list[output_order.index('QTY')]=fixed_qty
                         # = = = = = = = = = = =
                         if modified_list not in final_KENS_output_array: 
-                            final_KENS_output_array.append(modified_list)
+                            _temp_KENS_output_array.append(modified_list)
                         else: 
                             print (f"DUPLICATE line not added to Kens_Array\n\t{modified_list}")
                         # = = = = = = = = = = =
                         if temp_list not in final_OLNEY_output_array: 
-                            final_OLNEY_output_array.append(temp_list)
+                            _temp_OLNEY_output_array.append(temp_list)
                         else:
                             print (f"DUPLICATE line not added to Olney_Array\n\t{temp_list}")
+            #==================================================
+            #      IF NOT MEANT TO BE BATCHED
+            if dpg.get_value(file.name+"_nobatch")==False:
+                print(">>>>>>>>>>>>>>>>>>HERE")
+                for list in _temp_KENS_output_array:
+                    final_KENS_output_array.append(list)
+                for list in _temp_OLNEY_output_array:
+                    final_OLNEY_output_array.append(list)
+            else:
+                print(">>>>>>>>>>>>>>>>>>>>THERE")
+
+                _nonbatchedKens = [output_order]
+                _nonbatchedOlney =[output_order]
+                for list in _temp_KENS_output_array:
+                    _nonbatchedKens.append(list)
+                for list in _temp_OLNEY_output_array:
+                    _nonbatchedOlney.append(list)
+                if len(_nonbatchedKens)!=1:
+                    self.nonbatched_kens.update({f'{file.name}':_nonbatchedKens})
+                if len(_nonbatchedOlney)!=1:
+                    self.nonbatched_olney.update({f'{file.name}':_nonbatchedOlney})
             #==================================================
             #       MOVE FILE
             self.formatted_count+=1
@@ -409,9 +433,12 @@ class InputProcessor:
                 
             print("\t\t"+"Formatting Complete."+"\n\n")
         #===========================================
+
+
+        #===========================================
         self.final_KENS_output_array  = final_KENS_output_array
         self.final_OLNEY_output_array = final_OLNEY_output_array
-        self.final_BOTH_output_array  = final_BOTH_output_array
+        #self.final_BOTH_output_array  = final_BOTH_output_array
 
     def iterateColumns(self,row,file,vendor_format_dict,output_order,annotations=False):
         temp_list   =   []
@@ -421,7 +448,6 @@ class InputProcessor:
         # v v v v v v v v v v v v v v v v v v v v v v v v v v v v v v
         print (f'::------------ Problematic Columns Start:')
         for column in output_order:
-            #print (f'CURRENT COLUMN:\t{column}')
             try: 
                 if column == 'ITEM_NO':
                     # <<<<<<<<<<< UPC >>>>>>>>>>>
@@ -492,10 +518,13 @@ class InputProcessor:
                     # <<<<<<<<<<< Man # >>>>>>>>>>>    
                     # Same as Manufacturing #
                     #--------------------
-                    if row[header.index(vendor_format_dict['PROF_ALPHA_2'])]==None or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]=="None" or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]==" " or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]=="":
-                        temp_list.append('')
+                    if 'PROF_ALPHA_2' in vendor_format_dict.keys():
+                        if row[header.index(vendor_format_dict['PROF_ALPHA_2'])]==None or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]=="None" or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]==" " or row[header.index(vendor_format_dict['PROF_ALPHA_2'])]=="":
+                            temp_list.append('')
+                        else:
+                            temp_list.append(row[header.index(vendor_format_dict['PROF_ALPHA_2'])])
                     else:
-                        temp_list.append(row[header.index(vendor_format_dict['PROF_ALPHA_2'])])
+                        temp_list.append("")
                     #--------------------
                 elif column == 'PRC_1':
                     # <<<<<<<<<<< Retail Price >>>>>>>>>>>          
@@ -692,10 +721,23 @@ class InputProcessor:
             #    File_Operations.list_to_csv(output_array,self.staged_filepath+savefile_name+".csv")
             #else:
             File_Operations.list_to_excel(output_array,self.staged_filepath+savefile_name+".xlsx")
-        
+        for file,output_array in self.nonbatched_kens.items():
+            store_loc = "Kens"
+            savefile_name   =   f'Inventory-{file}-{store_loc}-{format_name}'
+            temp_saved_filenames.append(savefile_name)
+            File_Operations.list_to_excel(output_array,self.staged_filepath+savefile_name+".xlsx")
+
+        for file,output_array in self.nonbatched_olney.items():
+            store_loc = "Olney"
+            savefile_name   =   f'Inventory-{file}-{store_loc}-{format_name}'
+            temp_saved_filenames.append(savefile_name)
+            File_Operations.list_to_excel(output_array,self.staged_filepath+savefile_name+".xlsx")
+
+
         self.saved_filenames = temp_saved_filenames
         # ^ in the future, will be replaced by another file rubric reading of the STAGED section (not input)
-
+        with dpg.window(popup=True):
+            dpg.add_text(f"STAGING COMPLETE!")
 
     def reorder_rubric_dict(self,unordered_dict):
         # Each dict passed here should have the same length
@@ -736,7 +778,7 @@ class Importer:
         # If the box is checked, do not show.
         if      app_data: 
             app_data=False
-            height = 63
+            height = 83
         else:   
             app_data=True
             height = 190 
@@ -744,6 +786,7 @@ class Importer:
         dpg.configure_item(user_data+'_window',show=app_data)
         dpg.configure_item(user_data+"_entireChild",height=height)
         dpg.configure_item(user_data+'_tabBar',show=app_data)
+        dpg.configure_item(user_data+'_nobatch',show=not app_data)
 
         if not app_data: 
             dpg.configure_item(user_data+'_save',label="")
@@ -930,7 +973,12 @@ class Importer:
                     pass
 
             vendorfileObj.set_formatting_dict(name=temp_name,format=vendor_format_dict)
-            self.helper_update_headerCheck(vendorfileObj)
+
+            for fileobj in self.vendorfileObjs:
+                self.find_rubric(fileobj)
+                #self.helper_update_headerCheck(fileobj)
+
+            #self.helper_update_headerCheck(vendorfileObj)
         #----------------------------------
         return status
 
@@ -1056,11 +1104,28 @@ class Importer:
             self.suggestedSaveName_content.append(vendorfileObj.note.lower())
         #==============================================================
         with dpg.child_window(tag=vendorfileObj.name+"_entireChild",width=810,height=190,no_scrollbar=False):
+
             #==============================================================
             with dpg.child_window(tag=vendorfileObj.name+"_informationCheckerChild", border=False,width=700,height=45):
-                dpg.add_text(
+                file_options_0 = dpg.add_group(horizontal=True)
+                _name = dpg.add_text(
                     default_value = vendorfileObj.name,
-                    color   =   (60,200,100))
+                    color   =   (60,200,100),
+                    parent  = file_options_0)
+
+                if vendorfileObj.note =="COULD NOT READ":
+                    dpg.add_text("Could not read!\nTry making sure you saved it as the right extension and did not change manually.")
+                    dpg.set_item_height(vendorfileObj.name+"_entireChild",height=100)
+                    return
+
+                dpg.add_spacer(parent=file_options_0,width=300-dpg.get_item_width(_name))
+                dpg.add_progress_bar(
+                    tag     =   vendorfileObj.name+'_prog',
+                    overlay =   "% Complete",
+                    show    =   True,
+                    width   =   200,
+                    parent  =   file_options_0)
+                #----------------------
                 file_options_a = dpg.add_group(horizontal=True)
                 dpg.add_checkbox(
                     tag     =   vendorfileObj.name+'_save',
@@ -1074,21 +1139,11 @@ class Importer:
                     callback=   self.helper_showQtyAlloc,
                     user_data = vendorfileObj.name,
                     parent  =   file_options_a)
-                dpg.add_checkbox(
-                    tag     =   f"{vendorfileObj.name}_overwritePrice",
-                    label   =   "Overwrite Price?",
-                    parent  =   file_options_a)
-                dpg.add_progress_bar(
-                    tag     =   vendorfileObj.name+'_prog',
-                    overlay =   "% Complete",
-                    show    =   True,
-                    width   =   200,
-                    parent  =   file_options_a)
                 dpg.add_text(
                     tag      =   vendorfileObj.name+'_error',
                     show    =   False)
-                dpg.add_combo(items=['Divide Evenly','Copy Quantities'],width=250,default_value="CHOOSE ONE",id=vendorfileObj.name+'_qtyDivide',label="StoreQtys?",show=False)
-            #============================================================== 
+                dpg.add_combo(items=['Divide Evenly','Copy Quantities'],width=250,default_value="CHOOSE ONE",id=vendorfileObj.name+'_qtyDivide',label="StoreQtys?",show=False,parent=file_options_a)
+                #============================================================== 
             with dpg.tab_bar(tag=vendorfileObj.name+"_tabBar"):
                 with dpg.tab(label="Information"):
                     with dpg.child_window(tag=vendorfileObj.name+"_window", width=790, height=100,no_scrollbar=True):
@@ -1165,10 +1220,21 @@ class Importer:
                         dpg.set_item_callback(vendorfileObj.name+'_tax',self.helper_update_taxDesc)
                         dpg.set_item_user_data(vendorfileObj.name+'_tax',vendorfileObj.name+'_taxinfo')
                         #===================================================
+
                         try:
                             dpg.configure_item(vendorfileObj.name+"_vendorCodeDisplay",default_value=self.vendor_codes[dpg.get_value(vendorfileObj.name+'_combo')])
                         except: 
                             pass
+                        #===================================================
+                        #--------------------
+                        # Price Override
+                        #--------------------
+                        
+                        dpg.add_checkbox(
+                            tag     =   f"{vendorfileObj.name}_overwritePrice",
+                            label   =   "Overwrite Price?",
+                            parent  =   information_group)
+
                 with dpg.tab(label="Header Check"):
                     with dpg.child_window(tag=vendorfileObj.name+"_headerCheckWindow", width=790, height=100,no_scrollbar=False,horizontal_scrollbar=True):
                             headerGroup = dpg.add_group(horizontal=True)
@@ -1247,6 +1313,8 @@ class Importer:
                             except Exception as e:
                                 print(f"Error adding header item {item}:\t{e}")
             #===================================================
+            dpg.add_checkbox(id=f"{vendorfileObj.name}_nobatch",label="Do not batch",show=False)
+            #===================================================            
             dpg.set_item_callback(vendorfileObj.name+'_save',self.lock_info)
             dpg.set_item_user_data(vendorfileObj.name+'_save',vendorfileObj.name)
             # After Save button: logs all the appropriate data into the vendorfile OBJ and continues.
@@ -1294,6 +1362,7 @@ class Importer:
 
 
     def importerWindow(self,vendorfileObjList):
+        self.vendorfileObjs = vendorfileObjList
         #====================================================
         if len(vendorfileObjList)<=0:
             with dpg.window(popup=True):
@@ -1324,7 +1393,7 @@ class Importer:
             for vendorfile in vendorfileObjList:
                 self.vendorChildWindow(vendorfile)
             #===================================================
-            saveStr="Inventory-"
+            saveStr=f"Inv-{datetime.date.today().year}-"
             for item in self.suggestedSaveName_content:
                 saveStr+=item+'-'
             #===================================================

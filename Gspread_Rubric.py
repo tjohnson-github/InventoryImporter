@@ -34,7 +34,7 @@ def add_rubric(name,subname,values):
     #============================================================
     # Get All Values in first column
     names_list = wk.col_values(1)
-    #============================================================
+    #=============================================== =============
     # Determine where my rubric stops
     if ('END' in names_list):
         last_cell = names_list.index("END")+1

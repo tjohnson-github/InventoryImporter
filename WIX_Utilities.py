@@ -887,19 +887,15 @@ def autoupdateWebsite(header,output_withURLs,output_withoutURLs):
 #       MAIN
 #=================================================================================
 
-def generate_wix_files_from_xlsx(filename,parentfolder):
+def generate_wix_files_from_xlsx(filename,parentfolder,i):
     # Given an COUNTERPOINT-formatted excel file, and its parent folder, 
     #    generate the two wix formatted files in the same directory.
     if filename.endswith('.xlsx'):  fromFile = parentfolder+filename
     else:                           fromFile = parentfolder+filename+'.xlsx'
     #===============================================
     with dpg.window(label="Wix Format Progress"):
-        try: 
-            dpg.add_progress_bar(id='wix_prog_ALPHA',overlay="% Complete",show=True,width=200)
-            title = "wix_prog_ALPHA"
-        except:
-            dpg.add_progress_bar(id='wix_prog_BETA',overlay="% Complete",show=True,width=200)
-            title = "wix_prog_BETA"
+        title = f"wix_prog_{i}"
+        dpg.add_progress_bar(id=title,overlay="% Complete",show=True,width=200)
     #===============================================
     working_list    = File_Operations.excel_to_list(fromFile)[0]
     working_header  = working_list[0]
