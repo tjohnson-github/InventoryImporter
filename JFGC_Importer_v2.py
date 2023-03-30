@@ -540,19 +540,4 @@ if __name__=="__main__":
     dpg.start_dearpygui()
     dpg.destroy_context()
 
-    #customZip()
-
-    month=5
-    year = 2
-    report_number=15
-
-    a =[    f"\"{month} {year} Week {report_number} Sales.pdf\"",
-            f"\"{month} {year} Week {report_number} Sales All Stores Up To {}.pdf\"",     
-            f"\"{month} {year} Week {report_number} Sales Total.pdf\"",
-            f"\"{month} {year} Week {report_number} Sales Previous Week.pdf\"",
-            f"\"{month} {year} Week {report_number} Sales Next Week.pdf\"",
-            f"\"{month} {year} Week {report_number} Sales Following Week.pdf\"",
-            f"\"{month} {year} Week {report_number} Sales All Stores WTD.pdf\""]
-
-    for x in a:
-        print (x)
+   
