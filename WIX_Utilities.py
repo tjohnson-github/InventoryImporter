@@ -266,7 +266,6 @@ class FlattenedNewWixProduct:
         #=====================================
         return result
 
-
 #=================================================================================
 #       HTTPS FUNCTIONS
 #=================================================================================
@@ -910,12 +909,12 @@ def generate_wix_files_from_xlsx(filename,parentfolder,i):
         print (f'\n\n<><><><><><><><><>\t{i} out of {len(working_rows)}')
         print (row)
         #===============================================
-        percent_complete=(working_rows.index(row)/len(working_rows))
+        percent_complete    =   (working_rows.index(row)/len(working_rows))
         dpg.configure_item(title,show=True,default_value=percent_complete,overlay=f"{int(percent_complete*100)}%")
         #===============================================
-        temp_list =[]
-        sku = ''
-        has_url = None
+        temp_list   =   []
+        sku         =   ''
+        has_url     =   None
         #===============================================
         for column in output_header:
             if column == 'handleId':
@@ -925,8 +924,8 @@ def generate_wix_files_from_xlsx(filename,parentfolder,i):
                 #=================================================
                 # The following was because some products were returned as 404 or 500 errors, when no products should still be 200
                 #   merely with "No products" found
-                good_resp=False
-                counter=0
+                good_resp   =   False
+                counter     =   0
                 while not good_resp:
                     resp = get_product(sku)
 
@@ -1034,16 +1033,61 @@ def generate_wix_files_from_xlsx(filename,parentfolder,i):
             if temp_list not in output_withURLs:
                 output_withURLs.append(temp_list)
         else: 
+            # here, try and implement the 
+            '''for row in output_withoutURLs[1:]:
+
+                _tempUrl = ""
+                _name = row[output_header.index("name")]
+
+                #name / description confidence/fidelity scores
+
+                row[output_header.index("productImageUrl")] = _tempUrl'''
+
             if temp_list not in output_withoutURLs:
                 output_withoutURLs.append(temp_list)
     #===============================================
-
     #Gspread_Rubric.updateSheetfromTop("JFGC_NakedProducts",output_withoutURLs)
-
-
 
     #===============================================
     return output_withURLs,output_withoutURLs
 
 
 
+
+def generate_gradedList(desc):
+    #=============
+    resp = None
+    #=============
+    try:
+        #---------------------------------
+        msg={'desc':str(desc)}
+        #---------------------------------
+        #---------------------------------
+        url = "https://johnsonsflorists.com/_functions/GetSimilarProducts/"
+        resp = requests.get(url,msg)
+        #---------------------------------
+        #---------------------------------
+        if resp.status_code!=200:
+            print("--------------------- BAD:\t",desc)
+            print(resp.text)
+
+        else:
+            print("--------------------- GOOD:\t",desc)
+            print(resp.text)
+        #---------------------------------
+    except Exception as e:
+        print(f'--------------------- ERROR:\t_{desc}_\t{e}')
+        logger.info("\n***************   Error *********\n")
+        logger.info(e)
+    return resp
+
+
+'''
+def main():
+    
+
+    resp = generate_gradedList("Japanese Beech Fern #1")
+    print (resp)
+
+if __name__=="__main__":
+    main()'''

@@ -30,6 +30,9 @@
     <Compile Include="Gspread_WIX.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="module1.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="PDF_Scraper.py" />
     <Compile Include="UPC_Lookup.py">
       <SubType>Code</SubType>
@@ -57,6 +60,7 @@
     <Folder Include="Need to Add\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Readme.md" />
     <Content Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
