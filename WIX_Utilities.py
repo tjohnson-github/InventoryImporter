@@ -1073,7 +1073,7 @@ def generate_gradedList(desc):
 
         else:
             print("--------------------- GOOD:\t",desc)
-            print(resp.text)
+            #print(resp.text)
         #---------------------------------
     except Exception as e:
         print(f'--------------------- ERROR:\t_{desc}_\t{e}')
@@ -1082,12 +1082,41 @@ def generate_gradedList(desc):
     return resp
 
 
-'''
+def generateFidelity(search,result):
+
+    search = search.lower()
+    result = result.lower()
+
+    original_list1 = search.split(" ")
+    original_list2 = result.split(" ")
+
+    # Find the number of common elements in both lists
+    common_elements = set(original_list1).intersection(set(original_list2))
+    num_common_elements = len(common_elements)
+ 
+    # Find the total number of unique elements in both lists
+    total_elements = set(original_list1).union(set(original_list2))
+    num_total_elements = len(total_elements)
+ 
+    # Calculate the percentage similarity
+    percentage_similarity = (num_common_elements / num_total_elements) * 100
+    return int(percentage_similarity)
+
 def main():
     
+    token = "Japanese Holly"
+    #token = "Japanese Beech Fern"
+    #token = "Japanese Beech Fern #1"
+    #token = "PLANT SAUCER" #   8\" PLANT SAUCER CLEAR VINYL
 
-    resp = generate_gradedList("Japanese Beech Fern #1")
-    print (resp)
+    resp = generate_gradedList(token)
+
+    print (type(resp.json()))
+    respJson = resp.json()
+    products = respJson.get("products",{})
+    #print(products)
+    for x in products: 
+        print (f'{x["name"]}:\n\t{x["sku"]} with a score of {generateFidelity(token,x["name"])}%')
 
 if __name__=="__main__":
-    main()'''
+    main()

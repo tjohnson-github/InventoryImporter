@@ -33,6 +33,9 @@
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="OpenAI.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="PDF_Scraper.py" />
     <Compile Include="UPC_Lookup.py">
       <SubType>Code</SubType>
