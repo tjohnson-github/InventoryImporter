@@ -16,6 +16,7 @@ JFGC = JFGC_Data.JFGC_Data()
 import Importer
 import PDF_Scraper
 import File_Operations
+import WIX_Utilities
 
 #====================================================
 #================== HELPER FUNCTIONS
@@ -191,6 +192,53 @@ def display_pdf_transformer(sender,app_data,user_data):
 # MISC
 
 def display_duplicate_cleaner():
+    pass
+
+def begin_noUrl_autofill(sender, app_data, user_data):
+    
+    print("--------------")
+    print (sender)
+    print("--------------")
+    print (app_data)
+    print("--------------")
+    print (user_data)
+    print("--------------")
+    WIX_Utilities.noUrl_autofill_main(dpg.get_value('noUrl_filename'),user_data)
+
+
+
+def autofuill_noURL_file(sender, app_data, user_data):
+
+    filepath=user_data
+
+    with dpg.window(id='noUrl_fileSelectorWindow',label="WIX-Formatted NO_URL File Selection",width=600,height=150):
+        dpg.add_input_text( tag='noUrl_filename',  label="Filename",   default_value="~No File Selected~", enabled=False,  width=500)
+        dpg.add_button(     tag='fileselect',label="Select File",callback=noUrl_individFileSelect,         user_data=filepath)
+
+        dpg.add_separator()
+
+        dpg.add_button(tag='process_noUrl_autofill',    width=600,  label="Process NO_URL Autofill",enabled=False,callback=begin_noUrl_autofill)
+        dpg.bind_item_theme('process_noUrl_autofill','disabled_btn')
+
+def update_noUrl_fileSelect(sender,app_data,user_data):
+    print (app_data)
+    filename        =   next(iter(app_data['selections']))
+    parent_folder   =   app_data['current_path']
+    if 'no_url' in filename.lower():
+        dpg.configure_item(     'noUrl_filename',default_value = filename)
+        dpg.configure_item(     'process_noUrl_autofill',enabled=True)
+        dpg.set_item_user_data( 'process_noUrl_autofill',user_data = parent_folder)
+
+def noUrl_individFileSelect(sender, app_data, user_data):
+    # Individual File select Dialogue
+
+    #-------------------------------------------
+    with dpg.file_dialog(modal=True,default_path=f'{user_data}/OUTPUT', id="file_dialog_id",callback=update_noUrl_fileSelect,width=700,height=500):
+        dpg.add_file_extension(".*", color=(255, 255, 255, 255))
+        dpg.add_file_extension("Source files (*.xlsx){.xlsx}", color=(0, 255, 255, 255))
+        #dpg.add_file_extension(".csv", color=(255, 255, 0, 255), custom_text="CSV")
+        dpg.add_file_extension(".xlsx", color=(255, 0, 255, 255), custom_text="Excel")
+    #-------------------------------------------
     pass
 
 #====================================================
@@ -466,6 +514,13 @@ def main():
                                callback     =   display_duplicate_cleaner,     
                                user_data    =   parent_folder,
                                parent       =   fourth_step_group)
+                fifth_step_group = dpg.add_group(horizontal=True)
+                dpg.add_spacer(width=150,parent=fifth_step_group)
+                dpg.add_button(label="Autofill an NO_URL File",   
+                               width        =   300,  
+                               callback     =   autofuill_noURL_file,     
+                               user_data    =   parent_folder,
+                               parent       =   fifth_step_group)
                 #-----------------------------------------------
             with dpg.tab(label="Default Directories",tag='dd'):
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[

@@ -1026,6 +1026,8 @@ def generate_wix_files_from_xlsx(filename,parentfolder,i):
                 # Special consideration for variants must be made
                 temp_list.append('')
                 #------------------------------
+            elif column == 'ribbon':
+                temp_list.append(row[working_header.index('CATEG_COD')])
             #=================================================
         dpg.configure_item(title,show=True,default_value=1,overlay="100%")
         #=================================================
@@ -1052,6 +1054,110 @@ def generate_wix_files_from_xlsx(filename,parentfolder,i):
     return output_withURLs,output_withoutURLs
 
 
+def noUrl_autofill_main(filename, parentfolder):
+    print(filename)
+    print(parentfolder)
+    fromFile = f'{parentfolder}\{filename}'
+    print(fromFile)
+
+    import OpenAI
+
+    with dpg.window(label="NO_URL Autofull Progress"):
+        title = f"NO_URL_PROG"
+        dpg.add_progress_bar(id=title,overlay="% Complete",show=True,width=200)
+
+    #===============================================
+    working_list    = File_Operations.excel_to_list(fromFile)[0]
+    working_header  = working_list[0]
+    working_rows    = working_list[1:]
+    #===============================================
+    #ITEM_NO	, PROF_ALPHA_2 , DESCR , LST_COST , PRC_1 , TAX_CATEG_COD , CATEG_COD , ACCT_COD , ITEM_VEND_NO , PROF_COD_4 , PROF_ALPHA_3 , PROF_DAT_1 , QTY , ImageUrl , ImageUrl2 , Description , ProductType , Collection , OptionName , OptionType , OptionDescription
+    output_header       =   ['handleId','fieldType','name','description','productImageUrl','collection','sku','ribbon','price','surcharge','visible','discountMode','discountValue','inventory','weight','productOptionName1','productOptionType1','productOptionDescription1']
+    output              =   [output_header]
+    #===============================================
+    # underneath each line have the autosuggestions printed on a number of lines below each change
+    for i,row in enumerate(working_rows):
+        
+        output.append(row)
+
+        if i>0 and i%3==0: 
+            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+            print("circumventing rate limit; waiting 60seconds")
+            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+            time.sleep(60)
+
+        percent_complete    =   (working_rows.index(row)/len(working_rows))
+        dpg.configure_item(title,show=True,default_value=percent_complete,overlay=f"{int(percent_complete*100)}%")
+        #-------------------------------
+        _name = row[output_header.index('name')]
+        _dept = int(row[output_header.index('ribbon')])
+        #-------------------------------
+        # HAPPENS ONCE
+        '''
+        gpt = OpenAI.chatGPTClient()
+
+        kwargs = {"productName": _name,"dept":_dept}
+
+        _desc = gpt.submitProduct(**kwargs)
+
+        if _desc !="":
+            _temp_autofills=['' for x in output_header]
+
+            _temp_autofills[output_header.index('description')] = _desc
+            output.append(_temp_autofills)
+        '''
+        #-------------------------------
+        # HAPPE
+        try:
+            sortableList = get_sortable_generatedList(_name)
+        
+            #print(sortableList)
+
+            sortedList = []
+
+            names_to_scores={}
+
+            for i,prod in enumerate(sortableList):
+
+                names_to_scores.update({prod["name"]:prod["fidelity"]})
+
+            print(names_to_scores)
+
+            from collections import Counter
+
+            #x = {'hello':1, 'python':5, 'world':3}
+            c=Counter(names_to_scores)
+            print( c.most_common() )
+            #sortedList = sorted(names_to_scores.items(), key=lambda x:x[1], reverse=True)
+            #sortedList = sorted([(key,value) for (key,value) in names_to_scores.items()])
+            sortedList = c.most_common()
+            print(sortedList)
+            print("------------")
+
+            for i,pair in enumerate(sortedList):
+
+
+                print (pair[0])
+
+                for i,prod in enumerate(sortableList):
+                    if prod["name"] == pair[0]:
+                        product = sortableList[i]
+                        break
+                    
+
+                _next_autofills = ['' for x in output_header]
+                _next_autofills[output_header.index('handleId')]        = product["sku"]
+                _next_autofills[output_header.index('fieldType')]       = f'{product["fidelity"]}%'
+                _next_autofills[output_header.index('name')]            = product["name"]
+                _next_autofills[output_header.index('productImageUrl')] = product["mainMedia"]
+
+                output.append(_next_autofills)
+        except Exception as e:
+            print (e)
+
+    #===============================================
+    dpg.configure_item(title,show=True,default_value=1,overlay="100%")
+    File_Operations.list_to_excel(output,f'{fromFile[:-4]}_AUTOFILLED.xlsx')
 
 
 def generate_gradedList(desc):
@@ -1102,9 +1208,57 @@ def generateFidelity(search,result):
     percentage_similarity = (num_common_elements / num_total_elements) * 100
     return int(percentage_similarity)
 
+def get_sortable_generatedList(name):
+
+    resp = generate_gradedList(name)
+    respJson = resp.json()
+    products = respJson.get("products",{})
+    #print(products)
+
+    sortable = []
+
+    for x in products: 
+        #print (x)
+
+        
+        
+        
+        
+        fidelity = generateFidelity(name,x["name"])
+
+       
+        try:
+            _prod = {}
+            _prod["fidelity"]   = fidelity#f'{fidelity}%'
+            _prod['mainMedia']  = x["mainMedia"]
+            _prod["name"]       = x["name"]
+            _prod["sku"]        = x["sku"]
+            sortable.append(_prod)
+        except:
+            print("IS VARIANT")
+            for variant in x["variants"]:
+                _prod = {}
+
+                _variant_name = f'Variant of : {x["name"]} : {variant["choices"]}'
+                _sku = variant["variant"]["sku"]
+
+                _prod["fidelity"]   = fidelity#f'{fidelity}%'
+                _prod['mainMedia']  = x["mainMedia"]
+                _prod["name"]       = _variant_name
+                _prod["sku"]        = _sku
+
+                sortable.append(_prod)
+
+
+    return sortable
+
 def main():
     
     token = "Japanese Holly"
+    token = "Achillea 'Sassy Sum Taffy'"
+    token = "Achillea 'Sassy Sum Taffy' PP 4 qt."
+
+
     #token = "Japanese Beech Fern"
     #token = "Japanese Beech Fern #1"
     #token = "PLANT SAUCER" #   8\" PLANT SAUCER CLEAR VINYL
@@ -1116,7 +1270,24 @@ def main():
     products = respJson.get("products",{})
     #print(products)
     for x in products: 
-        print (f'{x["name"]}:\n\t{x["sku"]} with a score of {generateFidelity(token,x["name"])}%')
+        #print (x)
+
+
+        try:
+            print (f'{x["name"]}:\n\t{x["sku"]} with a score of {generateFidelity(token,x["name"])}%')
+
+            _name = x["name"]
+            _sku = x["sku"]
+
+            print (f'\t{x["mainMedia"]}')
+        except:
+            print("IS VARIANT")
+            for variant in x["variants"]:
+                variant_name = f'Variant of : {x["name"]} : {variant["choices"]}'
+                print (variant_name)
+                print (f'{x["name"]}:\n\t{variant["variant"]["sku"]} with a score of {generateFidelity(token,x["name"])}%')
+                print (f'\t{x["mainMedia"]}')
+
 
 if __name__=="__main__":
     main()
