@@ -1078,6 +1078,9 @@ def noUrl_autofill_main(filename, parentfolder):
     # underneath each line have the autosuggestions printed on a number of lines below each change
     for i,row in enumerate(working_rows):
         
+        for ii,column in enumerate(row):
+            if column=="None": row[ii]=""
+
         output.append(row)
 
         if i>0 and i%3==0: 
@@ -1093,7 +1096,7 @@ def noUrl_autofill_main(filename, parentfolder):
         _dept = int(row[output_header.index('ribbon')])
         #-------------------------------
         # HAPPENS ONCE
-        '''
+        
         gpt = OpenAI.chatGPTClient()
 
         kwargs = {"productName": _name,"dept":_dept}
@@ -1105,46 +1108,29 @@ def noUrl_autofill_main(filename, parentfolder):
 
             _temp_autofills[output_header.index('description')] = _desc
             output.append(_temp_autofills)
-        '''
+        
         #-------------------------------
         # HAPPE
         try:
-            sortableList = get_sortable_generatedList(_name)
-        
-            #print(sortableList)
-
-            sortedList = []
-
-            names_to_scores={}
+            sortableList    =   get_sortable_generatedList(_name)
+            sortedList      =   []
+            names_to_scores =   {}
 
             for i,prod in enumerate(sortableList):
-
                 names_to_scores.update({prod["name"]:prod["fidelity"]})
 
-            print(names_to_scores)
-
             from collections import Counter
-
-            #x = {'hello':1, 'python':5, 'world':3}
-            c=Counter(names_to_scores)
-            print( c.most_common() )
-            #sortedList = sorted(names_to_scores.items(), key=lambda x:x[1], reverse=True)
-            #sortedList = sorted([(key,value) for (key,value) in names_to_scores.items()])
-            sortedList = c.most_common()
-            print(sortedList)
-            print("------------")
+            c           =   Counter(names_to_scores)
+            sortedList  =   c.most_common()
+   
 
             for i,pair in enumerate(sortedList):
-
-
-                print (pair[0])
 
                 for i,prod in enumerate(sortableList):
                     if prod["name"] == pair[0]:
                         product = sortableList[i]
                         break
                     
-
                 _next_autofills = ['' for x in output_header]
                 _next_autofills[output_header.index('handleId')]        = product["sku"]
                 _next_autofills[output_header.index('fieldType')]       = f'{product["fidelity"]}%'
@@ -1218,18 +1204,13 @@ def get_sortable_generatedList(name):
     sortable = []
 
     for x in products: 
-        #print (x)
 
-        
-        
-        
-        
         fidelity = generateFidelity(name,x["name"])
 
        
         try:
             _prod = {}
-            _prod["fidelity"]   = fidelity#f'{fidelity}%'
+            _prod["fidelity"]   = fidelity
             _prod['mainMedia']  = x["mainMedia"]
             _prod["name"]       = x["name"]
             _prod["sku"]        = x["sku"]
@@ -1242,7 +1223,7 @@ def get_sortable_generatedList(name):
                 _variant_name = f'Variant of : {x["name"]} : {variant["choices"]}'
                 _sku = variant["variant"]["sku"]
 
-                _prod["fidelity"]   = fidelity#f'{fidelity}%'
+                _prod["fidelity"]   = fidelity
                 _prod['mainMedia']  = x["mainMedia"]
                 _prod["name"]       = _variant_name
                 _prod["sku"]        = _sku
@@ -1258,6 +1239,13 @@ def main():
     token = "Achillea 'Sassy Sum Taffy'"
     token = "Achillea 'Sassy Sum Taffy' PP 4 qt."
 
+
+    token = "Achillea 'Sassy Sum Taffy' PP 4"
+    token = "Achillea 'Sassy Sum Taffy' PP"
+    token = "Achillea 'Sassy Sum Taffy'"
+    token = "Achillea 'Sassy Sum"
+    token = "Achillea 'Sassy"
+    token = "Achillea"
 
     #token = "Japanese Beech Fern"
     #token = "Japanese Beech Fern #1"
