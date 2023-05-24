@@ -297,7 +297,7 @@ def get_all_collections():
             # POST NOT IMPLEMENTED
             pass
             #---------------------------------
-        print (resp.text)
+        #print (resp.text)
         #---------------------------------
         if resp.status_code!=200:
             logger.error("REST API Error {0}".format(resp))
@@ -466,13 +466,13 @@ def get_url(response):
     #===========================
     if response.status_code == 200:
 
-        print (response.json())
+        #print (response.json())
 
         response_obj = response.json()['products']
 
-        print (type(response_obj))
-        print(response_obj)
-        print(len(response_obj))
+        #print (type(response_obj))
+        #print(response_obj)
+        #print(len(response_obj))
 
         if response_obj == 'No product':
             return ''
@@ -543,7 +543,7 @@ def get_product(sku):
             #logger.error(" Json: {0}".format(msg))
         else:
             print("--------------------- GOOD:\t",sku)
-            print(resp.text)
+            #print(resp.text)
         #---------------------------------
     except Exception as e:
         print(f'--------------------- ERROR:\t_{sku}_\t{e}')
@@ -886,6 +886,7 @@ def autoupdateWebsite(header,output_withURLs,output_withoutURLs):
 #       MAIN
 #=================================================================================
 
+
 def generate_wix_files_from_xlsx(filename,parentfolder,i):
     # Given an COUNTERPOINT-formatted excel file, and its parent folder, 
     #    generate the two wix formatted files in the same directory.
@@ -1055,10 +1056,10 @@ def generate_wix_files_from_xlsx(filename,parentfolder,i):
 
 
 def noUrl_autofill_main(filename, parentfolder):
-    print(filename)
-    print(parentfolder)
+    #print(filename)
+    #print(parentfolder)
     fromFile = f'{parentfolder}\{filename}'
-    print(fromFile)
+    #print(fromFile)
 
     import OpenAI
 
@@ -1081,65 +1082,85 @@ def noUrl_autofill_main(filename, parentfolder):
         for ii,column in enumerate(row):
             if column=="None": row[ii]=""
 
-        output.append(row)
 
-        if i>0 and i%3==0: 
-            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-            print("circumventing rate limit; waiting 60seconds")
-            print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-            time.sleep(60)
+       
 
         percent_complete    =   (working_rows.index(row)/len(working_rows))
         dpg.configure_item(title,show=True,default_value=percent_complete,overlay=f"{int(percent_complete*100)}%")
         #-------------------------------
         _name = row[output_header.index('name')]
-        _dept = int(row[output_header.index('ribbon')])
+        _sku = row[output_header.index('handleId')]
         #-------------------------------
-        # HAPPENS ONCE
-        
-        gpt = OpenAI.chatGPTClient()
-
-        kwargs = {"productName": _name,"dept":_dept}
-
-        _desc = gpt.submitProduct(**kwargs)
-
-        if _desc !="":
-            _temp_autofills=['' for x in output_header]
-
-            _temp_autofills[output_header.index('description')] = _desc
-            output.append(_temp_autofills)
-        
-        #-------------------------------
-        # HAPPE
+        # OPEN AI
+        '''
         try:
-            sortableList    =   get_sortable_generatedList(_name)
-            sortedList      =   []
-            names_to_scores =   {}
+             _dept = int(row[output_header.index('ribbon')])
 
-            for i,prod in enumerate(sortableList):
-                names_to_scores.update({prod["name"]:prod["fidelity"]})
+            if i>0 and i%3==0: 
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                print("circumventing rate limit; waiting 60seconds")
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+                time.sleep(60)
 
-            from collections import Counter
-            c           =   Counter(names_to_scores)
-            sortedList  =   c.most_common()
-   
+            gpt = OpenAI.chatGPTClient()
+            kwargs = {"productName": _name,"dept":_dept}
+            _desc = gpt.submitProduct(**kwargs)
 
-            for i,pair in enumerate(sortedList):
+            if _desc !="":
+                _temp_autofills=['' for x in output_header]
 
-                for i,prod in enumerate(sortableList):
-                    if prod["name"] == pair[0]:
-                        product = sortableList[i]
-                        break
-                    
+                _temp_autofills[output_header.index('description')] = _desc
+                output.append(_temp_autofills)
+        except:
+            print("OpenAI is mad at us.... skipping!")
+        '''
+        #-------------------------------
+        # Check if prod already exists
+        alreadyExistingProds = checkifProdAlreadyExists(_sku)
+        if alreadyExistingProds != []:
+            print(f'{_name} already exists on website! Removing from AUTOFILLED file')
+            for i,product in enumerate(alreadyExistingProds):
                 _next_autofills = ['' for x in output_header]
                 _next_autofills[output_header.index('handleId')]        = product["sku"]
                 _next_autofills[output_header.index('fieldType')]       = f'{product["fidelity"]}%'
                 _next_autofills[output_header.index('name')]            = product["name"]
                 _next_autofills[output_header.index('productImageUrl')] = product["mainMedia"]
 
-                output.append(_next_autofills)
-        except Exception as e:
-            print (e)
+                #output.append(_next_autofills)
+
+        else:
+            #-------------------------------
+            output.append(row)
+
+            try:
+                sortableList    =   get_sortable_generatedList(_name)
+                sortedList      =   []
+                names_to_scores =   {}
+
+                for i,prod in enumerate(sortableList):
+                    names_to_scores.update({prod["name"]:prod["fidelity"]})
+
+                from collections import Counter
+                c           =   Counter(names_to_scores)
+                sortedList  =   c.most_common()
+   
+
+                for i,pair in enumerate(sortedList):
+
+                    for i,prod in enumerate(sortableList):
+                        if prod["name"] == pair[0]:
+                            product = sortableList[i]
+                            break
+                    
+                    _next_autofills = ['' for x in output_header]
+                    _next_autofills[output_header.index('handleId')]        = product["sku"]
+                    _next_autofills[output_header.index('fieldType')]       = f'{product["fidelity"]}%'
+                    _next_autofills[output_header.index('name')]            = product["name"]
+                    _next_autofills[output_header.index('productImageUrl')] = product["mainMedia"]
+
+                    output.append(_next_autofills)
+            except Exception as e:
+                print (e)
 
     #===============================================
     dpg.configure_item(title,show=True,default_value=1,overlay="100%")
@@ -1194,6 +1215,7 @@ def generateFidelity(search,result):
     percentage_similarity = (num_common_elements / num_total_elements) * 100
     return int(percentage_similarity)
 
+
 def get_sortable_generatedList(name):
 
     resp = generate_gradedList(name)
@@ -1224,7 +1246,7 @@ def get_sortable_generatedList(name):
                 _sku = variant["variant"]["sku"]
 
                 _prod["fidelity"]   = fidelity
-                _prod['mainMedia']  = x["mainMedia"]
+                _prod['mainMedia']  = x["media"]
                 _prod["name"]       = _variant_name
                 _prod["sku"]        = _sku
 
@@ -1233,8 +1255,8 @@ def get_sortable_generatedList(name):
 
     return sortable
 
-def main():
-    
+
+def openAITest():
     token = "Japanese Holly"
     token = "Achillea 'Sassy Sum Taffy'"
     token = "Achillea 'Sassy Sum Taffy' PP 4 qt."
@@ -1276,6 +1298,41 @@ def main():
                 print (f'{x["name"]}:\n\t{variant["variant"]["sku"]} with a score of {generateFidelity(token,x["name"])}%')
                 print (f'\t{x["mainMedia"]}')
 
+
+def checkifProdAlreadyExists(sku):
+
+    resp = get_product(sku)
+    respJson = resp.json()
+    products = respJson.get("products",{})
+    sortable=[]
+
+    if products != "No product": # should be switched to empty list
+        #print(products)
+        for product in products:
+            try:
+                _prod = {}
+                _prod["fidelity"]   = 100
+                _prod['mainMedia']  = product["mainMedia"]
+                _prod["name"]       = product["name"]
+                _prod["sku"]        = product["sku"]
+                sortable.append(_prod)
+            except:
+                print("IS VARIANT")
+                # Because looking up SKU and not NAME, variant is merely returned, but not in list
+                _prod = {}
+
+                _prod["fidelity"]   = 100
+                _prod['mainMedia']  = product["media"]
+                _prod["name"]       = product["fullVariantName"]
+                _prod["sku"]        = product["sku"]
+
+                sortable.append(_prod)
+    return sortable
+
+def main():
+    a = '705876920901'
+    prods = checkifProdAlreadyExists('VD38B')
+    print (prods)
 
 if __name__=="__main__":
     main()

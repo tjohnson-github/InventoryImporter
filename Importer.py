@@ -181,9 +181,9 @@ class StagedProcessor:
                         all_without.append(entry)
                         recently_added_skus.append(entry[header.index('handleId')])
                 #==================================================
-            else:
-                print(f"Not processing {file} because it lacks the right file naming convention.")
-                print(f"In the future should ignore and actually have means by which to meausure the header.")
+            #else:
+            #    print(f"Not processing {file} because it lacks the right file naming convention.")
+            #    print(f"In the future should ignore and actually have means by which to meausure the header.")
             #==================================================
             print( "\t\t"+"--> Moving file"+"\n")
             try: 
