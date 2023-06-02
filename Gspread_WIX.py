@@ -2,8 +2,8 @@
 import pickle
 import gspread
 from google.oauth2.service_account import Credentials
-
 from decimal import *
+from googleapiclient.discovery import build
 
 def authGspread():
 
@@ -21,6 +21,29 @@ def authGspread():
 
     return gc
  
+
+def createFolder(name):
+
+
+    SCOPES = [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    
+    SERVICE_ACCOUNT_FILE ="C:\\Users\\Andrew\\source\\repos\\jfgcphotos-e815c44a79c2.json"
+
+    credentials = Credentials.from_service_account_file(
+            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+
+    service = build("drive", "v3", credentials=credentials)
+
+    file_metadata = {
+        "name": name,
+        "mimeType": "application/vnd.google-apps.folder",
+    }
+
+    # pylint: disable=maybe-no-member
+    file = service.files().create(body=file_metadata, fields="id").execute()
 
 def addPendingWixProductsToSharedDrive(title):
     """
@@ -52,20 +75,21 @@ def createSheetAndPopulate(sheetName,entries_to_add,folderID):
 
     # Assumes sheet with correct header is already present:
 
-
     gc = authGspread()
 
     try:
         sh = gc.create(sheetName, folder_id=folderID)
         wk = sh.sheet1
-    except:
-        print(f"Cannot Create {sheetname}:\t{e}")
 
-    try:
-        wk.insert_rows(entries_to_add)
+        try:
+            wk.insert_rows(entries_to_add)
+        except Exception as ee:
+            raise Exception(f"Cannot Print to {sheetName}:\t{e}")
+
     except Exception as e:
-        print (f"Cannot Print to {sheetName}:\t{e}")
+        print(f"Cannot Create {sheetName}:\t{e}")
 
+   
 
 def test():
     

@@ -14,6 +14,29 @@ import fnmatch
 
 import File_Operations
 
+
+def populateReceivings(pathing_dict):
+
+
+    Gspread_WIX.createFolder("Receivings In")
+    return 
+    import os,time
+
+    staged_filepath = pathing_dict['ouput_filepath']
+
+    arr = os.listdir(staged_filepath)
+
+    for file in arr:
+        if file.endswith(".csv"):
+            
+            print(file)
+            #continue
+            _list = File_Operations.csv_to_list(file)
+            Gspread_WIX.createSheetAndPopulate(file,_list,folderID="1cvbGZZqxgqJpooZBo0Fgfr_Ric1Cw-Ps")
+            time.sleep(10)  
+   
+
+
 class StagedProcessor:
     __count=0
     
@@ -153,6 +176,9 @@ class StagedProcessor:
 
             savename = self.ouput_filepath + dpg.get_value(f"{file}_default")
             File_Operations.list_to_csv(temp_list,     self.ouput_filepath+self.formatName(file))
+
+            Gspread_WIX.createSheetAndPopulate(savename,temp_list,folderID="1cvbGZZqxgqJpooZBo0Fgfr_Ric1Cw-Ps")
+
 
             if process_wix==True and dpg.get_value(f'{file}_process_wix')==True:
                 #==================================================
@@ -622,7 +648,7 @@ class InputProcessor:
                             temp_str_barcode = temp_barcode['productImageUrl']
                         #------------------------------------------------------------
                     #print("does it get here? C")
-
+                    if temp_str_barcode == "None": temp_str_barcode=''
                     temp_list.append(temp_str_barcode)
                     #--------------------
                 elif column == "Collection":

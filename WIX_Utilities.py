@@ -1156,9 +1156,20 @@ def noUrl_autofill_main(filename, parentfolder):
                     _next_autofills[output_header.index('handleId')]        = product["sku"]
                     _next_autofills[output_header.index('fieldType')]       = f'{product["fidelity"]}%'
                     _next_autofills[output_header.index('name')]            = product["name"]
+                    _next_autofills[output_header.index('description')]            = product["description"]
                     _next_autofills[output_header.index('productImageUrl')] = product["mainMedia"]
 
-                    output.append(_next_autofills)
+
+                    cutoff = dpg.get_value('noURLCutoff')
+
+                    if i==0:
+                        output.append(_next_autofills) # always publishes the highest fidelity score
+                    else:
+                        if prod["fidelity"] >= cutoff:
+                            output.append(_next_autofills)
+                        else:
+                            print(f"{product['name']}'s {product['fidelity']}% below cutoff! Skipping")
+
             except Exception as e:
                 print (e)
 
@@ -1236,6 +1247,7 @@ def get_sortable_generatedList(name):
             _prod['mainMedia']  = x["mainMedia"]
             _prod["name"]       = x["name"]
             _prod["sku"]        = x["sku"]
+            _prod["description"]= x["description"]
             sortable.append(_prod)
         except:
             print("IS VARIANT")
@@ -1249,6 +1261,7 @@ def get_sortable_generatedList(name):
                 _prod['mainMedia']  = x["media"]
                 _prod["name"]       = _variant_name
                 _prod["sku"]        = _sku
+                _prod["description"]= "**PLEASE SEE MAIN PRODUCT FOR DESCRIPTION**"
 
                 sortable.append(_prod)
 
@@ -1307,7 +1320,7 @@ def checkifProdAlreadyExists(sku):
     sortable=[]
 
     if products != "No product": # should be switched to empty list
-        #print(products)
+        print(products)
         for product in products:
             try:
                 _prod = {}
@@ -1315,6 +1328,8 @@ def checkifProdAlreadyExists(sku):
                 _prod['mainMedia']  = product["mainMedia"]
                 _prod["name"]       = product["name"]
                 _prod["sku"]        = product["sku"]
+                _prod["description"]= product["description"]
+
                 sortable.append(_prod)
             except:
                 print("IS VARIANT")
@@ -1325,13 +1340,16 @@ def checkifProdAlreadyExists(sku):
                 _prod['mainMedia']  = product["media"]
                 _prod["name"]       = product["fullVariantName"]
                 _prod["sku"]        = product["sku"]
-
+                _prod["description"]= "**PLEASE SEE MAIN PRODUCT FOR DESCRIPTION**"
                 sortable.append(_prod)
     return sortable
 
 def main():
     a = '705876920901'
-    prods = checkifProdAlreadyExists('VD38B')
+    a = '872142313429'
+    a = 'VD38B' #variant
+    
+    prods = checkifProdAlreadyExists(a)
     print (prods)
 
 if __name__=="__main__":

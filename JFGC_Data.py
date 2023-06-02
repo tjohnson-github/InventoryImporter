@@ -25,7 +25,27 @@ class SQLClient:
             print ("_____ERROR_____")
             print ("Cursor object not initialized correctly. Please run Setup and retry.")
    
-           
+  
+            
+if __name__=="__main__":
+    client = SQLClient()
+
+    from_table              =   "IM_ITEM"
+    sort_by                 =   "NAM_UPR"
+    client.cursor.execute(f'SELECT * FROM JFGC.dbo.{from_table};')
+    headers                 =   [i[0] for i in client.cursor.description]
+
+    print (headers)
+
+
+    for i,x in enumerate(client.cursor):
+        if i>=6: break
+
+        for ii,column in enumerate(headers):
+            if x[ii]!="None" and x[ii]!= None:
+                print(f'{column}\t:\t{x[ii]}')
+
+
 @dataclass
 class Department:
     code: int               = field(repr=True)
@@ -141,7 +161,7 @@ class JFGC_Data:
         #"22": ##,
         "23": 64.20,
         "24": 56.20,
-        "25": 59.50,
+        "25": 50.00,
         "26": 56.20,
         "27": 56.20,
         #"28": ##,

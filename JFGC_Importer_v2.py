@@ -17,6 +17,7 @@ import Importer
 import PDF_Scraper
 import File_Operations
 import WIX_Utilities
+import SQL_Scraper
 
 #====================================================
 #================== HELPER FUNCTIONS
@@ -217,6 +218,7 @@ def autofuill_noURL_file(sender, app_data, user_data):
 
         dpg.add_separator()
 
+        dpg.add_slider_int(tag='noURLCutoff',label="% Fidelity Cutoff",default_value=33)
         dpg.add_button(tag='process_noUrl_autofill',    width=600,  label="Process NO_URL Autofill",enabled=False,callback=begin_noUrl_autofill)
         dpg.bind_item_theme('process_noUrl_autofill','disabled_btn')
 
@@ -262,6 +264,18 @@ def inputFolderSelect(sender, app_data, user_data):
 
 #====================================================
 # INDIVIDUAL FILE MANIP
+
+def getPathingDict():
+    pathing_dict:   dict    = {}
+    pathing_dict['parent_path']         = get_default_dir() #dpg.get_value('base_parent_directory')
+    pathing_dict['staged_filepath']     = dpg.get_value('base_staged_path')
+    pathing_dict['ouput_filepath']      = dpg.get_value('base_output_path')
+    pathing_dict['processed_filepath']  = dpg.get_value('base_processed_path')
+    pathing_dict['rubric_path']         = dpg.get_value('base_rubric_path')
+    pathing_dict['input_filepath']      = get_default_dir() #dpg.get_value('base_input_path')
+    return pathing_dict
+
+
 
 def beginSingleImport(sender, app_data, user_data):
     # Given an individual file, 
@@ -455,6 +469,8 @@ def saveDefault(sender,app_data,user_data):
 
 def main():
 
+      
+
     try:
         parent_folder=get_default_dir();
     except:
@@ -546,8 +562,14 @@ def main():
                 Utilities.Markup(width=400,height=120,visualize=True)
                 Utilities.PrcBreakdown(width=400,height=150)
             #-----------------------------------------------
-
+            with dpg.tab(label="SQL Scraper"):
+                SQL_Scraper.SQLScraper(width=650-10,height=400-10,pathingDict=getPathingDict())
     #===================================================
+    pass
+    
+    print(getPathingDict())
+    #Importer.populateReceivings(getPathingDict())
+
     return
 
 
@@ -595,4 +617,98 @@ if __name__=="__main__":
     dpg.start_dearpygui()
     dpg.destroy_context()
 
-   
+  
+class ImporterHome:
+    tag = "Importer Home"
+
+    def __init__(self,width=650,height=400):
+        try:
+            parent_folder=get_default_dir();
+        except:
+            parent_folder="<no_directory_selected>"
+
+        with dpg.window(tag=self.tag,label="Import Inventory JFGC",width=width,height=height):
+        
+            from DPG_Themes import global_theme
+            dpg.bind_theme(global_theme)
+  
+            # /////////////////////////////////
+            #===================================================
+            with dpg.tab_bar():
+                with dpg.tab(label="Process Files"):
+                    #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+                    with dpg.child_window(width=600,height=80):
+                        dpg.add_text("Welcome to JFGC Import Inventory Helper.\nBegin by selecting a single file, or a folder of files.")
+                        dpg.add_text("Files must be of format:\n\t[vendorname]-[tags]-[department #].[extension]")
+                    #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+                    dpg.add_text("Input -> Stage -> Process")
+                    first_step_group = dpg.add_group(horizontal=True)
+                    '''dpg.add_button(label="Stage Individual File",     
+                                   width        =   300,  
+                                   callback     =   display_indiv_fileSelector,    
+                                   user_data    =   [parent_folder,],
+                                   parent       =   first_step_group)
+                    dpg.add_button(label="Process Individual File",     
+                                   width        =   300,  
+                                   callback     =   display_indiv_fileSelector,    
+                                   user_data    =   [parent_folder,],
+                                   parent       =   first_step_group)'''
+
+                    second_step_group = dpg.add_group(horizontal=True)
+                    dpg.add_button(label="Stage Multiple Files",      
+                                   width        =   300,  
+                                   callback     =   display_group_import,          
+                                   user_data    =   [parent_folder,1],
+                                   parent       =   second_step_group)
+                    dpg.add_button(label="Process Multiple Files",      
+                                   width        =   300,  
+                                   callback     =   display_group_import,          
+                                   user_data    =   [parent_folder,2],
+                                   parent       =   second_step_group)
+
+                    third_step_group = dpg.add_group(horizontal=True)
+                    dpg.add_spacer(width=150,parent=third_step_group)
+                    dpg.add_button(label="Convert PDF to CSV",          
+                                   width        =   300,  
+                                   callback     =   display_pdf_transformer,       
+                                   user_data    =   parent_folder,
+                                   parent       =   third_step_group)
+                
+                    fourth_step_group = dpg.add_group(horizontal=True)
+                    dpg.add_spacer(width=150,parent=fourth_step_group)
+                    dpg.add_button(label="Combine Duplicate Entries",   
+                                   width        =   300,  
+                                   callback     =   display_duplicate_cleaner,     
+                                   user_data    =   parent_folder,
+                                   parent       =   fourth_step_group)
+                    fifth_step_group = dpg.add_group(horizontal=True)
+                    dpg.add_spacer(width=150,parent=fifth_step_group)
+                    dpg.add_button(label="Autofill an NO_URL File",   
+                                   width        =   300,  
+                                   callback     =   autofuill_noURL_file,     
+                                   user_data    =   parent_folder,
+                                   parent       =   fifth_step_group)
+                    #-----------------------------------------------
+                with dpg.tab(label="Default Directories",tag='dd'):
+                    #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+                    with dpg.child_window(width=600,height=55):
+                        dpg.add_text("When selecting a folder, make sure \\Rubric is present and that it contains a valid formatting rubric.")
+                        dpg.add_text("All other directories will be auto-created.")
+                    #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+                    with dpg.child_window(width=600,height=170):
+                        #add_input_text(tag='rubric_filename',label="Rubric",default_value="~No File Selected~",enabled=False,width=500)
+                        dpg.add_input_text(tag='base_parent_directory',   enabled=False,default_value =   parent_folder               ,label="Parent Directory")
+                        dpg.add_input_text(tag='base_input_path',         enabled=False,default_value =   parent_folder+"\\INPUT"     ,label="Input Path")
+                        dpg.add_input_text(tag='base_staged_path',        enabled=False,default_value =   parent_folder+"\\STAGED"    ,label="Staged Path")
+                        dpg.add_input_text(tag='base_output_path',        enabled=False,default_value =   parent_folder+"\\OUTPUT"    ,label="Output Path")
+                        dpg.add_input_text(tag='base_processed_path',     enabled=False,default_value =   parent_folder+"\\PROCESSED" ,label="Processed Path")
+                        dpg.add_input_text(tag='base_rubric_path',        enabled=False,default_value =   parent_folder+"\\Rubric"    ,label="Rubric Path")
+                    #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+                    dpg.add_button(tag='base_select',label="Select Default Directory",callback=defaultFolderSelect)
+                    dpg.add_button(tag='save_base_selection',label="Save Information?",show=False,callback=saveDefault)
+                    dpg.add_text(tag='saved_notify',show=False,default_value="Saved!")
+                    #-----------------------------------------------
+                with dpg.tab(label="Utilities"):
+                    #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+                    Utilities.Markup(width=400,height=120,visualize=True)
+                    Utilities.PrcBreakdown(width=400,height=150)
