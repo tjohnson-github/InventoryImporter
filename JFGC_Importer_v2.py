@@ -217,6 +217,7 @@ def autofuill_noURL_file(sender, app_data, user_data):
 
         dpg.add_separator()
 
+        dpg.add_slider_int(tag='noURLCutoff',label="% Fidelity Cutoff",default_value=33)
         dpg.add_button(tag='process_noUrl_autofill',    width=600,  label="Process NO_URL Autofill",enabled=False,callback=begin_noUrl_autofill)
         dpg.bind_item_theme('process_noUrl_autofill','disabled_btn')
 
