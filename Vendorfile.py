@@ -88,12 +88,14 @@ class vendorfile:
         #print("---------NAME format begin------")
         #print (temp_info)
 
-        try:
-            self.vendorName = temp_info[0]
-            self.vendorCode = ""
-            self.note       = f'{self.vendorName}_{temp_info[1]}'
+        index_offset = 1
 
-            self.department = temp_info[2]
+        try:
+            self.vendorName = temp_info[0+index_offset]
+            self.vendorCode = ""
+            self.note       = f'{self.vendorName}_{temp_info[1+index_offset]}'
+
+            self.department = temp_info[-1]
             self.department = self.department.replace("Dept","")
             self.department = self.department.replace(" ","")
             self.department = ''.join(i for i in self.department if i.isdigit())

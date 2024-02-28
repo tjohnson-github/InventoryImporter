@@ -190,21 +190,14 @@ def getNextUPC(targetLength=6):
     working_directory = os.getcwd()
     saveName = f"{working_directory}\\Data\\available_AA_UPCs_{targetLength}.txt"
 
-    #print (saveName)
     continuous = getVariable(saveName)
 
-    #print (continuous)
-    #print("----")
     next_available_UPC = str(continuous[0])
-
     continuous.remove(next_available_UPC)
-
     saveVariable(saveName,continuous)
 
 
     return next_available_UPC
-
-#createAvailableUPCsListObj(annotations=True)
 
 
 def test():

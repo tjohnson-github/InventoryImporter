@@ -397,7 +397,7 @@ def display_group_import(sender, app_data, user_data):
         dpg.add_input_text(tag='output_path',        parent='input_folderWindow',enabled=False,default_value =   filepath+"\\OUTPUT"    ,label="Output Path")
         dpg.add_input_text(tag='processed_path',     parent='input_folderWindow',enabled=False,default_value =   filepath+"\\PROCESSED" ,label="Processed Path")
         dpg.add_input_text(tag='rubric_path',        parent='input_folderWindow',enabled=False,default_value =   filepath+"\\Rubric"    ,label="Rubric Path")
-
+         
 def updateDefaultSelect(sender, app_data, user_data):
     # Given the general filepath, sets the default items to be whats expected.
     # TO DO:
@@ -604,7 +604,12 @@ def customZip():
     File_Operations.list_to_excel(temp_list,"C:\\Users\\Andrew\\source\\repos\\VENDOR_FILES\\INPUT\\zipped.xlsx")
     
 
+
+
 if __name__=="__main__":
+
+
+    
 
     dpg.create_context()
     dpg.create_viewport(title='JFGC Import Inventory Assistant', width=900, height=700)

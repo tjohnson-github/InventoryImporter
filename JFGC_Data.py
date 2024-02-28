@@ -27,23 +27,7 @@ class SQLClient:
    
   
             
-if __name__=="__main__":
-    client = SQLClient()
 
-    from_table              =   "IM_ITEM"
-    sort_by                 =   "NAM_UPR"
-    client.cursor.execute(f'SELECT * FROM JFGC.dbo.{from_table};')
-    headers                 =   [i[0] for i in client.cursor.description]
-
-    print (headers)
-
-
-    for i,x in enumerate(client.cursor):
-        if i>=6: break
-
-        for ii,column in enumerate(headers):
-            if x[ii]!="None" and x[ii]!= None:
-                print(f'{column}\t:\t{x[ii]}')
 
 
 @dataclass
@@ -62,6 +46,9 @@ class Department:
             self.formatted_code = f'0{self.code}'
 
         self.dptStr = f'{self.code} : {self.name}'
+
+    def __str__(self):
+        return f'{self.code},{self.name},{self.margin}'
 
 allDepartments: list = [
         Department(code=1,name="Cut Flowers",margin=65.2),
@@ -306,3 +293,27 @@ class JFGC_Data:
         return self.dptByName.get(name,f"No department found with name {name}!")
 
     
+
+if __name__ == "__main__":
+    print ("hi")
+
+    jfgc = JFGC_Data()
+    for dept in jfgc.allDepartments:
+        print(dept)
+
+    '''client = SQLClient()
+
+    from_table              =   "IM_ITEM"
+    sort_by                 =   "NAM_UPR"
+    client.cursor.execute(f'SELECT * FROM JFGC.dbo.{from_table};')
+    headers                 =   [i[0] for i in client.cursor.description]
+
+    print (headers)
+
+
+    for i,x in enumerate(client.cursor):
+        if i>=6: break
+
+        for ii,column in enumerate(headers):
+            if x[ii]!="None" and x[ii]!= None:
+                print(f'{column}\t:\t{x[ii]}')'''

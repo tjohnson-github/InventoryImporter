@@ -14,8 +14,9 @@ class ConditionFilter:
     sqlFormattedItems: list
     sqlString: str
 
-    def __init__(self,dpgFormatteditems,label,sqlString,sqlFormattedItems):
-        self.group = dpg.add_group(horizontal=True)
+    def __init__(self,dpgFormatteditems,label,sqlString,sqlFormattedItems,after=None):
+        if after:  self.group = dpg.add_group(horizontal=True,parent=dpg.get_item_parent(after)) # change to after?
+        else:       self.group = dpg.add_group(horizontal=True)
         self.check  = dpg.add_checkbox(default_value=True,parent=self.group)
         self.combo  = dpg.add_combo(items=dpgFormatteditems,label=label,width=300,parent=self.group)
         self.sqlString = sqlString
@@ -69,7 +70,23 @@ class SQLScraper:
 
         return _qty 
 
+    def addFilter(self,sender,app_data,user_data):
+        
+        print(self)
+        print(sender)
+        print(app_data)
+        print(user_data)
+
+        if user_data == "Department":
+            new_filter = ConditionFilter(self.dept_names,"Department","CATEG_COD",["0"+str(x.code) if len(str(x.code))==2 else "00"+str(x.code) for x in self.jfgcdata.allDepartments],after=dpg.get_item_parent(sender))
+        elif user_data == "Vendor":
+            new_filter = ConditionFilter(self.vendorNames,"Vendor","ITEM_VEND_NO",[str(y) for x,y in self.jfgcdata.vendorDict.items()],after=dpg.get_item_parent(sender))
+
+        self.filters.append(new_filter)
+
     def formatPartial(self,headers,rows):
+
+        print(f"Attempting to format {len(rows)} items.")
 
         SQL_csv =['ITEM_NO'	, 'PROF_ALPHA_2' , 'DESCR' , 'LST_COST' , 'PRC_1' , 'TAX_CATEG_COD' , 'CATEG_COD' , 'ACCT_COD' , 'ITEM_VEND_NO' , 'PROF_COD_4' , 'PROF_ALPHA_3' , 'PROF_DAT_1' , 'QTY']
         _compiled_list = [SQL_csv]
@@ -77,6 +94,10 @@ class SQLScraper:
         _zeroes = []
 
         for i,row in enumerate(rows):
+
+            if ((i+1)%100==0):
+                print(f"Formatting item {i+1} / {len(rows)}")
+
             _formattedRow = []
             for ii,column in enumerate(SQL_csv):
 
@@ -93,6 +114,7 @@ class SQLScraper:
 
         for x in _zeroes: _compiled_list.append(x)
 
+        print("Done formatting: attempting to save")
         File_Operations.list_to_csv(_compiled_list,f'{self.pathingDict["ouput_filepath"]}\\QUERIES\\{dpg.get_value(self.queryName)}.csv')
         print("\n\nQUERY DONE")
 
@@ -105,13 +127,22 @@ class SQLScraper:
         if True in [dpg.get_value(x.check) for x in self.filters] and [ dpg.get_value(x.combo) for x in self.filters].count("")!=len(self.filters):
             cursorStr+=" WHERE"
 
+        filteredBySameType =[]
+
         for i,filter in enumerate(self.filters):
             
+
             if dpg.get_value(filter.check) and dpg.get_value(filter.combo):
 
-                if i>1: cursorStr+=" AND"
+                if i>1: 
+                    if filter.sqlString not in filteredBySameType:
+                        cursorStr+=f" AND {filter.sqlString} LIKE"
+                    else: cursorStr+=f" OR {filter.sqlString} LIKE"
+                    cursorStr+=f" '{filter.sqlFormattedItems[filter.dpgFormatteditems.index(dpg.get_value(filter.combo))]}'"    
+                else:
+                    cursorStr+=f" {filter.sqlString} LIKE '{filter.sqlFormattedItems[filter.dpgFormatteditems.index(dpg.get_value(filter.combo))]}'"
 
-                cursorStr+=f" {filter.sqlString} LIKE '{filter.sqlFormattedItems[filter.dpgFormatteditems.index(dpg.get_value(filter.combo))]}'"
+            filteredBySameType.append(filter.sqlString)
 
         print(f"Attemtping to run:\n\t{cursorStr}")
         self.client.cursor.execute(cursorStr)
@@ -126,7 +157,8 @@ class SQLScraper:
         #length = 0
 
         for i,x in enumerate(self.client.cursor):
-            print(f"Counting item {i+1}")
+            if ((i+1)%100==0):
+                print(f"Counting item {i+1}")
             #length+=1
             rows.append(x)
             
@@ -148,7 +180,7 @@ class SQLScraper:
 
         with dpg.child_window(width=width,height=height):
 
-            jfgcdata = JFGC_Data.JFGC_Data()
+            self.jfgcdata = JFGC_Data.JFGC_Data()
 
             self.queryName = dpg.add_input_text(label="Name of Query",width=170,default_value=str(datetime.datetime.now().strftime('%Y-%m-%d')))
             #dpg.add_text(id='savedirReminder',default_value="Query will be saved in directory:")
@@ -159,12 +191,13 @@ class SQLScraper:
             dpg.add_text("FILTERS")
 
             #=============================================
-            dept_names = [f'{x.code}\t:\t{x.name}' for x in jfgcdata.allDepartments]
-            deptfilter = ConditionFilter(dept_names,"Department","CATEG_COD",["0"+str(x.code) if len(str(x.code))==2 else "00"+str(x.code) for x in jfgcdata.allDepartments])
-            
+            self.dept_names = [f'{x.code}\t:\t{x.name}' for x in self.jfgcdata.allDepartments]
+            deptfilter = ConditionFilter(self.dept_names,"Department","CATEG_COD",["0"+str(x.code) if len(str(x.code))==2 else "00"+str(x.code) for x in self.jfgcdata.allDepartments])
+            newdept = dpg.add_button(label="+",parent=deptfilter.group,callback=self.addFilter,user_data="Department")
             #=============================================
-            vendorNames = [f'{y}\t:\t{x}' for x,y in jfgcdata.vendorDict.items()]
-            vendorNames.reverse()
-            vendorfilter = ConditionFilter(vendorNames,"Vendor","ITEM_VEND_NO",[str(y) for x,y in jfgcdata.vendorDict.items()])
+            self.vendorNames = [f'{y}\t:\t{x}' for x,y in self.jfgcdata.vendorDict.items()]
+            self.vendorNames.reverse()
+            vendorfilter = ConditionFilter(self.vendorNames,"Vendor","ITEM_VEND_NO",[str(y) for x,y in self.jfgcdata.vendorDict.items()])
+            newvend = dpg.add_button(label="+",parent=vendorfilter.group,callback=self.addFilter,user_data="Vendor")
             #=============================================
             self.filters = [deptfilter,vendorfilter]

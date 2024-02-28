@@ -145,7 +145,24 @@ def list_to_csv(temp_list, filename_to_save, delimiter = ','):
             writer_object = csv.writer(csvfile, delimiter = delimiter, quotechar='"', quoting = csv.QUOTE_MINIMAL)
             #------------------------
             for row in temp_list:
-                writer_object.writerow(row)
+                    try:
+                        writer_object.writerow(row)
+                    except Exception as e:
+                        print(f"PROBLEMATIC ROW:\n\t{row}")
+
+                        for i,x in enumerate(row):
+                            if type(x)==str:
+                                if 'D\x90' in x: 
+                                    row[i] = x.replace('D\x90','DE')
+
+                                    try:
+                                        writer_object.writerow(row)
+                                        break
+                                    except Exception as e:
+                                        print("\t row could not save")
+                                        #raise Exception(e)
+
+                        #raise Exception(e)
         #------------------------
         return True
     except Exception as e:
