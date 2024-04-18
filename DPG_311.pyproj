@@ -25,6 +25,9 @@
     <Compile Include="Auto_Assigner.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="decorators.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="JFGC_Data.py" />
     <Compile Include="Logging.py" />
     <Compile Include="Gspread_WIX.py">

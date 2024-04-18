@@ -242,6 +242,7 @@ class InputProcessor:
     nonbatched_olney            : dict={}
     #nonbatched_both             : List[any]=[]
     # f"{vendorfileObj.name}_nobatch"
+    auto_assign_update_occured = False
 
     def __init__(self,JFGC,list_to_process,pathing_dict):
         print ("=========================================")
@@ -481,6 +482,11 @@ class InputProcessor:
                     #--------------------
                     if (column not in vendor_format_dict.keys()):
                         #if i==0:
+                        if not self.auto_assign_update:
+                            print("Missing UPCs detected... recreating list of available UPCs")
+                            Auto_Assigner.createAvailableUPCsListObj()
+                            self.auto_assign_update_occured = True
+
                         temp_upc = Auto_Assigner.getNextUPC()
 
                         #self.temp_AA.append(temp_upc)
@@ -495,6 +501,11 @@ class InputProcessor:
                         #temp_list.append("(AUTO-ASSIGN)")
 
                         #if i==0:
+                        if not self.auto_assign_update:
+                            print("Missing UPCs detected... recreating list of available UPCs")
+                            Auto_Assigner.createAvailableUPCsListObj()
+                            self.auto_assign_update_occured = True
+
                         temp_upc = Auto_Assigner.getNextUPC()
                         #temp_AA.append(temp_upc)
                         #else:

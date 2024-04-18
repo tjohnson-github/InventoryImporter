@@ -6,9 +6,40 @@ from JFGC_Data import SQLClient
 import itertools
 import os
 from File_Operations import getVariable,saveVariable
+import dearpygui.dearpygui as dpg
+import decorators
+
+class AutoAssignerTab:
+
+    def createList(self,sender,app_data,user_data):
+
+        #_targetLength = dpg.get_value(self.targetLengthInput)
+        #createAvailableUPCsListObj(targetLength = _targetLength)
+        createAvailableUPCsListObj()
+
+    def __init__(self,width,height):
+
+        self.client = SQLClient()
+
+        with dpg.child_window(width=width,height=height):
+            dpg.add_text("""In order to better update products and the website we circumvent \n
+                            CounterPoint8's (Auto-Assign UPC) function by scraping all available \n
+                            UPCs of any desired length and output them.""")
+            dpg.add_separator()
+            dpg.add_text("""Occasionally has to be run in case of desync, such as if user \n
+                            actions manually create a UPC or this process is run on multiple \n
+                            computers.""")
+            dpg.add_separator()
+
+            self.targetLengthInput = dpg.add_input_int(id="autoassigner_length",default_value=6,label="Current Length",min_value=1)
+            dpg.add_button(label = "Generate List",callback=self.createList)
+        
+@decorators.timer_func
+def createAvailableUPCsListObj(targetLength = None,annotations=False):
 
 
-def createAvailableUPCsListObj(targetLength = 6,annotations=False):
+    if not targetLength :
+        targetLength = dpg.get_value("autoassigner_length")
 
     working_directory = os.getcwd()
     saveName = f"{working_directory}\\Data\\available_AA_UPCs_{targetLength}.txt"
@@ -61,9 +92,9 @@ def createAvailableUPCsListObj(targetLength = 6,annotations=False):
 
     length_index=0
 
-    print("0000000000000000000000000000000000")
-    for x in isnt_alpha:
-        print (x)
+    #print("0000000000000000000000000000000000")
+    #for x in isnt_alpha:
+    #    print (x)
 
     continuous_list=[]
     for i,entry in enumerate(isnt_alpha):
@@ -107,8 +138,8 @@ def createAvailableUPCsListObj(targetLength = 6,annotations=False):
 
 
     '''        
-    for x in continuous_list[:5]: 
-            print (x)
+    #for x in continuous_list[:5]: 
+    #        print (x)
 
     #===================================================
     permitted_characters    = ['0','1','2','3','4','5','6','7','8','9']
@@ -126,13 +157,13 @@ def createAvailableUPCsListObj(targetLength = 6,annotations=False):
     #for x in formatted_possible_combinations[:5]: print (x)
 
     available_tuples = (set(formatted_possible_combinations)-set(continuous_list))
-    print("ccccccccccccccccccccccccccc")
-    for x in list(available_tuples)[:5]:print(x)
+    #print("ccccccccccccccccccccccccccc")
+    #for x in list(available_tuples)[:5]:print(x)
 
     
-    print (type(available_tuples))
-    print (len(available_tuples))
-    print("Reordering....")
+    #print (type(available_tuples))
+    #print (len(available_tuples))
+    #print("Reordering....")
     '''    
     available_list = list(available_tuples)
     perfect_list=[]
@@ -147,7 +178,7 @@ def createAvailableUPCsListObj(targetLength = 6,annotations=False):
     perfect_list=list(available_tuples)
     perfect_list.sort(key=int)
 
-    for x in perfect_list[:5]:
+    for x in perfect_list[:50]:
         print(x)
 
 
