@@ -1,6 +1,31 @@
 
 
+======================================
 
+List of store editor:
+- add new store -- add code
+- auto-populate with chosen store
+
+Let ppl change names of any files (nonbatched stage, or process) at any point
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+=======================================
+OLD
 
 -- Create new staging behaviour:
 	1. user chooses input/output folders

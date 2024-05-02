@@ -482,7 +482,7 @@ class InputProcessor:
                     #--------------------
                     if (column not in vendor_format_dict.keys()):
                         #if i==0:
-                        if not self.auto_assign_update:
+                        if not self.auto_assign_update_occured:
                             print("Missing UPCs detected... recreating list of available UPCs")
                             Auto_Assigner.createAvailableUPCsListObj()
                             self.auto_assign_update_occured = True
@@ -501,7 +501,7 @@ class InputProcessor:
                         #temp_list.append("(AUTO-ASSIGN)")
 
                         #if i==0:
-                        if not self.auto_assign_update:
+                        if not self.auto_assign_update_occured:
                             print("Missing UPCs detected... recreating list of available UPCs")
                             Auto_Assigner.createAvailableUPCsListObj()
                             self.auto_assign_update_occured = True
@@ -726,7 +726,7 @@ class InputProcessor:
                     #--------------------
             except Exception as e:
                 #if annotations: print (column,"\t",e)
-                print (column,"\t",e)
+                print (f'Error at {column}\t{e}')
                 temp_list.append('*!ERROR!*')
         print("----- problematic columns end::")
         #============================================================

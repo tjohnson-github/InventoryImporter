@@ -43,6 +43,16 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="PDF_Scraper.py" />
+    <Compile Include="Redesign\Column_Operations.py" />
+    <Compile Include="Redesign\Rubric_Builder.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Redesign\CustomPickler.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Redesign\SQLInterface.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="SQL_Scraper.py">
       <SubType>Code</SubType>
     </Compile>
@@ -70,6 +80,8 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Need to Add\" />
+    <Folder Include="Redesign\" />
+    <Folder Include="Redesign\Settings\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Readme.md" />
