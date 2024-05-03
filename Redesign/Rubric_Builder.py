@@ -7,185 +7,134 @@ import pyodbc
 
 import CustomPickler
 
+from SQLInterface import SQLLinker
+from DPGStage import DPGStage
+
 default_path = "Redesign//Settings//"
 
-class DPGStage:
 
-    label: str
 
-    errorColor = (255, 68, 51)
+@dataclass
+class Rubric:
+    name: str
+    subname: str
+    correspondenceDict: dict
 
-    def __init__(self,stageOnly=False,**kwargs):
+@dataclass
+class DesiredFormat:
+    name: str
+    headersAKAColumns: list[str]
+    correspondenceDict: dict
+    # will be something like:
+    # { column1: 1, column2: 2, ...
+    #   or
+    # { column1: IMPORTANTCONCEPT1, column4: IMPORTANTCONCEPT2, ...
 
-        #kwargs.get("tabView",self.)
-
-        with dpg.stage() as self.stage:
-           
-           self.generate_id(**kwargs)
-
-        if not stageOnly:
-            self.submit()
-
-    def submit(self):
-        dpg.unstage(self.stage)
-
-    def set_values(self,**kwargs):
-            pass
-
-    def generate_id(self,**kwargs):
-       #f"This function should be defined in your custom class:\t{kwargs = }"
-        ...
-
-class SQLLinker(DPGStage):
-
-    after: callable
-
-    width: int      =   500
-    driver: str     =   '{ODBC Driver 17 for SQL Server}'
-    defaults: dict  =   {}
-    default_combo_option = "Load Saved SQL Connection"
-
-    settingSchema = ["server","dsn_name","user_name","pwd"]
-    settingsName = f"{default_path}defaultSQLCnxStrs.txt"
+class RubricBuilderSQL(DPGStage):
 
     def generate_id(self,**kwargs):
 
-        self.after = kwargs.get("after",None)
+        with dpg.group() as self._id:
+            dpg.add_button(label="Link SQL",callback=self.linkSQL)
+            dpg.add_text("Imported SQL Tables")
+            with dpg.child_window() as self.tableEditor:
+                pass
 
-        # Creates the main window for adding a SQL connection
+    def displayAllTables(self):
 
-        self.load_defaults_if_any()
+        dpg.push_container_stack(self.tableEditor)
+        dpg.add_separator()
 
-        with dpg.window() as self._id:
-            with dpg.group():
+        cursorStr = "SELECT * FROM INFORMATION_SCHEMA.TABLES"
+        self.sqlLinker.cursor.execute(cursorStr)
 
-                self.defaultCombo = dpg.add_combo(label="Saved Connections",items=list(self.defaults.keys()),default_value=self.default_combo_option,callback=self.update_default_values)
+        headers                 =   [i[0] for i in self.sqlLinker.cursor.description]
+        rows = [x for x in self.sqlLinker.cursor]
 
-                dpg.add_separator()
-                
-                self.server = dpg.add_input_text(label="Server IP",width=self.width-200,tag=f"{self._id}_server")
-                self.dsn_name = dpg.add_input_text(label="DSN Name",width=self.width-200,tag=f"{self._id}_dsn_name")
-                self.user_name = dpg.add_input_text(label="User Name",width=self.width-200,tag=f"{self._id}_user_name")
-                self.pwd = dpg.add_input_text(label="Password",width=self.width-200,tag=f"{self._id}_pwd")
-                
-                dpg.add_separator()
+        dpg.add_text(headers)
+        dpg.add_combo(items=rows)
+    
 
-                dpg.add_button(label="Connect!",width=self.width-200,callback=self.evaluate_if_saving_is_necessary)
+    def displayTableSchema(self,tableName):
 
-    def update_default_values(self,sender,app_data,user_data):
+        dpg.push_container_stack(self.tableEditor)
+        dpg.add_separator()
 
-        # Populates the fields with default values loaded from the settings file combo selector
+        cursorStr = f'SELECT * FROM JFGC.dbo.{tableName}'
+        #cursorStr = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
 
-        for i, (key,val) in enumerate(self.defaults[app_data].items()):
-            dpg.configure_item(f"{self._id}_{key}",default_value=val)
+        self.sqlLinker.cursor.execute(cursorStr)
 
-    def evaluate_if_saving_is_necessary(self,sender,app_data,user_data):
-        
-        # Checks to see if the default combo has been changed. If it has, checks to make sure the fields have been changed before prompting a new save
+        headers                 =   [i[0] for i in self.sqlLinker.cursor.description]
 
-        if dpg.get_value(self.defaultCombo) == self.default_combo_option:
-            self.save_connection_prompt(sender,app_data,user_data)
-        else:
-
-            _changes = 0
-
-            for i, (key,val) in enumerate(self.defaults[dpg.get_value(self.defaultCombo)].items()):
-                if val!=dpg.get_value(f"{self._id}_{key}"):
-                    _changes+=1;
-
-            if _changes>0:
-                self.save_connection_prompt(sender,app_data,user_data)
-            else:
-                self.attempt_to_connect(sender,app_data,user_data)
-
-    def checkName(self,sender,app_data,user_data):
-
-        # Shows or hides an error message notifying user that the selected cnx name will overwrite an older one
-
-        if app_data in list(self.defaults.keys()):
-            dpg.configure_item(self.saveError,default_value=f"** This will overwrite '{app_data}'**",show=True)
-        else:
-            dpg.configure_item(self.saveError,default_value=f"** This will overwrite '{app_data}'**",show=False)
-
-    def save_connection_prompt(self,sender,app_data,user_data):
-        
-        # Loads a popup that asks if the user wants to save their connection fields
-
-        def saveCNX(sender,app_data,user_data):
-        
-            # Whereas save_connection_prompt opens the window, this actually saves the fields as a schema in the default file
-
-            _new = {}
-            _subSchema ={}
-
-            for val in self.settingSchema:
-                _subSchema.update({val:dpg.get_value(f"{self._id}_{val}")})
-
-            _new.update({dpg.get_value(self.cnxName):_subSchema})
-            self.defaults.update(_new)
-
-            CustomPickler.set(self.settingsName,self.defaults)
-
-            dpg.add_separator(parent=self.saveCnxWindow)
-            dpg.add_text(f"'{dpg.get_value(self.cnxName)}' successfully saved!",parent=self.saveCnxWindow)
-            dpg.add_button(label="Continue",width=self.width-200,callback=self.attempt_to_connect,parent=self.saveCnxWindow)
+        print (headers)
+        rows = []
  
-        _name = ""
-        _inError = False
-        if dpg.get_value(self.defaultCombo)!=self.default_combo_option:
-            _name = dpg.get_value(self.defaultCombo)
-            _inError = True
+        dpg.add_text("IM_ITEM")
+        with dpg.group(horizontal=True):
 
-        with dpg.window(popup=True) as self.saveCnxWindow:
-            with dpg.group():
-                dpg.add_text("Save these connection settings for future use?")
-                dpg.add_separator()
-                self.cnxName = dpg.add_input_text(label="This connection's name",default_value=_name,callback=self.checkName)
-                self.saveError = dpg.add_text(f"** This will overwrite '{_name}'**",color=self.errorColor,show=_inError)
-                dpg.add_separator()
-                with dpg.group(horizontal=True):
-                    dpg.add_button(label="Save",callback=saveCNX)
-                    dpg.add_button(label="No Thanks",callback=self.attempt_to_connect)
+            for i,columnName in enumerate(headers):
+                print(i,"\t",columnName)
+                dpg.add_input_text(default_value=columnName,enabled=False,width=(len(columnName)*10))
 
-    def load_defaults_if_any(self):
+    
+
+        #for i,x in enumerate(self.sqlLinker.cursor):
+        #    print(i,"\t",x)
+        #    dpg.add_input_text(default_value=x,enabled=False)
+    
+
+    def linkSQL(self,sender,app_data,user_data):
+        self.sqlLinker = SQLLinker(after = self.displayAllTables)
+
+class RubricBuilderCustom(DPGStage):
+
+    columns: int  = 5
+
+    def generate_id(self,**kwargs):
+
+        with dpg.group() as self._id:
+            dpg.add_text("Built Schema")
+            self._columns = dpg.add_input_int(label="Columns",default_value=self.columns,callback=self.change_columns,on_enter =True)
+
+            #dpg.add_drag_int(label="Columns",default_value=self.columns,callback=self.change_columns)
+
+        with dpg.child_window():
+            with dpg.table(header_row=True,scrollX=True) as self.tableEditor:
+
+                for column in range(0,dpg.get_value(self._columns)):
+                    dpg.add_table_column(label=f'{column}',tag=f'{self._id}_c{column}')
+
+
+    def change_columns(self,sender,app_data):
         
-        # Loads from the settings file any previously saved connection fields; doesnt check if it matches the schema yet
-
-        _loadedDefaults = CustomPickler.get(self.settingsName)
-        
-        if _loadedDefaults:
-            self.defaults.update(_loadedDefaults)
-
-    def attempt_to_connect(self,sender,app_data,user_data):
-
-         # Attempts to connect to the SQL server using all the fields; if fails, leaves up the self._id window for easy changes
+        # max is 99?
 
         try:
-            dpg.delete_item(self.saveCnxWindow)
-        except:
-            pass
+            if app_data > self.columns:
+                for column in range(self.columns,app_data):
+                    dpg.push_container_stack(self.tableEditor)
+                    dpg.add_table_column(label=f'{column}',tag=f'{self._id}_c{column}')
+            elif app_data < self.columns:
+                for column in range(app_data,self.columns):
+                    dpg.push_container_stack(self.tableEditor)
+                    dpg.delete_item(f'{self._id}_c{column}')
 
-        try:
-            #----------------
-            conn_str=(f";DRIVER={self.driver};SERVER={dpg.get_value(self.server)};UID={dpg.get_value(self.user_name)};PWD={dpg.get_value(self.pwd)}")
-            cnxn = pyodbc.connect(conn_str)
-            cursor = cnxn.cursor()
-            #----------------
-            self.cnxn   = cnxn
-            self.cursor = cursor
-            #================
-            with dpg.window(popup=True):
-                dpg.add_text("Connection Sucessful!\nHeading over to table schema importer.")
-                dpg.delete_item(self._id)
-                self.after()
-
+            self.columns = app_data
         except Exception as e:
-            print (f"Error:\t{e}")
-            print ("Cursor object not initialized correctly. Please run Setup and retry.")
-            with dpg.window(popup=True):
-                dpg.add_text("Connection not successful; Please make sure your ODBC Drivers are installed \nand your computer has permission to access the server.")
+            print(e)
 
-class RubricBuilder(DPGStage):
+    def add_column(self,index):
+        pass
+
+class FileFormatter(DPGStage):
+
+    # CHOOSE DESIRED OUTPUT FIRST
+    # THEN DISPLAY INCOMMING FORMAT and ASK FOR CORRELATION TABLE; CREATE IF NOT EXIST; DISPLAY IF EXIST; LET EDIT
+    
+    # LATER, UPON LOAD, WHEN VERIFYING A TABLE WITH THAT SCHEMA, CAN SUGGEST OR EVEN AUTO-RUN FORMATTER
+    #   BUT THIS NEEDS TO ASK IF 
+
 
     height = 550
     width =1250
@@ -214,48 +163,36 @@ class RubricBuilder(DPGStage):
                     dpg.add_button(label="Press Me", callback=self.print_me)
                     dpg.add_color_picker(label="Color Me", callback=self.print_me)
 
-            dpg.add_button(label="Link SQL",callback=self.linkSQL)
 
-            with dpg.child_window(height=300,width=self.width-15,parent=self._id,horizontal_scrollbar=True) as self.tables:
-                dpg.add_text("Tables")
+            with dpg.child_window(height=100,width=self.width-55):
+                dpg.add_text("""This program builds and saves file formatters.\n
+When creating new formatters, you are picking an input and an output format.\n
+These will be represented best as columns in a spreadsheet, or a table schema.\n
+\tAlthough this program can support a 1 to Many file converter format, it will be most effecient\n
+\tto instead presuppose a Many to 1 conversion. That is, messy files being standardized.\n
+Each format will have within it saved micro-formats that identify and save where a file is coming in from.
+                                """)
+
+            with dpg.child_window(height=100,width=self.width-55,parent=self._id,horizontal_scrollbar=True) as self.SQLtables:
+                
+                RubricBuilderSQL()
+                
+
+            with dpg.child_window(height=300,width=self.width-55,parent=self._id,horizontal_scrollbar=True) as self.newTables:
+                
+                self.rbc = RubricBuilderCustom()
+                
 
     def newBuild(self,sender,app_data,user_data):
 
         with dpg.child_window(height=self.height-15,width=self.width-15,parent=self._id):
             pass
 
-    def displayTableSchema(self):
-
-        dpg.push_container_stack(self.tables)
-        dpg.add_separator()
-
-        cursorStr = 'SELECT * FROM JFGC.dbo.IM_ITEM'
-        self.sqlLinker.cursor.execute(cursorStr)
-
-        headers                 =   [i[0] for i in self.sqlLinker.cursor.description]
-
-        print (headers)
-        rows = []
-
- 
-        dpg.add_text("IM_ITEM")
-        with dpg.group(horizontal=True):
-
-            for i,columnName in enumerate(headers):
-                print(i,"\t",columnName)
-                dpg.add_input_text(default_value=columnName,enabled=False,width=(len(columnName)*10))
-
-        #for i,x in enumerate(self.sqlLinker.cursor):
-        #    print(i,"\t",x)
-        #    dpg.add_input_text(default_value=x,enabled=False)
     
-
-    def linkSQL(self,sender,app_data,user_data):
-        self.sqlLinker = SQLLinker(after = self.displayTableSchema)
 
 def main():
    
-    RubricBuilder()
+    FileFormatter()
 
     dpg.create_viewport(title='Custom Title', width=1300, height=600)
     dpg.setup_dearpygui()

@@ -44,6 +44,12 @@
     </Compile>
     <Compile Include="PDF_Scraper.py" />
     <Compile Include="Redesign\Column_Operations.py" />
+    <Compile Include="Redesign\DPGStage.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Redesign\TableTest.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\Rubric_Builder.py">
       <SubType>Code</SubType>
     </Compile>
