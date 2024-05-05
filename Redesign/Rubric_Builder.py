@@ -12,7 +12,7 @@ from DPGStage import DPGStage
 
 default_path = "Redesign//Settings//"
 
-
+import time
 
 @dataclass
 class Rubric:
@@ -90,14 +90,22 @@ class RubricBuilderSQL(DPGStage):
 class RubricBuilderCustom(DPGStage):
 
     columns: int  = 5
+    maxCols = 98
 
     def generate_id(self,**kwargs):
 
         with dpg.group() as self._id:
             dpg.add_text("Built Schema")
-            self._columns = dpg.add_input_int(label="Columns",default_value=self.columns,callback=self.change_columns,on_enter =True)
+            self._columns = dpg.add_input_int(
+                label="Columns",
+                default_value=self.columns,
+                callback=self.change_columns,
+                on_enter =True,
+                max_value=self.maxCols,max_clamped=True,
+                min_value=1,min_clamped =True)
 
-            #dpg.add_drag_int(label="Columns",default_value=self.columns,callback=self.change_columns)
+            self.error = dpg.add_text("Column Schema caps at 99 due to limitations of the UI.",show=False)
+
 
         with dpg.child_window():
             with dpg.table(header_row=True,scrollX=True) as self.tableEditor:
@@ -106,11 +114,19 @@ class RubricBuilderCustom(DPGStage):
                     dpg.add_table_column(label=f'{column}',tag=f'{self._id}_c{column}')
 
 
+
     def change_columns(self,sender,app_data):
         
-        # max is 99?
+        if app_data>=self.maxCols:
+            dpg.configure_item(self.error,show=True)
+        else:
+            dpg.configure_item(self.error,show=False)
 
         try:
+
+            time.sleep(0.01)
+
+
             if app_data > self.columns:
                 for column in range(self.columns,app_data):
                     dpg.push_container_stack(self.tableEditor)

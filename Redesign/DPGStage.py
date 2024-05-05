@@ -16,6 +16,8 @@ class DPGStage:
            
            self.generate_id(**kwargs)
 
+        self.set_themes()
+
         if not stageOnly:
             self.submit()
 
@@ -27,6 +29,9 @@ class DPGStage:
 
     def generate_id(self,**kwargs):
        #f"This function should be defined in your custom class:\t{kwargs = }"
+        ...
+
+    def set_themes(self):
         ...
 
 

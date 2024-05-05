@@ -153,7 +153,10 @@ class SQLLinker(DPGStage):
             with dpg.window(popup=True):
                 dpg.add_text("Connection Sucessful!\nHeading over to table schema importer.")
                 dpg.delete_item(self._id)
-                self.after()
+                try:
+                    self.after()
+                except Exception as e:
+                    print("Error with after():\t{e}")
 
         except Exception as e:
             print (f"Error:\t{e}")
@@ -164,6 +167,7 @@ class SQLLinker(DPGStage):
 
 def main():
    
+    SQLLinker()
 
     dpg.create_viewport(title='Custom Title', width=1300, height=600)
     dpg.setup_dearpygui()
