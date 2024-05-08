@@ -22,6 +22,7 @@ def test(inputName,saveName):
 
 class DefaultPathing(DPGStage):
 
+    buttonWidth = 300
     parent_folder = default_settings_path
    
     def generate_id(self,**kwargs):
@@ -36,15 +37,27 @@ class DefaultPathing(DPGStage):
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
                 with dpg.child_window(width=600,height=170):
                     #add_input_text(tag='rubric_filename',label="Rubric",default_value="~No File Selected~",enabled=False,width=500)
-                    dpg.add_input_text(tag='base_parent_directory',   enabled=False,default_value =   self.parent_folder               ,label="Parent Directory")
-                    dpg.add_input_text(tag='base_input_path',         enabled=False,default_value =   self.parent_folder+"\\INPUT"     ,label="Input Path")
-                    dpg.add_input_text(tag='base_staged_path',        enabled=False,default_value =   self.parent_folder+"\\STAGED"    ,label="Staged Path")
-                    dpg.add_input_text(tag='base_output_path',        enabled=False,default_value =   self.parent_folder+"\\OUTPUT"    ,label="Output Path")
-                    dpg.add_input_text(tag='base_processed_path',     enabled=False,default_value =   self.parent_folder+"\\PROCESSED" ,label="Processed Path")
-                    dpg.add_input_text(tag='base_rubric_path',        enabled=False,default_value =   self.parent_folder+"\\Rubric"    ,label="Rubric Path")
+                    with dpg.group(horizontal=True):
+                        dpg.add_input_text(tag='base_parent_directory',   enabled=False,default_value =   self.parent_folder,width=self.buttonWidth)
+                        dpg.add_button(label="Parent Directory")
+                    with dpg.group(horizontal=True):
+                        dpg.add_input_text(tag='base_input_path',         enabled=False,default_value =   self.parent_folder+"\\INPUT",width=self.buttonWidth)
+                        dpg.add_button(label="Input Path")
+                    with dpg.group(horizontal=True):
+                        dpg.add_input_text(tag='base_staged_path',        enabled=False,default_value =   self.parent_folder+"\\STAGED",width=self.buttonWidth)
+                        dpg.add_button(label="Staged Path")
+                    with dpg.group(horizontal=True):
+                        dpg.add_input_text(tag='base_output_path',        enabled=False,default_value =   self.parent_folder+"\\OUTPUT",width=self.buttonWidth)
+                        dpg.add_button(label="Output Path")
+                    with dpg.group(horizontal=True):
+                        dpg.add_input_text(tag='base_processed_path',     enabled=False,default_value =   self.parent_folder+"\\PROCESSED",width=self.buttonWidth)
+                        dpg.add_button(label="Processed Path")
+                    with dpg.group(horizontal=True):
+                        dpg.add_input_text(tag='base_rubric_path',        enabled=False,default_value =   self.parent_folder+"\\Rubric",width=self.buttonWidth)
+                        dpg.add_button(label="Rubric Path")
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
                 dpg.add_button(tag='base_select',label="Select Default Directory",callback=self.showDialogue)
-                dpg.add_button(tag='save_base_selection',label="Save Information?",show=False,callback=self.saveDefault)
+                dpg.add_button(tag='save_base_selection',label="Save Information?",show=True,callback=self.saveDefault)
                 #dpg.add_text(tag='saved_notify',show=False,default_value="Saved!")
                 #-----------------------------------------------
        

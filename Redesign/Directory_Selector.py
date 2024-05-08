@@ -34,7 +34,7 @@ class DirectorySelector(DPGStage):
 
         with dpg.window(height=self.height,width=self.width) as self._id:
             dpg.add_button(label=f"Select {self.type}",callback=self.openDialogue,width=500)
-            self.selectedName = dpg.add_input_text(label=f"{self.type} Name",default_value="~No {self.type} Selected~",enabled=False,width=500)
+            self.selectedName = dpg.add_input_text(label=f"{self.type} Name",default_value=f"~No {self.type} Selected~",enabled=False,width=400)
             #-----------------
             dpg.add_separator()
             #-----------------
