@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7fc669d3-6d84-47f5-bd28-0ecd2e4b1730</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Redesign\DefaultPathing.py</StartupFile>
+    <StartupFile>Redesign\Rubric_Builder.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -52,6 +52,9 @@
     <Compile Include="Redesign\File_Selector.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\Old\from_rubric_builder.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\TableTest.py">
       <SubType>Code</SubType>
     </Compile>
@@ -92,6 +95,7 @@
   <ItemGroup>
     <Folder Include="Need to Add\" />
     <Folder Include="Redesign\" />
+    <Folder Include="Redesign\Old\" />
     <Folder Include="Redesign\Settings\" />
   </ItemGroup>
   <ItemGroup>

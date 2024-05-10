@@ -21,8 +21,10 @@ class SQLLinker(DPGStage):
     defaults: dict  =   {}
     default_combo_option = "Load Saved SQL Connection"
 
-    settingSchema = ["server","dsn_name","user_name","pwd"]
+    settingSchema = ["server","dsn_name","user_name","pwd","main"]
     settingsName = f"{default_path}defaultSQLCnxStrs.txt"
+
+
 
     def generate_id(self,**kwargs):
 
@@ -45,6 +47,14 @@ class SQLLinker(DPGStage):
                 self.pwd = dpg.add_input_text(label="Password",width=self.width-200,tag=f"{self._id}_pwd")
                 
                 dpg.add_separator()
+
+                #with dpg.group(horizontal=True):
+                _setDef = dpg.add_button(label="Set as Default?",callback=self.setMainDefault)
+                with dpg.tooltip(_setDef):
+                    dpg.add_text("Will not delete other saved connections.")
+                    dpg.add_text("It will only auto-populate the above fields.")
+                    dpg.add_text("Other connections can still be used.")
+
 
                 dpg.add_button(label="Connect!",width=self.width-200,callback=self.evaluate_if_saving_is_necessary)
 
@@ -83,6 +93,9 @@ class SQLLinker(DPGStage):
         else:
             dpg.configure_item(self.saveError,default_value=f"** This will overwrite '{app_data}'**",show=False)
 
+    def setMainDefault(self,sender,app_data,user_data):
+        pass
+
     def save_connection_prompt(self,sender,app_data,user_data):
         
         # Loads a popup that asks if the user wants to save their connection fields
@@ -95,6 +108,7 @@ class SQLLinker(DPGStage):
             _subSchema ={}
 
             for val in self.settingSchema:
+                if val =="main": continue
                 _subSchema.update({val:dpg.get_value(f"{self._id}_{val}")})
 
             _new.update({dpg.get_value(self.cnxName):_subSchema})
