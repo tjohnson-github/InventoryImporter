@@ -31,15 +31,21 @@ class DirectorySelector(DPGStage):
     def generate_id(self,**kwargs):
 
         self.nextStage = kwargs.get("nextStage")
+        self.label = f'Select {kwargs.get("label","Directory")}'
 
-        with dpg.window(height=self.height,width=self.width) as self._id:
+
+        with dpg.window(label="",height=self.height,width=self.width) as self._id:
             dpg.add_button(label=f"Select {self.type}",callback=self.openDialogue,width=500)
             self.selectedName = dpg.add_input_text(label=f"{self.type} Name",default_value=f"~No {self.type} Selected~",enabled=False,width=400)
             #-----------------
             dpg.add_separator()
             #-----------------
-            self.next = dpg.add_button(width=500,  label=f"Confirm", callback=self.nextStage,enabled=False)
+            self.next = dpg.add_button(width=500,  label=f"Confirm", callback=self.beforeNextStage,enabled=False)
    
+    def beforeNextStage(self,sender,app_data,user_data):
+        dpg.delete_item(self._id)
+        self.nextStage(sender,app_data,user_data)
+
     def openDialogue(self,sender,app_data,user_data):
 
         self.dialogue = dpg.add_file_dialog(

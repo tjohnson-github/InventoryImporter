@@ -9,6 +9,7 @@ import CustomPickler
 
 from SQLInterface import SQLLinker
 from DPGStage import DPGStage
+from DefaultPathing import DefaultPathing,DefaultPaths
 
 default_path = "Redesign//Settings//"
 
@@ -20,8 +21,6 @@ class Rubric:
     subname: str
     outputSchema: tuple[str]
     correspondenceDict: dict
-
-
 
 
 @dataclass
@@ -42,7 +41,6 @@ class RubricTypeSelector(DPGStage):
 
     items = ["Custom","From SQL"]
     chosen = False
-
 
     def generate_id(self,**kwargs):
         with dpg.window(width=self.width,height=self.height):
@@ -228,12 +226,13 @@ class RubricBuilderCustom(DPGStage):
 
         self.columns = app_data
 
+@dataclass
 class EditorRow(DPGStage):
 
     name: str
-    type: any
-    rowObj: str # will be _id
-    items: list[str]
+    type: type
+    rowObj: str = field(init=False) # will be _id
+    items: list[str] = field(init=False)
 
 class ColumnEditor(DPGStage):
        
@@ -241,11 +240,25 @@ class ColumnEditor(DPGStage):
     fixedWidthCutoff = 9
     fixedWidth = False
     columns = []
-    rows = {"Column Name":{"type":str},
-            "Necessary?":{"type":bool},
-            "Tag":{"type":str}}
+    #Oldrows = {"Column Name":{"type":str},
+    #        "Necessary?":{"type":bool},
+    #        "Tag":{"type":str}}
+    rows: list[EditorRow]
 
     def generate_id(self,**kwargs):
+
+        self.rows = [
+            EditorRow(
+                name = "Column Name",
+                type = str,),
+            EditorRow(name = "Necessary?",
+                type = bool,),
+            EditorRow(name = "Tag",
+                type = str,),
+            EditorRow(name = "Operations",
+                type = list,)
+            ]
+
         self.schema = kwargs.get("schema",[f'Test Name {x}' for x in range(0,5)])
         self.numColumns = len(self.schema)
 
@@ -257,9 +270,12 @@ class ColumnEditor(DPGStage):
                     with dpg.table(header_row=True):
 
                         rowLabels = dpg.add_table_column(label=f'Index',width_fixed=True,width=self.tableColumnDefaultWidth)
-                        for i,(key,value) in enumerate(self.rows.items()):
+                        #for i,(key,value) in enumerate(self.rows.items()):
+                        for row in self.rows:
+
                             with dpg.table_row():
-                                dpg.add_text(key)
+                                #dpg.add_text(key)
+                                dpg.add_text(row.name)
 
                 with dpg.child_window(border=False,horizontal_scrollbar=True):
 
@@ -272,37 +288,56 @@ class ColumnEditor(DPGStage):
                             _newCol = dpg.add_table_column(label=f'{column}',tag=f'{self._id}_c{column}',width_fixed=self.fixedWidth,width=self.tableColumnDefaultWidth)
                             self.columns.append(_newCol)
 
-                        for i,(key,value) in enumerate(self.rows.items()):
+                        #for i,(key,value) in enumerate(self.rows.items()):
+                        for row in self.rows:
                             with dpg.table_row() as _newRow:
                                 #dpg.add_spacer(width=self.tableColumnDefaultWidth)
                                 _newRowItems = []
                                 for j in range(0,self.numColumns):
-                                    _newItem = self.generateInputByType(type=self.rows[key]["type"],columnIndex=j)
+                                    _newItem = self.generateInputByType(row=row,columnIndex=j)
                                     _newRowItems.append(_newItem)
 
-                            self.rows[key].update({"rowList":_newRowItems})
-                            self.rows[key].update({"rowObj":_newRow})
+                            #self.rows[key].update({"rowList":_newRowItems})
+                            #self.rows[key].update({"rowObj":_newRow})
+                            row.rowObj = _newRow
+                            row.items = _newRowItems
 
-    def generateInputByType(self,type,columnIndex):
+    def generateInputByType(self,row: EditorRow,columnIndex):
 
-        if type==str:
-            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=self.schema[columnIndex])
-        elif type==bool:
+        #if self.rows[key]["type"]==str:
+        if row.type==str:
+            if row.name == "Column Name":
+                _default_value = self.schema[columnIndex]
+            else: 
+                _default_value = ""
+
+            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value)
+        #elif self.rows[key]["type"]==bool:
+        elif row.type==bool:
             _ = dpg.add_checkbox()
+        elif row.type==list:
+           with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50) as _:
+               pass
+           #_ = dpg.add_button(label="<>")
 
         return _   
 
     def add_column(self,columnId,fixedWidth=True):
+        print(f"{columnId=}")
         dpg.push_container_stack(self.tableEditor)
         _newCol = dpg.add_table_column(label=f'{columnId}',tag=f'{self._id}_c{columnId}',width_fixed=fixedWidth,width=self.tableColumnDefaultWidth)
         self.columns.append(_newCol)
         self.schema.append('')
         self.numColumns+=1
 
-        for i,(key,value) in enumerate(self.rows.items()):
-            dpg.push_container_stack(self.rows[key]["rowObj"])
-            _newItem = self.generateInputByType(self.rows[key]["type"],columnIndex=columnId)
-            self.rows[key]["rowList"].append(_newItem)
+        #for i,(key,value) in enumerate(self.rows.items()):
+        for row in self.rows:
+            #dpg.push_container_stack(self.rows[key]["rowObj"])
+            #_newItem = self.generateInputByType(self.rows[key]["type"],columnIndex=columnId)
+            #self.rows[key]["rowList"].append(_newItem)
+            dpg.push_container_stack(row.rowObj)
+            _newItem = self.generateInputByType(row,columnIndex=columnId)
+            row.items.append(_newItem)
 
     def delete_column(self,columnId):
         # if deleting from end:
@@ -314,8 +349,14 @@ class ColumnEditor(DPGStage):
         pass
 
     def checkAll(self,sender,app_data,user_data):
-        for checkbox in self.rows["Necessary?"]["rowList"]:
-            dpg.configure_item(checkbox,default_value=app_data)
+
+        for row in self.rows:
+            if row.name=="Ncessary?":
+                for checkbox in row.items:
+                    dpg.configure_item(checkbox,default_value=app_data)
+
+        #for checkbox in self.rows["Necessary?"]["rowList"]:
+        #    dpg.configure_item(checkbox,default_value=app_data)
 
 class FileFormatter(DPGStage):
 
@@ -339,6 +380,7 @@ class FileFormatter(DPGStage):
             with dpg.menu_bar():
                 with dpg.menu(label="File"):
                     dpg.add_menu_item(label="New Converter",callback=self.newBuild)
+                    dpg.add_menu_item(label="Set Default Directories",callback=self.setDirs)
                     dpg.add_menu_item(label="Save", callback=self.print_me)
                     dpg.add_menu_item(label="Save As", callback=self.print_me)
 
@@ -353,7 +395,6 @@ class FileFormatter(DPGStage):
                     dpg.add_button(label="Press Me", callback=self.print_me)
                     dpg.add_color_picker(label="Color Me", callback=self.print_me)
 
-
             with dpg.child_window(height=180,width=self.width-20):
                 dpg.add_text("""This program builds and saves file formatters.\n
 When creating new formatters, you are picking an input and an output format.\n
@@ -361,7 +402,10 @@ These will be represented best as columns in a spreadsheet, or a table schema.\n
 \tAlthough this program can support a 1 to Many file converter format, it will be most effecient\n
 \tto instead presuppose a Many to 1 conversion. That is, messy files being standardized.\n
 Each format will have within it saved micro-formats that identify and save where a file is coming in from.
-                                """)
+       """)
+
+    def setDirs(self,sender,app_data,user_data):
+        DefaultPathing()
 
     def newBuild(self,sender,app_data,user_data):
 

@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7fc669d3-6d84-47f5-bd28-0ecd2e4b1730</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Redesign\Rubric_Builder.py</StartupFile>
+    <StartupFile>JFGC_Importer_v2.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -36,7 +36,10 @@
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="module2.py">
+    <Compile Include="Redesign\PDF_Converter_Builder.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Reference\module2.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="OpenAI.py">
@@ -45,6 +48,9 @@
     <Compile Include="PDF_Scraper.py" />
     <Compile Include="Redesign\Column_Operations.py" />
     <Compile Include="Redesign\DefaultPathing.py" />
+    <Compile Include="Redesign\Departments.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\DPGStage.py">
       <SubType>Code</SubType>
     </Compile>
@@ -55,7 +61,7 @@
     <Compile Include="Redesign\Old\from_rubric_builder.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Redesign\TableTest.py">
+    <Compile Include="Reference\TableTest.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\Rubric_Builder.py">
@@ -74,10 +80,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Utilities.py" />
-    <Compile Include="DPG_Theme_Editor.py" />
+    <Compile Include="Reference\DPG_Theme_Editor.py" />
     <Compile Include="DPG_Themes.py" />
     <Compile Include="File_Operations.py" />
-    <Compile Include="OLD.py" />
+    <Compile Include="Old\OLD.py" />
     <Compile Include="Gspread_Rubric.py" />
     <Compile Include="Importer.py" />
     <Compile Include="Vendorfile.py" />
@@ -93,13 +99,15 @@
     <InterpreterReference Include="Global|PythonCore|3.11" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Need to Add\" />
+    <Folder Include="Reference\" />
+    <Folder Include="Old\" />
     <Folder Include="Redesign\" />
     <Folder Include="Redesign\Old\" />
     <Folder Include="Redesign\Settings\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Readme.md" />
+    <Content Include="Redesign\Settings\defaultSQLCnxStrs.txt" />
     <Content Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

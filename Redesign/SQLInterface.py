@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import pyodbc
 
 import CustomPickler
-from DPGStage import DPGStage
+from DPGStage import DPGStage,debugDPG
 
 default_path = "Redesign//Settings//"
 
@@ -23,8 +23,6 @@ class SQLLinker(DPGStage):
 
     settingSchema = ["server","dsn_name","user_name","pwd","main"]
     settingsName = f"{default_path}defaultSQLCnxStrs.txt"
-
-
 
     def generate_id(self,**kwargs):
 
@@ -65,9 +63,11 @@ class SQLLinker(DPGStage):
         for i, (key,val) in enumerate(self.defaults[app_data].items()):
             dpg.configure_item(f"{self._id}_{key}",default_value=val)
 
+    #@debugDPG
     def evaluate_if_saving_is_necessary(self,sender,app_data,user_data):
         
         # Checks to see if the default combo has been changed. If it has, checks to make sure the fields have been changed before prompting a new save
+        print("0")
 
         if dpg.get_value(self.defaultCombo) == self.default_combo_option:
             self.save_connection_prompt(sender,app_data,user_data)
@@ -83,6 +83,8 @@ class SQLLinker(DPGStage):
                 self.save_connection_prompt(sender,app_data,user_data)
             else:
                 self.attempt_to_connect(sender,app_data,user_data)
+                print("0.1")
+
 
     def checkName(self,sender,app_data,user_data):
 
@@ -150,12 +152,18 @@ class SQLLinker(DPGStage):
 
          # Attempts to connect to the SQL server using all the fields; if fails, leaves up the self._id window for easy changes
 
+        print("1")
+
+
         try:
             dpg.delete_item(self.saveCnxWindow)
         except:
             pass
 
         try:
+            #with dpg.window(popup=True) as _establishing:
+            #    dpg.add_text("Establishing connection...")
+            #    dpg.add_text("Make sure your computer is connected to the internet.")
             #----------------
             conn_str=(f";DRIVER={self.driver};SERVER={dpg.get_value(self.server)};UID={dpg.get_value(self.user_name)};PWD={dpg.get_value(self.pwd)}")
             cnxn = pyodbc.connect(conn_str)
@@ -164,6 +172,8 @@ class SQLLinker(DPGStage):
             self.cnxn   = cnxn
             self.cursor = cursor
             #================
+            #dpg.delete_item(_establishing)
+
             with dpg.window(popup=True):
                 dpg.add_text("Connection Sucessful!\nHeading over to table schema importer.")
                 dpg.delete_item(self._id)
@@ -171,10 +181,12 @@ class SQLLinker(DPGStage):
                     self.after()
                 except Exception as e:
                     print("Error with after():\t{e}")
+                    raise Exception
 
         except Exception as e:
-            print (f"Error:\t{e}")
+            print (f"{e}")
             print ("Cursor object not initialized correctly. Please run Setup and retry.")
+            #dpg.delete_item(_establishing)
             with dpg.window(popup=True):
                 dpg.add_text("Connection not successful; Please make sure your ODBC Drivers are installed \nand your computer has permission to access the server.")
 

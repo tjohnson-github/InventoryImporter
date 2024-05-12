@@ -1441,4 +1441,3 @@ class Importer:
             dpg.set_item_callback("process_button",self.processing_helper)
 
 
-

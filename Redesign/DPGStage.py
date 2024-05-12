@@ -34,4 +34,26 @@ class DPGStage:
     def set_themes(self):
         ...
 
+    def delete(self,**kwargs):
+        dpg.delete_item(self._id)
 
+
+def debugDPG(func): 
+
+    def wrap_func(*args, **kwargs): 
+
+        print(args)
+        print(kwargs)
+
+        sender = args.get("sender")
+        app_data = args.get("app_data")
+        user_data = args.get("user_data")
+
+        print(f'Function {func.__name__!r}:')
+        print(f"\t{sender=}")
+        print(f"\t{app_data=}")
+        print(f"\t{user_data=}")
+
+        result = func(*args, **kwargs) 
+        return result 
+    return wrap_func 

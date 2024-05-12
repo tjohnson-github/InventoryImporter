@@ -283,6 +283,13 @@ class JFGC_Data:
             self.dptByStr.update({tempDept.dptStr:tempDept})
             self.dptByName.update({tempDept.name:tempDept})
 
+        #==============================================
+        #for dept in self.newAllDepts:
+        #    self.dptByCode.update({dept.code:dept})
+        #    self.dptByStr.update({dept.dptStr:dept})
+        #    self.dptByName.update({dept.name:dept})
+        #==============================================
+
     def getDptByCode(self,code):
         return self.dptByCode.get(int(code),f"No department found with code {code}!")
     
