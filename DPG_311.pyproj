@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7fc669d3-6d84-47f5-bd28-0ecd2e4b1730</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>JFGC_Importer_v2.py</StartupFile>
+    <StartupFile>Reference\disabled_theme.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -36,7 +36,14 @@
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\Converter.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Redesign\DPG_Themes.py" />
     <Compile Include="Redesign\PDF_Converter_Builder.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Reference\disabled_theme.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Reference\module2.py">

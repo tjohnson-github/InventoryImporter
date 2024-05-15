@@ -30,44 +30,75 @@ class SQLLinker(DPGStage):
 
         # Creates the main window for adding a SQL connection
 
-        self.load_defaults_if_any()
+        _mainDefault,_key = self.load_defaults_if_any()
+
 
         with dpg.window() as self._id:
             with dpg.group():
 
-                self.defaultCombo = dpg.add_combo(label="Saved Connections",items=list(self.defaults.keys()),default_value=self.default_combo_option,callback=self.update_default_values)
+                self.defaultCombo = dpg.add_combo(label="Saved Connections",items=list(self.defaults.keys()),default_value=_key if _key!="" else self.default_combo_option,callback=self.update_default_values)
 
                 dpg.add_separator()
                 
-                self.server = dpg.add_input_text(label="Server IP",width=self.width-200,tag=f"{self._id}_server")
-                self.dsn_name = dpg.add_input_text(label="DSN Name",width=self.width-200,tag=f"{self._id}_dsn_name")
-                self.user_name = dpg.add_input_text(label="User Name",width=self.width-200,tag=f"{self._id}_user_name")
-                self.pwd = dpg.add_input_text(label="Password",width=self.width-200,tag=f"{self._id}_pwd")
+                self.server = dpg.add_input_text(label="Server IP",width=self.width-200,tag=f"{self._id}_server",default_value=_mainDefault.get("server",""),callback=self.evaluateChanges)
+                self.dsn_name = dpg.add_input_text(label="DSN Name",width=self.width-200,tag=f"{self._id}_dsn_name",default_value=_mainDefault.get("dsn_name",""),callback=self.evaluateChanges)
+                self.user_name = dpg.add_input_text(label="User Name",width=self.width-200,tag=f"{self._id}_user_name",default_value=_mainDefault.get("user_name",""),callback=self.evaluateChanges)
+                self.pwd = dpg.add_input_text(label="Password",width=self.width-200,tag=f"{self._id}_pwd",default_value=_mainDefault.get("pwd",""),callback=self.evaluateChanges)
                 
                 dpg.add_separator()
 
-                #with dpg.group(horizontal=True):
-                _setDef = dpg.add_button(label="Set as Default?",callback=self.setMainDefault)
-                with dpg.tooltip(_setDef):
-                    dpg.add_text("Will not delete other saved connections.")
-                    dpg.add_text("It will only auto-populate the above fields.")
-                    dpg.add_text("Other connections can still be used.")
-
+                with dpg.group(horizontal=True):
+                    self._setDef = dpg.add_button(label="Set as Default?",callback=self.setMainDefault,enabled=False)
+                    with dpg.tooltip(self._setDef):
+                        dpg.add_text("Can only be chosen if you select a previously saved connection.")
+                        dpg.add_separator()
+                        dpg.add_text("Will not delete other saved connections.")
+                        dpg.add_text("It will only auto-populate the above fields.")
+                        dpg.add_text("Other connections can still be used.")
+                    self._removeDef = dpg.add_button(label="Remove as Default?",callback=self.removeDefault,enabled=True if _key else False,user_data=_key)
 
                 dpg.add_button(label="Connect!",width=self.width-200,callback=self.evaluate_if_saving_is_necessary)
+
+    def removeDefault(self,sender,app_data,user_data):
+
+        try:
+            self.defaults[user_data].update({"main":False})
+            CustomPickler.set(self.settingsName,self.defaults)
+            dpg.configure_item(self._removeDef,enabled=False)
+            with dpg.window(popup=True): dpg.add_text("Default removed!")
+        except Exception as e:
+            print("No default to remove?:\t{e}")
 
     def update_default_values(self,sender,app_data,user_data):
 
         # Populates the fields with default values loaded from the settings file combo selector
 
         for i, (key,val) in enumerate(self.defaults[app_data].items()):
+            if key=="main":
+                dpg.configure_item(self._setDef,enabled=not val)
+                dpg.configure_item(self._removeDef,enabled=val)
+                continue
+
             dpg.configure_item(f"{self._id}_{key}",default_value=val)
 
-    #@debugDPG
+    def evaluateChanges(self):
+
+        _changes = 0 
+
+        for i, (key,val) in enumerate(self.defaults[dpg.get_value(self.defaultCombo)].items()):
+            if key=="main":continue
+            if val!=dpg.get_value(f"{self._id}_{key}"):
+                _changes+=1;
+
+        if _changes>0:
+            dpg.configure_item(self._setDef,enabled=True)
+        elif _changes <=0:
+            dpg.configure_item(self._setDef,enabled=False)
+
+
     def evaluate_if_saving_is_necessary(self,sender,app_data,user_data):
         
         # Checks to see if the default combo has been changed. If it has, checks to make sure the fields have been changed before prompting a new save
-        print("0")
 
         if dpg.get_value(self.defaultCombo) == self.default_combo_option:
             self.save_connection_prompt(sender,app_data,user_data)
@@ -76,6 +107,7 @@ class SQLLinker(DPGStage):
             _changes = 0
 
             for i, (key,val) in enumerate(self.defaults[dpg.get_value(self.defaultCombo)].items()):
+                if key=="main":continue
                 if val!=dpg.get_value(f"{self._id}_{key}"):
                     _changes+=1;
 
@@ -83,7 +115,6 @@ class SQLLinker(DPGStage):
                 self.save_connection_prompt(sender,app_data,user_data)
             else:
                 self.attempt_to_connect(sender,app_data,user_data)
-                print("0.1")
 
 
     def checkName(self,sender,app_data,user_data):
@@ -96,7 +127,29 @@ class SQLLinker(DPGStage):
             dpg.configure_item(self.saveError,default_value=f"** This will overwrite '{app_data}'**",show=False)
 
     def setMainDefault(self,sender,app_data,user_data):
-        pass
+
+        #remove previous defaults
+        for i,(key,val) in enumerate(self.defaults.items()):
+            val.update({"main":False})
+
+        _name=dpg.get_value(self.defaultCombo)
+        _new = {}
+        _subSchema ={}
+
+        for val in self.settingSchema:
+            if val =="main":  
+                _subSchema.update({val:True})
+                continue
+            _subSchema.update({val:dpg.get_value(f"{self._id}_{val}")})
+
+        _new.update({_name:_subSchema})
+        self.defaults.update(_new)
+
+        CustomPickler.set(self.settingsName,self.defaults)
+        dpg.configure_item(self._removeDef,enabled=True,user_data=_name)
+        dpg.configure_item(self._setDef,enabled=False)
+        with dpg.window(popup=True): dpg.add_text("Default saved!")
+
 
     def save_connection_prompt(self,sender,app_data,user_data):
         
@@ -110,7 +163,9 @@ class SQLLinker(DPGStage):
             _subSchema ={}
 
             for val in self.settingSchema:
-                if val =="main": continue
+                if val =="main": 
+                    #_subSchema.update({val:False})
+                    continue
                 _subSchema.update({val:dpg.get_value(f"{self._id}_{val}")})
 
             _new.update({dpg.get_value(self.cnxName):_subSchema})
@@ -148,12 +203,23 @@ class SQLLinker(DPGStage):
         if _loadedDefaults:
             self.defaults.update(_loadedDefaults)
 
+        print(_loadedDefaults)
+
+        for i,(key,val) in enumerate(self.defaults.items()):
+            
+            for ii,(_key,_val) in enumerate(val.items()):
+                print(_key,_val)
+                if _key=="main" and _val==True:
+                    print("hi")
+                    return self.defaults[key],key
+
+        return {},""
+
+
+
     def attempt_to_connect(self,sender,app_data,user_data):
 
          # Attempts to connect to the SQL server using all the fields; if fails, leaves up the self._id window for easy changes
-
-        print("1")
-
 
         try:
             dpg.delete_item(self.saveCnxWindow)

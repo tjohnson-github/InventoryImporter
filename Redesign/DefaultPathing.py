@@ -120,6 +120,24 @@ class DefaultPathing(DPGStage):
                     dpg.add_separator()
                     dpg.add_text("Click to specify a different directory than the parent subfolder.")
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+                with dpg.tooltip('base_parent_directory'):
+                    dpg.add_text(dpg.get_value('base_parent_directory'))
+
+                with dpg.tooltip('base_input_path'):
+                    dpg.add_text(dpg.get_value('base_input_path'))
+
+                with dpg.tooltip('base_staged_path'):
+                    dpg.add_text(dpg.get_value('base_staged_path'))
+
+                with dpg.tooltip('base_output_path'):
+                    dpg.add_text(dpg.get_value('base_output_path'))
+
+                with dpg.tooltip('base_processed_path'):
+                    dpg.add_text(dpg.get_value('base_processed_path'))
+
+                with dpg.tooltip('base_rubric_path'):
+                    dpg.add_text(dpg.get_value('base_rubric_path'))
+                #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
                 dpg.add_button(tag='save_base_selection',label="Save Information?",show=True,callback=self.saveDirpaths)
                 dpg.add_button(label="Reset Subdirectories",callback=self.updateAllFields,user_data=dpg.get_value('base_parent_directory'))
                 dpg.add_button(label="Back",callback=self.delete)

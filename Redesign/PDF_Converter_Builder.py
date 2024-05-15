@@ -1,5 +1,15 @@
 
 
+### Essentially:
+#       Files with THESE MARKERS:
+#           set of conditions:
+#               - a, b, c
+#       ... GO through THIS rubric...
+#               - A or B or C
+#       ... to get at THIS output format...
+#               - ABC
+
+
 def PDFfileSelect(sender, app_data, user_data):
     # PDF File select Dialogue
     #-------------------------------------------

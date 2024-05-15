@@ -11,12 +11,12 @@ class DPGStage:
     def __init__(self,stageOnly=False,**kwargs):
 
         #kwargs.get("tabView",self.)
+        self.set_themes()
 
         with dpg.stage() as self.stage:
            
            self.generate_id(**kwargs)
 
-        self.set_themes()
 
         if not stageOnly:
             self.submit()
@@ -32,7 +32,8 @@ class DPGStage:
         ...
 
     def set_themes(self):
-        ...
+        from DPG_Themes import global_theme
+        dpg.bind_theme(global_theme)
 
     def delete(self,**kwargs):
         dpg.delete_item(self._id)
