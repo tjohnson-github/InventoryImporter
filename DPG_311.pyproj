@@ -39,6 +39,9 @@
     <Compile Include="Redesign\Converter.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\DeadlinesDetector.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\DPG_Themes.py" />
     <Compile Include="Redesign\PDF_Converter_Builder.py">
       <SubType>Code</SubType>
