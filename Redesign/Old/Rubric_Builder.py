@@ -236,6 +236,7 @@ class EditorRow(DPGStage):
 
     name: str
     type: type
+    #rowObj: str = field(init=False) # will be _id
     items: list[str] = field(init=False)
 
 class ColumnEditor(DPGStage):
@@ -243,7 +244,10 @@ class ColumnEditor(DPGStage):
     tableColumnDefaultWidth = 100
     fixedWidthCutoff = 9
     fixedWidth = False
-
+    #columns = []
+    #Oldrows = {"Column Name":{"type":str},
+    #        "Necessary?":{"type":bool},
+    #        "Tag":{"type":str}}
     rows: list[EditorRow]
 
     deceleratorCutoff = 50
@@ -299,9 +303,74 @@ class ColumnEditor(DPGStage):
 
                     with dpg.group(horizontal=True) as self.columnEditor:
                         for row in self.rows:
+                            print(row.name)
+                            #with dpg.table_row() as _newRow:
+                            #    _newRowItems = []
+
+                            #row.rowObj = _newRow
                             row.items = []     
 
- 
+                    '''with dpg.table(header_row=True,scrollX=True,resizable=False,reorderable =True,clipper=True) as self.tableEditor:
+
+                        if self.numColumns > self.fixedWidthCutoff:
+                            print("requesting fixedwith as true")
+                            self.fixedWidth=True
+
+                        #for column in range(0,self.numColumns):
+                        #    time.sleep(self.decelerator)                            
+                        #    _newCol = dpg.add_table_column(label=f'{column}',tag=f'{self._id}_c{column}',width_fixed=self.fixedWidth,width=self.tableColumnDefaultWidth)
+                        #    self.columns.append(_newCol)
+
+                        # iterate columns
+                        for row in self.rows:
+                            print(row.name)
+                            with dpg.table_row() as _newRow:
+                                _newRowItems = []
+
+                            row.rowObj = _newRow
+                            row.items = _newRowItems     '''                   
+
+                    # iterate rows
+                    '''for row in self.rows:
+                        with dpg.table_row() as _newRow:
+                            _newRowItems = []
+                            for j in range(0,self.numColumns):
+
+                                if j>self.deceleratorCutoff:
+                                    time.sleep(self.decelerator)
+
+                                print(f'{j}:\t{self.schema[j]}')
+
+                                _newItem = self.generateInputByType(row=row,columnIndex=j)
+                                _newRowItems.append(_newItem)
+
+                        row.rowObj = _newRow
+                        row.items = _newRowItems'''
+
+    def generateInputByTypeTABLE(self,row: EditorRow,columnIndex):
+
+
+        parent = row.rowObj
+
+        #if self.rows[key]["type"]==str:
+        if row.type==str:
+            if row.name == "Column Name":
+                _default_value = self.schema[columnIndex]
+            else: 
+                _default_value = ""
+
+            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent)
+        #elif self.rows[key]["type"]==bool:
+        elif row.type==bool:
+            _ = dpg.add_checkbox(parent=parent)
+        elif row.type==list:
+           with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
+               pass
+           #_ = dpg.add_button(label="<>")
+
+
+        return _   
+
     def generateInputByType(self,row: EditorRow,columnIndex):
 
         parent=self.columns[columnIndex]
@@ -322,102 +391,152 @@ class ColumnEditor(DPGStage):
                pass
            #_ = dpg.add_button(label="<>")
 
+
         return _   
+
+    def getChunks(self):
+
+        # break into chunks
+        _chunkSize = 64
+        _chunks = []
+        _tempChunk=[]
+        for x in range(0,self.numColumns):
+            _tempChunk.append(x)
+            if x%_chunkSize==0 and x!=0:
+                _chunks.append(_tempChunk)
+                _tempChunk = []
+
+        if _tempChunk != []:
+            _chunks.append(_tempChunk)
+
+        print("----------------------")
+        for chunk in _chunks:
+            print(chunk)
+        print("----------------------")
+        
+        return _chunks
 
     async def populateTableCols(self):
 
         self.columns = []
 
         for columnIndex in range(0,self.numColumns):
-            _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
+            _newCol = dpg.add_child_window(tag=f'{self._id}_c{columnIndex}',width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
             self.columns.append(_newCol)
 
-    async def populateTableRows(self):
+        return
 
-        self.columnHeaders = []
-        self.columnRemove = []
+        _chunks = self.getChunks()
+        for chunk in _chunks:
+            for column in chunk:
+
+                if column > 120:
+                    time.sleep(.01)                            
+                #time.sleep(self.decelerator)                            
+                _newCol = dpg.add_table_column(label=f'{column}',tag=f'{self._id}_c{column}',width_fixed=self.fixedWidth,width=self.tableColumnDefaultWidth,parent=self.tableEditor)
+                self.columns.append(_newCol)
+                print(column)
+
+            time.sleep(self.decelerator)                            
+
+
+    async def populateTableRows(self):
 
         for columnIndex in range(0,self.numColumns):
 
             parent=self.columns[columnIndex]
 
             with dpg.group(horizontal=True,parent=parent):
-                _= dpg.add_text(f"Index {columnIndex}")
-                self.columnHeaders.append(_)
-                _x= dpg.add_button(label='X',callback=self.delete_column,user_data=columnIndex)
-                self.columnRemove.append(_x)
+                dpg.add_text(f"Index {columnIndex}",tag=f'{self._id}_c{columnIndex}_label')
+                dpg.add_button(label='X',callback=self.delete_column,user_data=columnIndex)
 
             for row in self.rows:
+                #print(f'{row.name=}')
+                #print(f'{row.rowObj=}')
+
+                #time.sleep(self.decelerator)
+                #time.sleep(self.decelerator)
                 _newItem = self.generateInputByType(row=row,columnIndex=columnIndex)
+                #_newItem = self.generateInputByType(columnIndex=columnIndex)
                 row.items.append(_newItem)
+
+
+
+        return 
+        _chunks = self.getChunks()
+
+        for chunk in _chunks:
+
+            #for j in range(0,self.numColumns):
+            for j in chunk:
+                print(j)
+                #if j>self.deceleratorCutoff:
+                time.sleep(self.decelerator)
+
+                dpg.configure_item(self.columns[j],width=self.tableColumnDefaultWidth)
+
+                for row in self.rows:
+                    print(f'{row.name=}')
+                    print(f'{row.rowObj=}')
+
+                    #time.sleep(self.decelerator)
+                    #time.sleep(self.decelerator)
+                    _newItem = self.generateInputByType(row=row,columnIndex=j)
+                    row.items.append(_newItem)
+
+
+        print("cols done")
 
     async def populateTable(self):
 
         await self.populateTableCols()
         await self.populateTableRows()
 
-    def add_column(self,columnId):
-
-        #parent = self.columnEditor
-
-        _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
+    def add_column(self,columnId,fixedWidth=True):
+        print(f"{columnId=}")
+        dpg.push_container_stack(self.tableEditor)
+        _newCol = dpg.add_table_column(label=f'{columnId}',tag=f'{self._id}_c{columnId}',width_fixed=fixedWidth,width=self.tableColumnDefaultWidth)
         self.columns.append(_newCol)
-        self.schema.append('new')
+        self.schema.append('')
         self.numColumns+=1
-        _newColIndex =self.columns.index(_newCol)
 
-        with dpg.group(horizontal=True,parent=_newCol):
-            _= dpg.add_text(f"Index {_newColIndex}")
-            self.columnHeaders.append(_)
-            _x= dpg.add_button(label='X',callback=self.delete_column,user_data=_newColIndex)
-            self.columnRemove.append(_x)
-
-            for row in self.rows:
-                _newItem = self.generateInputByType(row=row,columnIndex=_newColIndex)
-                row.items.append(_newItem)
-
-
+        #for i,(key,value) in enumerate(self.rows.items()):
+        for row in self.rows:
+            #dpg.push_container_stack(self.rows[key]["rowObj"])
+            #_newItem = self.generateInputByType(self.rows[key]["type"],columnIndex=columnId)
+            #self.rows[key]["rowList"].append(_newItem)
+            dpg.push_container_stack(row.rowObj)
+            _newItem = self.generateInputByType(row,columnIndex=columnId)
+            row.items.append(_newItem)
 
     def delete_column(self,sender,app_data,user_data):
 
-        print(f'{sender=}')
-        print(f'{app_data=}')
-        print(f'{user_data=}')
-
-        try:
-            self.schema.remove(self.schema[user_data])
-        except Exception as e:
-            print("greater than schema index:",e)
+        # if deleting from end:
+        #dpg.push_container_stack(self.tableEditor)
 
         for column in self.columns[user_data:]:
       
             columnIndex =  self.columns.index(column)
 
-            dpg.configure_item(self.columnHeaders[columnIndex],default_value=f"Index {columnIndex-1}")
-            dpg.set_item_user_data(self.columnRemove[columnIndex],user_data=columnIndex-1)
+            print(columnIndex)
+            dpg.configure_item(f'{self._id}_c{columnIndex}_label',default_value=f"Index {columnIndex-1}")
 
-        dpg.delete_item(self.columns[user_data])
-        self.columnHeaders.remove(self.columnHeaders[user_data])
-        self.columnRemove.remove(self.columnRemove[user_data])
+        dpg.delete_item(f'{self._id}_c{user_data}')
 
         self.columns.remove(self.columns[user_data])
         self.numColumns-=1
-        dpg.configure_item(self.columnSetter,default_value=dpg.get_value(self.columnSetter)-1)
+        # if deleting from any other index:
+        pass
 
     def delete_columnFromEnd(self,columnId):
 
-        try:
-            self.schema.remove(self.schema[columnId])
-        except:
-            print("greater than schema index")
-
-        dpg.delete_item(self.columns[columnId])
-        self.columnHeaders.remove(self.columnHeaders[columnId])
-        self.columnRemove.remove(self.columnRemove[columnId])
-
-        self.columns.remove(self.columns[columnId])
+        # if deleting from end:
+        #dpg.push_container_stack(self.tableEditor)
+        dpg.delete_item(f'{self._id}_c{user_data}')
+        self.columns = self.columns[:-1]
         self.numColumns-=1
-        #dpg.configure_item(self.columnSetter,default_value=dpg.get_value(self.columnSetter)-1)
+        # if deleting from any other index:
+        pass
 
     def checkAll(self,sender,app_data,user_data):
 
@@ -426,19 +545,30 @@ class ColumnEditor(DPGStage):
                 for checkbox in row.items:
                     dpg.configure_item(checkbox,default_value=app_data)
 
+        #for checkbox in self.rows["Necessary?"]["rowList"]:
+        #    dpg.configure_item(checkbox,default_value=app_data)
+
+
     def change_columns(self,sender,app_data):
         
+        # Determine if user is requesting more than max columns
+      
+        # WORK ON A DECELLERATOR HERE
+        time.sleep(0.01)
+
+        # Fixed Width Setter for expanding columns
+
         # Adding Columns
-        if app_data > self.numColumns:
-            for columnIndex in range(self.numColumns,app_data):
-                self.add_column(columnIndex)
+        if app_data > self.columns:
+            for column in range(self.columns,app_data):
+                self.editor.add_column(column,defaultFixedWidth)
              
         # Subtracting Columns
-        elif app_data < self.numColumns:
-            for columnIndex in range(app_data,self.numColumns):
-                self.delete_columnFromEnd(columnIndex)
+        elif app_data < self.columns:
+            for column in range(app_data,self.columns):
+                self.editor.delete_columnFromEnd(column)
 
-        self.numColumns = app_data
+        self.columns = app_data
 
 class FileFormatter(DPGStage):
 

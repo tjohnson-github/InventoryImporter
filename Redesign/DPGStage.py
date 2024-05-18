@@ -10,8 +10,9 @@ class DPGStage:
 
     def __init__(self,stageOnly=False,**kwargs):
 
+
+        self.main(**kwargs)
         #kwargs.get("tabView",self.)
-        self.set_themes()
 
         with dpg.stage() as self.stage:
            
@@ -20,6 +21,11 @@ class DPGStage:
 
         if not stageOnly:
             self.submit()
+
+        self.set_themes()
+
+    def main(self,**kwargs):
+        ...
 
     def submit(self):
         dpg.unstage(self.stage)

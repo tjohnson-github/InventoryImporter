@@ -246,7 +246,7 @@ class SQLLinker(DPGStage):
                 try:
                     self.after()
                 except Exception as e:
-                    print("Error with after():\t{e}")
+                    print(f"Error with after():\t{e}")
                     raise Exception
 
         except Exception as e:
