@@ -12,6 +12,9 @@ from DPGStage import DPGStage
 from DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 
+from File_Selector import FileSelector
+from File_Operations import csv_to_list,excel_to_list
+
 default_path = "Redesign//Settings//"
 
 import time
@@ -37,19 +40,33 @@ class DesiredFormat:
 
 class RubricTypeSelector(DPGStage):
 
-    height=500
+    height=540
     width=1000
 
-    items = ["Custom","From SQL"]
+    items = ["Custom","From SQL","From Spreadsheet File",]
     chosen = False
 
     def generate_id(self,**kwargs):
         with dpg.window(width=self.width,height=self.height):
 
-            self.chooser = dpg.add_combo(items=self.items,default_value=self.items[0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=100)
+            with dpg.group():
+                dpg.add_text("Build Schema")
+
+                dpg.add_separator()
+                self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
+                self.subtitleInput = dpg.add_input_text(label="Subtitle",width=300)
+
+                with dpg.collapsing_header(default_open=False,label="Tutorial"):
+                    dpg.add_text("When defining a rubric, we assume that the target schema may not be used in its entirety.")
+                    dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
+                    dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
+                    dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
+                    
+            self.chooser = dpg.add_combo(items=self.items,default_value=self.items[0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
             dpg.add_separator()
             with dpg.group() as self.rubricGroup: 
-                RubricBuilderCustom()
+                self.rubricEditor = RubricBuilderCustom()
+
 
     def chooserCallback(self,sender,app_data,user_data):
 
@@ -79,11 +96,47 @@ class RubricTypeSelector(DPGStage):
         dpg.push_container_stack(self.rubricGroup)
 
         if user_data=="Custom":
-            RubricBuilderCustom()
+            self.rubricEditor = RubricBuilderCustom()
         elif user_data=="From SQL":
-            RubricBuilderSQL()
-
+            self.rubricEditor = RubricBuilderSQL()
+        elif user_data=="From Spreadsheet File":
+            self.rubricEditor = RubricBuilderFile()
         self.chosen = True
+
+
+class RubricBuilderFile(DPGStage):
+
+    def generate_id(self,**kwargs):
+
+        with dpg.group() as self._id:
+            dpg.add_button(label="Load File",callback=self.loadFile)
+            dpg.add_text("Imported File Header")
+            with dpg.child_window() as self.tableEditor:
+                pass
+
+    def loadFile(self):
+        self.fs = FileSelector(label="Load Spreadsheet file for column schema import",nextStage=self.manipulateFile)
+
+    def manipulateFile(self):
+        _filepath = self.fs.selectedFile 
+
+        print (_filepath)
+        readArray = []
+        error = ''
+
+        if _filepath[-4:] == 'csv':
+            readArray,error = csv_to_list(_filepath)
+        elif _filepath[-4:] == 'xlsx':
+            readArray,error = excel_to_list(_filepath)
+
+        if readArray:
+            for row in readArray: print(row)
+            dpg.push_container_stack(self.tableEditor)
+            self.colEditor = ColumnEditor(schema=readArray[0])
+            asyncio.run(self.colEditor.populateTable())
+        else:
+            with dpg.window(popup=True):
+                dpg.add_text(error)
 
 class RubricBuilderSQL(DPGStage):
 
@@ -91,7 +144,7 @@ class RubricBuilderSQL(DPGStage):
 
         with dpg.group() as self._id:
             dpg.add_button(label="Link SQL",callback=self.linkSQL)
-            dpg.add_text("Imported SQL Tables")
+            dpg.add_text("Imported File Header")
             with dpg.child_window() as self.tableEditor:
                 pass
 
@@ -169,73 +222,28 @@ class RubricBuilderCustom(DPGStage):
     def generate_id(self,**kwargs):
 
         with dpg.group() as self._id:
-            dpg.add_text("Build Schema")
+           
+            self.colEditor = ColumnEditor()
 
-            self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
-            self.subtitleInput = dpg.add_input_text(label="Subtitle",width=300)
-
-            with dpg.child_window(height=130):
-                dpg.add_text("When defining a rubric, we assume that the target schema may not be used in its entirety.")
-                dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
-                dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
-                dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
-                _checkAll = dpg.add_checkbox(default_value=False,label="Check All Boxes")
-
-
-            '''self.columnSetter = dpg.add_input_int(
-                label="Columns",
-                default_value=self.numColumns,
-                callback=self.change_columns,
-                on_enter =True,
-                max_value=self.maxCols,max_clamped=True,
-                min_value=1,min_clamped =True)'''
-             
-            self.error = dpg.add_text("Column Schema caps at 99 due to limitations of the UI.",show=False)
-
-        self.editor = ColumnEditor()
-        asyncio.run(self.editor.populateTable())
-
-        dpg.set_item_callback(_checkAll,self.editor.checkAll)
-    
-        '''def change_columns(self,sender,app_data):
+            # display the columns
+            asyncio.run(self.colEditor.populateTable())
         
-        # Determine if user is requesting more than max columns
-        if app_data>=self.maxCols:
-            dpg.configure_item(self.error,show=True)
-        else:
-            dpg.configure_item(self.error,show=False)
+            dpg.add_button(
+                label="Save Rubric and add input->output schema correspondence later",
+                width=dpg.get_item_width(self.colEditor._id))
 
-        # WORK ON A DECELLERATOR HERE
-        time.sleep(0.01)
+            dpg.add_text("OR")
 
-        # Fixed Width Setter for expanding columns
-        if app_data >= 9:
-            defaultFixedWidth=True
-            for column in self.editor.columns:
-                dpg.configure_item(column,width_fixed=True)
-        else:
-            defaultFixedWidth=False
-            for column in self.editor.columns:
-                dpg.configure_item(column,width_fixed=False)
-
-        # Adding Columns
-        if app_data > self.columns:
-            for column in range(self.columns,app_data):
-                self.editor.add_column(column,defaultFixedWidth)
-             
-        # Subtracting Columns
-        elif app_data < self.columns:
-            for column in range(app_data,self.columns):
-                self.editor.delete_column(column)
-
-        self.columns = app_data'''
-    
+            dpg.add_button(
+                label="Load a file right now to begin adding input->output schema correspondence",
+                width=dpg.get_item_width(self.colEditor._id))
 
 @dataclass
 class EditorRow(DPGStage):
 
     name: str
     type: type
+    tooltip: str
     items: list[str] = field(init=False)
 
 class ColumnEditor(DPGStage):
@@ -256,13 +264,17 @@ class ColumnEditor(DPGStage):
         self.rows = [
             EditorRow(
                 name = "Column Name",
-                type = str,),
-            EditorRow(name = "Necessary?",
-                type = bool,),
+                type = str,
+                tooltip = "This is what will be displayed in the header of the output file."),
             EditorRow(name = "Tag",
-                type = str,),
+                type = str,                
+                tooltip = "The shorthand name of what kinds of values this column contains.\nFor example:\n\t- UPC\n\t- Quantity\n\t- Description"),
+             EditorRow(name = "Necessary?",
+                type = bool,
+                tooltip = "If checked, new input schemas will be required to provide a column which contains values matching the above tag."),
             EditorRow(name = "Operations",
-                type = list,)
+                type = list,                
+                tooltip = "This section provides an editor allowing us to populate columns in the output schema which are DERIVED from:\n\t- a combination of input columns\n\t- additional calculations made to individual input columns\n\t- or a combination of both"),
             ]
 
         self.schema = kwargs.get("schema",[f'Test Name {x}' for x in range(0,5)])
@@ -273,35 +285,62 @@ class ColumnEditor(DPGStage):
 
     def generate_id(self,**kwargs):
 
-        with dpg.child_window(horizontal_scrollbar=True) as self._id:
+        with dpg.group() as self._id:
+       
 
-            self.columnSetter = dpg.add_input_int(
-                label="Columns",
-                default_value=self.numColumns,
-                callback=self.change_columns,
-                on_enter =True,
-                min_value=1,min_clamped =True)
 
-            with dpg.group(horizontal=True):
+            with dpg.child_window(horizontal_scrollbar=True,height=200):
 
-                # Row Names Key
-                with dpg.child_window(width=120,border=False):
-                    with dpg.table(header_row=True):
+                with dpg.group(horizontal=True):
 
-                        rowLabels = dpg.add_table_column(label=f'Index',width_fixed=True,width=self.tableColumnDefaultWidth)
-                        for row in self.rows:
+                    self.columnSetter = dpg.add_input_int(
+                        label="Specify Columns Requested OR Add column before index",
+                        default_value=self.numColumns,
+                        callback=self.change_columns,
+                        on_enter =True,
+                        min_value=1,min_clamped =True,
+                        width=200)
 
-                            with dpg.table_row():
-                                dpg.add_text(row.name)
+                    self.columnIndexSetter = dpg.add_input_int(
+                        label="",
+                        width=150,
+                        #@default_value=self.numColumns-1,
+                        on_enter=True,
+                        step=0,
+                        min_value=0,min_clamped =True,
+                        max_value=self.numColumns-1,max_clamped=True,
+                        callback=self.addColumn,show=False)
 
-                # Actual Schema Builder Table
-                with dpg.child_window(border=False,horizontal_scrollbar=True):
+                with dpg.group(horizontal=True):
 
-                    with dpg.group(horizontal=True) as self.columnEditor:
-                        for row in self.rows:
-                            row.items = []     
+                    # Row Names Key
+                    with dpg.child_window(width=120,border=False):
+                        with dpg.table(header_row=True):
 
- 
+                            rowLabels = dpg.add_table_column(label=f'Index',width_fixed=True,width=self.tableColumnDefaultWidth)
+                            for row in self.rows:
+
+                                with dpg.table_row():
+                                    with dpg.group(horizontal=True):
+                                        _rowLabel = dpg.add_text(row.name)
+                                        if row.name=="Necessary?":
+                                            _check = dpg.add_checkbox(default_value=False,callback=self.checkAll)
+                                            with dpg.tooltip(_check):
+                                                dpg.add_text("Check all boxes?")
+
+                                    with dpg.tooltip(_rowLabel):
+                                        dpg.add_text(row.tooltip)
+
+
+
+                    # Actual Schema Builder Table
+                    with dpg.child_window(border=False,horizontal_scrollbar=True):
+
+                        with dpg.group(horizontal=True) as self.columnEditor:
+                            for row in self.rows:
+                                row.items = []     
+
+
     def generateInputByType(self,row: EditorRow,columnIndex):
 
         parent=self.columns[columnIndex]
@@ -334,6 +373,7 @@ class ColumnEditor(DPGStage):
 
     async def populateTableRows(self):
 
+        self.columnAdd = []
         self.columnHeaders = []
         self.columnRemove = []
 
@@ -342,6 +382,9 @@ class ColumnEditor(DPGStage):
             parent=self.columns[columnIndex]
 
             with dpg.group(horizontal=True,parent=parent):
+                _bf = dpg.add_button(arrow=True,direction=0,callback=self.addColumn,user_data=columnIndex)
+                with dpg.tooltip(_bf): dpg.add_text(f"Add new column before Index {columnIndex}.")
+                self.columnAdd.append(_bf)
                 _= dpg.add_text(f"Index {columnIndex}")
                 self.columnHeaders.append(_)
                 _x= dpg.add_button(label='X',callback=self.delete_column,user_data=columnIndex)
@@ -356,26 +399,50 @@ class ColumnEditor(DPGStage):
         await self.populateTableCols()
         await self.populateTableRows()
 
-    def add_column(self,columnId):
+    def addColumn(self,sender,app_data,user_data):
+        # Whether through a pattern, or an input int for adding a column to a special index: 
+        # add column @ that index
+          #parent = self.columnEditor
 
-        #parent = self.columnEditor
+        index_to_add_before = user_data
+        print(f'B:\t{self.columns=}')
+        print(f"inserting @:\t{app_data}")
 
-        _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
-        self.columns.append(_newCol)
-        self.schema.append('new')
+        _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,before=self.columns[index_to_add_before],border=False)
+        self.columns.insert(index_to_add_before,_newCol)
+        self.schema.insert(index_to_add_before,'new')
         self.numColumns+=1
+        print(f'A:\t{self.columns=}')
+        print("------------")
+        dpg.configure_item(self.columnSetter,default_value=self.numColumns)
+        dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
+
         _newColIndex =self.columns.index(_newCol)
 
+
         with dpg.group(horizontal=True,parent=_newCol):
-            _= dpg.add_text(f"Index {_newColIndex}")
-            self.columnHeaders.append(_)
+            _bf = dpg.add_button(arrow=True,direction=0,callback=self.addColumn,user_data=_newColIndex)
+            with dpg.tooltip(_bf): dpg.add_text(f"Add new column before Index {_newColIndex}.")
+            self.columnAdd.append(_bf)
+            _= dpg.add_text(f"Index {0}")
+            self.columnHeaders.insert(index_to_add_before,_)
             _x= dpg.add_button(label='X',callback=self.delete_column,user_data=_newColIndex)
-            self.columnRemove.append(_x)
+            self.columnRemove.insert(index_to_add_before,_x)
 
             for row in self.rows:
                 _newItem = self.generateInputByType(row=row,columnIndex=_newColIndex)
-                row.items.append(_newItem)
+                row.items.insert(index_to_add_before,_newItem)
 
+        # Now change the index labels of everything ahead of it: 
+        for column in self.columns[index_to_add_before:]:
+      
+            _currentIndex = self.columns.index(column)
+
+            dpg.configure_item(self.columnHeaders[_currentIndex],default_value=f"Index {_currentIndex}")
+            dpg.set_item_user_data(self.columnRemove[_currentIndex],user_data=_currentIndex)
+
+        if self.numColumns>=1:
+            dpg.configure_item(self.columnRemove[0],show=True)
 
 
     def delete_column(self,sender,app_data,user_data):
@@ -403,40 +470,77 @@ class ColumnEditor(DPGStage):
         self.columns.remove(self.columns[user_data])
         self.numColumns-=1
         dpg.configure_item(self.columnSetter,default_value=dpg.get_value(self.columnSetter)-1)
+        dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
 
-    def delete_columnFromEnd(self,columnId):
+        if self.numColumns==1:
+            dpg.configure_item(self.columnRemove[0],show=False)
 
-        try:
-            self.schema.remove(self.schema[columnId])
-        except:
-            print("greater than schema index")
-
-        dpg.delete_item(self.columns[columnId])
-        self.columnHeaders.remove(self.columnHeaders[columnId])
-        self.columnRemove.remove(self.columnRemove[columnId])
-
-        self.columns.remove(self.columns[columnId])
-        self.numColumns-=1
-        #dpg.configure_item(self.columnSetter,default_value=dpg.get_value(self.columnSetter)-1)
 
     def checkAll(self,sender,app_data,user_data):
 
         for row in self.rows:
-            if row.name=="Ncessary?":
+            if row.name=="Necessary?":
                 for checkbox in row.items:
                     dpg.configure_item(checkbox,default_value=app_data)
 
     def change_columns(self,sender,app_data):
         
+        def add_columnToEnd(self,columnId):
+
+            #parent = self.columnEditor
+
+            _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
+            self.columns.append(_newCol)
+            self.schema.append('new')
+            self.numColumns+=1
+            dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
+            _newColIndex =self.columns.index(_newCol)
+
+            with dpg.group(horizontal=True,parent=_newCol):
+                _bf = dpg.add_button(arrow=True,direction=0,callback=self.addColumn,user_data=_newColIndex)
+                with dpg.tooltip(_bf): dpg.add_text(f"Add new column before Index {_newColIndex}.")
+                self.columnAdd.append(_bf)
+                _= dpg.add_text(f"Index {_newColIndex}")
+                self.columnHeaders.append(_)
+                _x= dpg.add_button(label='X',callback=self.delete_column,user_data=_newColIndex)
+                self.columnRemove.append(_x)
+
+                for row in self.rows:
+                    _newItem = self.generateInputByType(row=row,columnIndex=_newColIndex)
+                    row.items.append(_newItem)
+
+            if self.numColumns>=1:
+                dpg.configure_item(self.columnRemove[0],show=True)
+
+        def delete_columnFromEnd(self,columnId):
+
+            try:
+                self.schema.remove(self.schema[columnId])
+            except:
+                print("greater than schema index")
+
+            dpg.delete_item(self.columns[columnId])
+
+            self.columnHeaders.remove(self.columnHeaders[columnId])
+            self.columnRemove.remove(self.columnRemove[columnId])
+            self.columns.remove(self.columns[columnId])
+
+            self.numColumns-=1
+            dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
+            #dpg.configure_item(self.columnSetter,default_value=dpg.get_value(self.columnSetter)-1)
+            if self.numColumns==1:
+                    dpg.configure_item(self.columnRemove[0],show=False)
+
+
         # Adding Columns
         if app_data > self.numColumns:
             for columnIndex in range(self.numColumns,app_data):
-                self.add_column(columnIndex)
+                add_columnToEnd(self,columnIndex)
              
         # Subtracting Columns
         elif app_data < self.numColumns:
             for columnIndex in range(app_data,self.numColumns):
-                self.delete_columnFromEnd(columnIndex)
+                delete_columnFromEnd(self,columnIndex)
 
         self.numColumns = app_data
 
@@ -499,7 +603,7 @@ def main():
    
     FileFormatter()
 
-    dpg.create_viewport(title='Custom Title', width=1300, height=600)
+    dpg.create_viewport(title='Custom Title', width=1300, height=670)
     dpg.setup_dearpygui()
     dpg.show_viewport()
     dpg.start_dearpygui()

@@ -43,7 +43,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\DPG_Themes.py" />
+    <Compile Include="Redesign\File_Operations.py" />
     <Compile Include="Redesign\Old\Rubric_Builder.py" />
+    <Compile Include="Redesign\Old\Rubric_Builder_old.py" />
     <Compile Include="Redesign\PDF_Converter_Builder.py">
       <SubType>Code</SubType>
     </Compile>
