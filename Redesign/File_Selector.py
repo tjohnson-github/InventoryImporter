@@ -25,7 +25,7 @@ class FileSelector(DPGStage):
     type: str = "File"
     height=300
     width = 600
-    inputTypes: list[str] = ["csv","xlsx"]
+    inputTypes: list[str] = ["xlsx","csv"]
     fileColor: tuple = (255, 255, 0, 255)
     nextStage: callable
 

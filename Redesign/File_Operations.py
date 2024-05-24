@@ -40,6 +40,7 @@ def csv_to_list(csv_file,delimiter = ','):
             if (temp_array != [None for i in range(0,len(temp_array))]) and (temp_array != ['' for i in range(0,len(temp_array))]):
                 readArray.append(temp_array)
 	#-------------------------------------------
+    print("HEWRE")
     return readArray,''
 
 

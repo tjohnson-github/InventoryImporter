@@ -28,6 +28,7 @@ from CustomPickler import get,set
 class ConversionRubric:
     name: str
     schema: list[str] = field(init=False)
+    fileNameTagValueExtractor = []
 
 class ConverterProcess(DPGStage):
 

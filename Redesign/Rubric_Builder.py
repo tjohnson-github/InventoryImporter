@@ -14,8 +14,9 @@ import asyncio
 
 from File_Selector import FileSelector
 from File_Operations import csv_to_list,excel_to_list
+from CustomPickler import get,set
 
-default_path = "Redesign//Settings//"
+default_settings_path = "Redesign\\Settings"
 
 import time
 
@@ -38,71 +39,129 @@ class DesiredFormat:
     # { column1: IMPORTANTCONCEPT1, column4: IMPORTANTCONCEPT2, ...
 
 
-class RubricTypeSelector(DPGStage):
 
-    height=540
-    width=1000
 
-    items = ["Custom","From SQL","From Spreadsheet File",]
-    chosen = False
+class FileNameExtractor(DPGStage):
+
+    cell_height = 80
+
+    delimitors = ["_","^"]
+    name_slices = ["Ticket#","Example Name","Example Department"]
+
+    supported_extensions = {"xlsx":True,"csv":True}
+
+    delimitorVis: list[int]
+
+    def main(self,**kwargs):
+
+        self.tags = kwargs.get("tags",["","ticket","Name","Dept","Vendor"])
+        
+        self.tagVis = []
+        self.nameSliceVis = []
+        self.delimitorVis_A = []
+        self.delimitorVis_B = []
+
+    def attemptToSave(self):
+
+        if supported_extensions.values().count(False)==len(self.supported_extensions.items):
+            with dpg.window(popup=True):
+                dpg.add_text("No extensions selected. Please check at least one")
+
 
     def generate_id(self,**kwargs):
-        with dpg.window(width=self.width,height=self.height):
 
-            with dpg.group():
-                dpg.add_text("Build Schema")
+        with dpg.group() as self._id:
 
-                dpg.add_separator()
-                self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
-                self.subtitleInput = dpg.add_input_text(label="Subtitle",width=300)
+            dpg.add_combo(label="Delimitor",items=self.delimitors,default_value = self.delimitors[0],callback=self.updateDels)
 
-                with dpg.collapsing_header(default_open=False,label="Tutorial"):
-                    dpg.add_text("When defining a rubric, we assume that the target schema may not be used in its entirety.")
-                    dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
-                    dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
-                    dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
-                    
-            self.chooser = dpg.add_combo(items=self.items,default_value=self.items[0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
             dpg.add_separator()
-            with dpg.group() as self.rubricGroup: 
-                self.rubricEditor = RubricBuilderCustom()
+            #with dpg.child_window():
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    dpg.add_text("Filename Sub Key::::")
+                    dpg.add_text("Informs which Tag?::")
+                with dpg.group() as self.fieldsParent:
+                    #names
+                    self.populateFields()
+                with dpg.group():
+                    #dpg.add_listbox(label="Extensions",items=[".csv",".xlsx"])
+                    _ = dpg.add_button(label=".XXX",callback=self.manageExt)
+                    with dpg.tooltip(_,hide_on_activity=False): dpg.add_text("Manage Extensions")
 
+            dpg.add_separator()
+            dpg.add_spacer(height=50)
 
-    def chooserCallback(self,sender,app_data,user_data):
+    def manageExt(self,sender):
+        
+        def setVal(sender,app_data,user_data):
 
-        if self.chosen:
-            with dpg.window(popup=True,width=300,height=50) as self.confirmationPopup:
-                dpg.add_text("Are you sure? This will reset your current schema.")
+            print(self.supported_extensions)
+            self.supported_extensions[dpg.get_item_label(sender)]=app_data
+            print(self.supported_extensions)
+
+        with dpg.window(popup=True):
+            for ext,val in self.supported_extensions.items():
+                dpg.add_checkbox(label=ext,default_value=val,callback=setVal)
+
+    def populateFields(self):
+        with dpg.group(horizontal=True):
+                
+            for name in self.name_slices:
+                #with dpg.group():
+
+                _width = len(name)*8
+
+                _nms = dpg.add_input_text(default_value=name,width=_width,callback=self.resize)
+                self.nameSliceVis.append(_nms)
+                       
+                #with dpg.group():
+                if name != self.name_slices[-1]:
+                    _del = dpg.add_text(self.delimitors[0])
+                    self.delimitorVis_A.append(_del)
+
+        #tag dropdowns
+        with dpg.group(horizontal=True):
+                
+            for i,name in enumerate(self.name_slices):
                 with dpg.group(horizontal=True):
-                    dpg.add_button(label="Yes",callback=self.filterChoice,user_data=app_data)
-                    dpg.add_spacer(width=30)
-                    dpg.add_button(label="No",callback=self.deletePopup)
-        else:
-            self.filterChoice(sender,app_data,user_data=app_data)
+                    _width = dpg.get_item_width(self.nameSliceVis[i])
+                    _tv = dpg.add_combo(width=_width,items=self.tags,callback=self.checkTags)
+                    self.tagVis.append(_tv)
 
-    def deletePopup(self,sender,app_data,user_data):
-        dpg.delete_item(self.confirmationPopup)
+                    if name != self.name_slices[-1]:
+                        _del = dpg.add_text(self.delimitors[0])
+                        self.delimitorVis_B.append(_del)
 
-    def filterChoice(self,sender,app_data,user_data):
+    def resize(self,sender,app_data,user_data):
+        
+        _width = len(app_data)*8
+        if _width < 40: _width = 40
+        _index = self.nameSliceVis.index(sender)
 
-        print(user_data)
-        try:
-            self.deletePopup(sender,app_data,user_data)
-        except:
-            # does not yet exist
-            pass
+        for item in [self.nameSliceVis[_index] , self.tagVis[_index]]:
+            dpg.configure_item(item,width=_width)
 
-        dpg.delete_item(self.rubricGroup,children_only=True)
-        dpg.push_container_stack(self.rubricGroup)
+    def updateDels(self,sender,app_data,user_data):
+        for item in self.delimitorVis_A+self.delimitorVis_B:
+            dpg.configure_item(item,default_value=app_data)
 
-        if user_data=="Custom":
-            self.rubricEditor = RubricBuilderCustom()
-        elif user_data=="From SQL":
-            self.rubricEditor = RubricBuilderSQL()
-        elif user_data=="From Spreadsheet File":
-            self.rubricEditor = RubricBuilderFile()
-        self.chosen = True
+    def checkTags(self,sender,app_data,user_data):
+        
+        if app_data=='': return
 
+        _alreadyChecked = False
+        for item in self.tagVis:
+
+            if item == sender: continue
+
+            if dpg.get_value(item)==app_data:
+                _alreadyChecked=True
+                break
+
+        if _alreadyChecked:
+            with dpg.window(popup=True):
+                dpg.add_text(f"Tag selection '{app_data}' already chosen by another naming slice.")
+                dpg.configure_item(sender,default_value='')
 
 class RubricBuilderFile(DPGStage):
 
@@ -115,16 +174,23 @@ class RubricBuilderFile(DPGStage):
                 pass
 
     def loadFile(self):
-        self.fs = FileSelector(label="Load Spreadsheet file for column schema import",nextStage=self.manipulateFile)
+        self.fs = FileSelector(
+            label="Load Spreadsheet file for column schema import",
+            nextStage=self.manipulateFile)
 
     def manipulateFile(self):
+
+
+        dpg.delete_item(self.fs._id)
         _filepath = self.fs.selectedFile 
+
+
 
         print (_filepath)
         readArray = []
         error = ''
 
-        if _filepath[-4:] == 'csv':
+        if _filepath[-3:] == 'csv':
             readArray,error = csv_to_list(_filepath)
         elif _filepath[-4:] == 'xlsx':
             readArray,error = excel_to_list(_filepath)
@@ -238,6 +304,89 @@ class RubricBuilderCustom(DPGStage):
                 label="Load a file right now to begin adding input->output schema correspondence",
                 width=dpg.get_item_width(self.colEditor._id))
 
+class RubricControl(DPGStage):
+
+    height=540
+    width=1000
+
+    items = {
+        "Custom":RubricBuilderCustom,
+        "From SQL":RubricBuilderSQL,
+        "From Spreadsheet File":RubricBuilderFile
+        }
+    chosen = False
+
+    scannableLocations = ["INPUT","STAGED"]
+
+    def generate_id(self,**kwargs):
+        with dpg.window(width=self.width,height=self.height):
+
+            with dpg.group():
+                dpg.add_text("Build Schema")
+
+                dpg.add_separator()
+                self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
+                self.subtitleInput = dpg.add_input_text(label="Subtitle",width=300)
+                self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
+
+                with dpg.collapsing_header(default_open=False,label="Tutorial"):
+                    dpg.add_text("When defining a rubric, we assume that the target schema may not be used in its entirety.")
+                    dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
+                    dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
+                    dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
+                    
+                with dpg.collapsing_header(default_open=False,label="Input File Tag Extractor"):
+                    dpg.add_text("Converter process has two modes:")
+                    dpg.add_text("choosing the converter you want and then scanning for files whose NAMING CONVENTIONS and/or HEADER matches that found in the correspondences saved below",bullet=True)
+                    dpg.add_text("scannng for files and then, for each file, identifies which converts accept that file's NAMING CONVENTIONS and/or HEADER",bullet=True)
+                    fns = FileNameExtractor()
+
+
+            self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
+            dpg.add_separator()
+            with dpg.group() as self.rubricGroup: 
+                self.rubricEditor = RubricBuilderCustom()
+
+
+    def chooserCallback(self,sender,app_data,user_data):
+
+        if self.chosen:
+            with dpg.window(popup=True,width=300,height=50) as self.confirmationPopup:
+                dpg.add_text("Are you sure? This will reset your current schema.")
+                with dpg.group(horizontal=True):
+                    dpg.add_button(label="Yes",callback=self.filterChoice,user_data=app_data)
+                    dpg.add_spacer(width=30)
+                    dpg.add_button(label="No",callback=self.deletePopup)
+        else:
+            self.filterChoice(sender,app_data,user_data=app_data)
+
+    def deletePopup(self,sender,app_data,user_data):
+        dpg.delete_item(self.confirmationPopup)
+
+    def filterChoice(self,sender,app_data,user_data):
+
+        print(user_data)
+        try:
+            self.deletePopup(sender,app_data,user_data)
+        except:
+            # does not yet exist
+            pass
+
+        dpg.delete_item(self.rubricGroup,children_only=True)
+        dpg.push_container_stack(self.rubricGroup)
+
+        self.rubricEditor = self.items[user_data]()
+
+        '''if user_data=="Custom":
+            self.rubricEditor = RubricBuilderCustom()
+        elif user_data=="From SQL":
+            self.rubricEditor = RubricBuilderSQL()
+        elif user_data=="From Spreadsheet File":
+            self.rubricEditor = RubricBuilderFile()'''
+        self.chosen = True
+
+
+
 @dataclass
 class EditorRow(DPGStage):
 
@@ -248,14 +397,12 @@ class EditorRow(DPGStage):
 
 class ColumnEditor(DPGStage):
        
+    height=200
     tableColumnDefaultWidth = 100
     fixedWidthCutoff = 9
     fixedWidth = False
 
     rows: list[EditorRow]
-
-    deceleratorCutoff = 50
-    decelerator = 0.00001
 
     def main(self,**kwargs):
 
@@ -272,6 +419,9 @@ class ColumnEditor(DPGStage):
              EditorRow(name = "Necessary?",
                 type = bool,
                 tooltip = "If checked, new input schemas will be required to provide a column which contains values matching the above tag."),
+            EditorRow(name = "Derived from Filename?",
+                type = bool,                
+                tooltip = "If checked, this column's output will be populated by values derived from:\n\t - the file's name\n\t - the file's source directory\n\t - or a value manually chosen during the processing step"),
             EditorRow(name = "Operations",
                 type = list,                
                 tooltip = "This section provides an editor allowing us to populate columns in the output schema which are DERIVED from:\n\t- a combination of input columns\n\t- additional calculations made to individual input columns\n\t- or a combination of both"),
@@ -280,15 +430,10 @@ class ColumnEditor(DPGStage):
         self.schema = kwargs.get("schema",[f'Test Name {x}' for x in range(0,5)])
         self.numColumns = len(self.schema)
 
-        if self.numColumns > self.deceleratorCutoff:
-            self.decelerator = .2
-
     def generate_id(self,**kwargs):
 
         with dpg.group() as self._id:
-       
-
-
+      
             with dpg.child_window(horizontal_scrollbar=True,height=200):
 
                 with dpg.group(horizontal=True):
@@ -331,10 +476,8 @@ class ColumnEditor(DPGStage):
                                     with dpg.tooltip(_rowLabel):
                                         dpg.add_text(row.tooltip)
 
-
-
                     # Actual Schema Builder Table
-                    with dpg.child_window(border=False,horizontal_scrollbar=True):
+                    with dpg.child_window(border=False,horizontal_scrollbar=True,height=self.height):
 
                         with dpg.group(horizontal=True) as self.columnEditor:
                             for row in self.rows:
@@ -345,7 +488,6 @@ class ColumnEditor(DPGStage):
 
         parent=self.columns[columnIndex]
 
-        #if self.rows[key]["type"]==str:
         if row.type==str:
             if row.name == "Column Name":
                 _default_value = self.schema[columnIndex]
@@ -353,13 +495,17 @@ class ColumnEditor(DPGStage):
                 _default_value = ""
 
             _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent)
-        #elif self.rows[key]["type"]==bool:
+        
+
         elif row.type==bool:
-            _ = dpg.add_checkbox(parent=parent)
+            with dpg.group(horizontal=True,parent=parent):
+                dpg.add_spacer(width=40)
+                #dpg.add_text("-")
+                _ = dpg.add_checkbox()
+                #dpg.add_text("-")
         elif row.type==list:
            with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
                pass
-           #_ = dpg.add_button(label="<>")
 
         return _   
 
@@ -544,71 +690,3 @@ class ColumnEditor(DPGStage):
 
         self.numColumns = app_data
 
-class FileFormatter(DPGStage):
-
-    # CHOOSE DESIRED OUTPUT FIRST
-    # THEN DISPLAY INCOMMING FORMAT and ASK FOR CORRELATION TABLE; CREATE IF NOT EXIST; DISPLAY IF EXIST; LET EDIT
-    
-    # LATER, UPON LOAD, WHEN VERIFYING A TABLE WITH THAT SCHEMA, CAN SUGGEST OR EVEN AUTO-RUN FORMATTER
-    #   BUT THIS NEEDS TO ASK IF 
-
-
-    height = 240
-    width =800
-
-    def print_me(sender):
-        print(f"Menu Item: {sender}")
-
-    def generate_id(self,**kwargs):
-        
-        with dpg.window(height=self.height,width=self.width) as self._id:
-
-            with dpg.menu_bar():
-                with dpg.menu(label="File"):
-                    dpg.add_menu_item(label="New Converter",callback=self.newBuild)
-                    dpg.add_menu_item(label="Set Default Directories",callback=self.setDirs)
-                    dpg.add_menu_item(label="Save", callback=self.print_me)
-                    dpg.add_menu_item(label="Save As", callback=self.print_me)
-
-                    with dpg.menu(label="Settings"):
-                        dpg.add_menu_item(label="Setting 1", callback=self.print_me, check=True)
-                        dpg.add_menu_item(label="Setting 2", callback=self.print_me)
-
-                dpg.add_menu_item(label="Help", callback=self.print_me)
-
-                with dpg.menu(label="Widget Items"):
-                    dpg.add_checkbox(label="Pick Me", callback=self.print_me)
-                    dpg.add_button(label="Press Me", callback=self.print_me)
-                    dpg.add_color_picker(label="Color Me", callback=self.print_me)
-
-            with dpg.child_window(height=180,width=self.width-20):
-                dpg.add_text("""This program builds and saves file formatters.\n
-When creating new formatters, you are picking an input and an output format.\n
-These will be represented best as columns in a spreadsheet, or a table schema.\n
-\tAlthough this program can support a 1 to Many file converter format, it will be most effecient\n
-\tto instead presuppose a Many to 1 conversion. That is, messy files being standardized.\n
-Each format will have within it saved micro-formats that identify and save where a file is coming in from.
-       """)
-
-    def setDirs(self,sender,app_data,user_data):
-        DefaultPathing()
-
-    def newBuild(self,sender,app_data,user_data):
-
-        RubricTypeSelector()
-
-    
-
-def main():
-   
-    FileFormatter()
-
-    dpg.create_viewport(title='Custom Title', width=1300, height=670)
-    dpg.setup_dearpygui()
-    dpg.show_viewport()
-    dpg.start_dearpygui()
-    dpg.destroy_context()
-
-
-if __name__=="__main__":
-    main()

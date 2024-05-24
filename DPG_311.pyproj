@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7fc669d3-6d84-47f5-bd28-0ecd2e4b1730</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Redesign\Rubric_Builder.py</StartupFile>
+    <StartupFile>Redesign\Home.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -44,6 +44,9 @@
     </Compile>
     <Compile Include="Redesign\DPG_Themes.py" />
     <Compile Include="Redesign\File_Operations.py" />
+    <Compile Include="Redesign\Home.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\Old\Rubric_Builder.py" />
     <Compile Include="Redesign\Old\Rubric_Builder_old.py" />
     <Compile Include="Redesign\PDF_Converter_Builder.py">

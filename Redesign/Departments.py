@@ -20,3 +20,10 @@ class Department:
     def __str__(self):
         return f'{self.code},{self.name},{self.margin}'
 
+
+
+# Load custom correspondence data:
+# the idea is:
+#   make_dataclass: make fields
+
+
