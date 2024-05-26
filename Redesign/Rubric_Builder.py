@@ -11,10 +11,12 @@ from SQLInterface import SQLLinker
 from DPGStage import DPGStage
 from DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
+from typing import Optional
 
 from File_Selector import FileSelector
 from File_Operations import csv_to_list,excel_to_list
 from CustomPickler import get,set
+from FilenameConventionExtractor import FilenameExtractor,FileNameConvention
 
 default_settings_path = "Redesign\\Settings"
 
@@ -41,127 +43,6 @@ class DesiredFormat:
 
 
 
-class FileNameExtractor(DPGStage):
-
-    cell_height = 80
-
-    delimitors = ["_","^"]
-    name_slices = ["Ticket#","Example Name","Example Department"]
-
-    supported_extensions = {"xlsx":True,"csv":True}
-
-    delimitorVis: list[int]
-
-    def main(self,**kwargs):
-
-        self.tags = kwargs.get("tags",["","ticket","Name","Dept","Vendor"])
-        
-        self.tagVis = []
-        self.nameSliceVis = []
-        self.delimitorVis_A = []
-        self.delimitorVis_B = []
-
-    def attemptToSave(self):
-
-        if supported_extensions.values().count(False)==len(self.supported_extensions.items):
-            with dpg.window(popup=True):
-                dpg.add_text("No extensions selected. Please check at least one")
-
-
-    def generate_id(self,**kwargs):
-
-        with dpg.group() as self._id:
-
-            dpg.add_combo(label="Delimitor",items=self.delimitors,default_value = self.delimitors[0],callback=self.updateDels)
-
-            dpg.add_separator()
-            #with dpg.child_window():
-            with dpg.group(horizontal=True):
-                with dpg.group():
-                    dpg.add_text("Filename Sub Key::::")
-                    dpg.add_text("Informs which Tag?::")
-                with dpg.group() as self.fieldsParent:
-                    #names
-                    self.populateFields()
-                with dpg.group():
-                    #dpg.add_listbox(label="Extensions",items=[".csv",".xlsx"])
-                    _ = dpg.add_button(label=".XXX",callback=self.manageExt)
-                    with dpg.tooltip(_,hide_on_activity=False): dpg.add_text("Manage Extensions")
-
-            dpg.add_separator()
-            dpg.add_spacer(height=50)
-
-    def manageExt(self,sender):
-        
-        def setVal(sender,app_data,user_data):
-
-            print(self.supported_extensions)
-            self.supported_extensions[dpg.get_item_label(sender)]=app_data
-            print(self.supported_extensions)
-
-        with dpg.window(popup=True):
-            for ext,val in self.supported_extensions.items():
-                dpg.add_checkbox(label=ext,default_value=val,callback=setVal)
-
-    def populateFields(self):
-        with dpg.group(horizontal=True):
-                
-            for name in self.name_slices:
-                #with dpg.group():
-
-                _width = len(name)*8
-
-                _nms = dpg.add_input_text(default_value=name,width=_width,callback=self.resize)
-                self.nameSliceVis.append(_nms)
-                       
-                #with dpg.group():
-                if name != self.name_slices[-1]:
-                    _del = dpg.add_text(self.delimitors[0])
-                    self.delimitorVis_A.append(_del)
-
-        #tag dropdowns
-        with dpg.group(horizontal=True):
-                
-            for i,name in enumerate(self.name_slices):
-                with dpg.group(horizontal=True):
-                    _width = dpg.get_item_width(self.nameSliceVis[i])
-                    _tv = dpg.add_combo(width=_width,items=self.tags,callback=self.checkTags)
-                    self.tagVis.append(_tv)
-
-                    if name != self.name_slices[-1]:
-                        _del = dpg.add_text(self.delimitors[0])
-                        self.delimitorVis_B.append(_del)
-
-    def resize(self,sender,app_data,user_data):
-        
-        _width = len(app_data)*8
-        if _width < 40: _width = 40
-        _index = self.nameSliceVis.index(sender)
-
-        for item in [self.nameSliceVis[_index] , self.tagVis[_index]]:
-            dpg.configure_item(item,width=_width)
-
-    def updateDels(self,sender,app_data,user_data):
-        for item in self.delimitorVis_A+self.delimitorVis_B:
-            dpg.configure_item(item,default_value=app_data)
-
-    def checkTags(self,sender,app_data,user_data):
-        
-        if app_data=='': return
-
-        _alreadyChecked = False
-        for item in self.tagVis:
-
-            if item == sender: continue
-
-            if dpg.get_value(item)==app_data:
-                _alreadyChecked=True
-                break
-
-        if _alreadyChecked:
-            with dpg.window(popup=True):
-                dpg.add_text(f"Tag selection '{app_data}' already chosen by another naming slice.")
-                dpg.configure_item(sender,default_value='')
 
 class RubricBuilderFile(DPGStage):
 
@@ -287,27 +168,24 @@ class RubricBuilderCustom(DPGStage):
 
     def generate_id(self,**kwargs):
 
+        #self.filenameExtractor = kwargs.get("filenameExtractor")
+
         with dpg.group() as self._id:
            
-            self.colEditor = ColumnEditor()
+            self.colEditor = ColumnEditor(**kwargs)
 
             # display the columns
             asyncio.run(self.colEditor.populateTable())
         
-            dpg.add_button(
-                label="Save Rubric and add input->output schema correspondence later",
-                width=dpg.get_item_width(self.colEditor._id))
-
-            dpg.add_text("OR")
-
-            dpg.add_button(
-                label="Load a file right now to begin adding input->output schema correspondence",
-                width=dpg.get_item_width(self.colEditor._id))
+            
 
 class RubricControl(DPGStage):
 
+    label="Build Rubric and Schema"
+
     height=540
     width=1000
+    spacer_width = 25
 
     items = {
         "Custom":RubricBuilderCustom,
@@ -318,11 +196,12 @@ class RubricControl(DPGStage):
 
     scannableLocations = ["INPUT","STAGED"]
 
+    filenameConvention: FileNameConvention
+
     def generate_id(self,**kwargs):
-        with dpg.window(width=self.width,height=self.height):
+        with dpg.window(label=self.label,width=self.width,height=self.height):
 
             with dpg.group():
-                dpg.add_text("Build Schema")
 
                 dpg.add_separator()
                 self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
@@ -330,23 +209,47 @@ class RubricControl(DPGStage):
                 self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
 
                 with dpg.collapsing_header(default_open=False,label="Tutorial"):
-                    dpg.add_text("When defining a rubric, we assume that the target schema may not be used in its entirety.")
-                    dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
-                    dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
-                    dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
+                    with dpg.group(horizontal=True):
+                        dpg.add_spacer(width=self.spacer_width)
+                        with dpg.group():
+                            dpg.add_text("When defining a rubric, we assume that the target schema may not be used in its entirety.")
+                            dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
+                            dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
+                            dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
                     
                 with dpg.collapsing_header(default_open=False,label="Input File Tag Extractor"):
-                    dpg.add_text("Converter process has two modes:")
-                    dpg.add_text("choosing the converter you want and then scanning for files whose NAMING CONVENTIONS and/or HEADER matches that found in the correspondences saved below",bullet=True)
-                    dpg.add_text("scannng for files and then, for each file, identifies which converts accept that file's NAMING CONVENTIONS and/or HEADER",bullet=True)
-                    fns = FileNameExtractor()
+                    with dpg.group(horizontal=True):
+                        dpg.add_spacer(width=self.spacer_width)
+                        with dpg.child_window(border=False,height=170):
+                            dpg.add_text("Converter process has two modes:")
+                            dpg.add_text("choosing the converter you want and then scanning for files whose NAMING CONVENTIONS and/or HEADER matches that found in the correspondences saved below",bullet=True)
+                            dpg.add_text("scannng for files and then, for each file, identifies which converts accept that file's NAMING CONVENTIONS and/or HEADER",bullet=True)
+                            self.fns = FilenameExtractor()
 
+            with dpg.collapsing_header(default_open=False,label="Schema Editor"):
+                with dpg.group(horizontal=True):
+                    dpg.add_spacer(width=self.spacer_width)
+                    with dpg.group():
+                        self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
+                        dpg.add_separator()
+                        with dpg.group() as self.rubricGroup: 
+                            self.rubricEditor = RubricBuilderCustom(filenameExtractor = self.fns)
 
-            self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
             dpg.add_separator()
-            with dpg.group() as self.rubricGroup: 
-                self.rubricEditor = RubricBuilderCustom()
+            dpg.add_button(
+                label="Save Rubric and add input->output schema correspondence later",
+                width=dpg.get_item_width(self.colEditor._id),
+                callback=self.saveRubric)
 
+            dpg.add_text("OR")
+
+            dpg.add_button(
+                label="Load a file right now to begin adding input->output schema correspondence",
+                width=dpg.get_item_width(self.colEditor._id))
+
+    def saveRubric(self):
+
+        self.filenameConvention = self.fns.attemptToSave()
 
     def chooserCallback(self,sender,app_data,user_data):
 
@@ -375,7 +278,7 @@ class RubricControl(DPGStage):
         dpg.delete_item(self.rubricGroup,children_only=True)
         dpg.push_container_stack(self.rubricGroup)
 
-        self.rubricEditor = self.items[user_data]()
+        self.rubricEditor = self.items[user_data](filenameExtractor = self.fns)
 
         '''if user_data=="Custom":
             self.rubricEditor = RubricBuilderCustom()
@@ -394,6 +297,7 @@ class EditorRow(DPGStage):
     type: type
     tooltip: str
     items: list[str] = field(init=False)
+    callback: callable = None
 
 class ColumnEditor(DPGStage):
        
@@ -404,21 +308,26 @@ class ColumnEditor(DPGStage):
 
     rows: list[EditorRow]
 
+    filenameExtractor:FilenameExtractor
+
     def main(self,**kwargs):
 
         print("here")
+        self.filenameExtractor = kwargs.get("filenameExtractor")
 
         self.rows = [
             EditorRow(
                 name = "Column Name",
                 type = str,
-                tooltip = "This is what will be displayed in the header of the output file."),
+                tooltip = "This is what will be displayed in the header of the output file.",
+                ),
             EditorRow(name = "Tag",
                 type = str,                
-                tooltip = "The shorthand name of what kinds of values this column contains.\nFor example:\n\t- UPC\n\t- Quantity\n\t- Description"),
-             EditorRow(name = "Necessary?",
+                tooltip = "The shorthand name of what kinds of values this column contains.\nFor example:\n\t- UPC\n\t- Quantity\n\t- Description",
+                callback = self.updateTags), 
+            EditorRow(name = "Necessary?",
                 type = bool,
-                tooltip = "If checked, new input schemas will be required to provide a column which contains values matching the above tag."),
+                tooltip = "If checked, new input schemas will be required to provide a column whose tag matches the rubric schema tag\neven if other operations will be done to the input column's values."),
             EditorRow(name = "Derived from Filename?",
                 type = bool,                
                 tooltip = "If checked, this column's output will be populated by values derived from:\n\t - the file's name\n\t - the file's source directory\n\t - or a value manually chosen during the processing step"),
@@ -434,19 +343,27 @@ class ColumnEditor(DPGStage):
 
         with dpg.group() as self._id:
       
-            with dpg.child_window(horizontal_scrollbar=True,height=200):
+            with dpg.child_window(horizontal_scrollbar=True,border=False):
+
+                with dpg.group():
+                    dpg.add_text("When defining a rubric, we assume that:")
+                    dpg.add_text("the target schema may not be used in its entirety.",bullet=True)
+                    dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
+                    dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
+                    dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
+                    
 
                 with dpg.group(horizontal=True):
 
                     self.columnSetter = dpg.add_input_int(
-                        label="Specify Columns Requested OR Add column before index",
+                        label="Specify Columns Requested", # OR Add column before index
                         default_value=self.numColumns,
                         callback=self.change_columns,
                         on_enter =True,
                         min_value=1,min_clamped =True,
                         width=200)
 
-                    self.columnIndexSetter = dpg.add_input_int(
+                    '''self.columnIndexSetter = dpg.add_input_int(
                         label="",
                         width=150,
                         #@default_value=self.numColumns-1,
@@ -454,7 +371,7 @@ class ColumnEditor(DPGStage):
                         step=0,
                         min_value=0,min_clamped =True,
                         max_value=self.numColumns-1,max_clamped=True,
-                        callback=self.addColumn,show=False)
+                        callback=self.addColumn,show=False)'''
 
                 with dpg.group(horizontal=True):
 
@@ -491,10 +408,12 @@ class ColumnEditor(DPGStage):
         if row.type==str:
             if row.name == "Column Name":
                 _default_value = self.schema[columnIndex]
+                _callback = None
             else: 
                 _default_value = ""
+                _callback = row.callback
 
-            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent)
+            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
         
 
         elif row.type==bool:
@@ -508,6 +427,18 @@ class ColumnEditor(DPGStage):
                pass
 
         return _   
+
+    def updateTags(self,sender,app_data,user_data):
+
+        _allTags = []
+
+        for row in self.rows:
+            if row.name=="Tag":
+                _allTags = [x for x in dpg.get_values(row.items) if x !=""]
+
+                self.filenameExtractor.updateTagList(_allTags)
+
+
 
     async def populateTableCols(self):
 

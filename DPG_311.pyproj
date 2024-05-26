@@ -43,6 +43,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\DPG_Themes.py" />
+    <Compile Include="Redesign\FilenameConventionExtractor.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\File_Operations.py" />
     <Compile Include="Redesign\Home.py">
       <SubType>Code</SubType>
@@ -52,7 +55,7 @@
     <Compile Include="Redesign\PDF_Converter_Builder.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Redesign\tableTest.py">
+    <Compile Include="Redesign\Old\tableTest.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Reference\disabled_theme.py">
