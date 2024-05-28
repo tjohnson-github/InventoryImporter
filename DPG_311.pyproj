@@ -58,6 +58,9 @@
     <Compile Include="Redesign\Old\tableTest.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\Schema_Loader.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Reference\disabled_theme.py">
       <SubType>Code</SubType>
     </Compile>
@@ -68,7 +71,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="PDF_Scraper.py" />
-    <Compile Include="Redesign\Column_Operations.py" />
+    <Compile Include="Redesign\Column_Editor.py" />
     <Compile Include="Redesign\DefaultPathing.py" />
     <Compile Include="Redesign\Departments.py">
       <SubType>Code</SubType>
@@ -86,7 +89,7 @@
     <Compile Include="Reference\TableTest.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Redesign\Rubric_Builder.py">
+    <Compile Include="Redesign\Schema_Editor.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\CustomPickler.py">

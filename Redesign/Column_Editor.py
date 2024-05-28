@@ -1,294 +1,37 @@
 
-
-import dearpygui.dearpygui as dpg
-dpg.create_context()
-from dataclasses import dataclass, field
-import pyodbc
-
-import CustomPickler
-
-from SQLInterface import SQLLinker
+from dearpygui import dearpygui as dpg
+from FilenameConventionExtractor import FilenameExtractor
 from DPGStage import DPGStage
-from DefaultPathing import DefaultPathing,DefaultPaths
+from dataclasses import dataclass, field
 import asyncio
-from typing import Optional
 
-from File_Selector import FileSelector
-from File_Operations import csv_to_list,excel_to_list
-from CustomPickler import get,set
-from FilenameConventionExtractor import FilenameExtractor,FileNameConvention
+# THings we can do:
+'''
 
-default_settings_path = "Redesign\\Settings"
+SOURCES:
+    - in file name
+    - given from file location (folder)
+    - found in file somewhere (target cell somehow)
+    - chosen manually
 
-import time
+SOURCE CORRESPONDENCE
+    - value in name doesn't need to go straight to output file; it can be filtered through a DICT
+        just like we do for 
 
-@dataclass
-class Rubric:
-    name: str
-    subname: str
-    outputSchema: tuple[str]
-    correspondenceDict: dict
+    1. populate columns with a single value predetermined by value from SOURCES
+        - or from a correspondence dataset:
+            whereby the value 
+    2. 
 
+Create correspondence dict for TAG
+: if something in the INPUT file's column that is tagged
+: matches a correspondence dict NAMED the tag name
+: instead of sending the original values in the tag:
 
-@dataclass
-class DesiredFormat:
-    name: str
-    headersAKAColumns: list[str]
-    correspondenceDict: dict
-    # will be something like:
-    # { column1: 1, column2: 2, ...
-    #   or
-    # { column1: IMPORTANTCONCEPT1, column4: IMPORTANTCONCEPT2, ...
 
+# determined base don 
 
-
-
-
-class RubricBuilderFile(DPGStage):
-
-    def generate_id(self,**kwargs):
-
-        with dpg.group() as self._id:
-            dpg.add_button(label="Load File",callback=self.loadFile)
-            dpg.add_text("Imported File Header")
-            with dpg.child_window() as self.tableEditor:
-                pass
-
-    def loadFile(self):
-        self.fs = FileSelector(
-            label="Load Spreadsheet file for column schema import",
-            nextStage=self.manipulateFile)
-
-    def manipulateFile(self):
-
-
-        dpg.delete_item(self.fs._id)
-        _filepath = self.fs.selectedFile 
-
-
-
-        print (_filepath)
-        readArray = []
-        error = ''
-
-        if _filepath[-3:] == 'csv':
-            readArray,error = csv_to_list(_filepath)
-        elif _filepath[-4:] == 'xlsx':
-            readArray,error = excel_to_list(_filepath)
-
-        if readArray:
-            for row in readArray: print(row)
-            dpg.push_container_stack(self.tableEditor)
-            self.colEditor = ColumnEditor(schema=readArray[0])
-            asyncio.run(self.colEditor.populateTable())
-        else:
-            with dpg.window(popup=True):
-                dpg.add_text(error)
-
-class RubricBuilderSQL(DPGStage):
-
-    def generate_id(self,**kwargs):
-
-        with dpg.group() as self._id:
-            dpg.add_button(label="Link SQL",callback=self.linkSQL)
-            dpg.add_text("Imported File Header")
-            with dpg.child_window() as self.tableEditor:
-                pass
-
-
-    def displayAllTables(self):
-
-        dpg.push_container_stack(self.tableEditor)
-        dpg.add_separator()
-
-        cursorStr = "SELECT * FROM INFORMATION_SCHEMA.TABLES"
-        self.sqlLinker.cursor.execute(cursorStr)
-
-        headers                 =   [i[0] for i in self.sqlLinker.cursor.description]
-        rows = [x for x in self.sqlLinker.cursor]
-
-        dpg.add_text(headers)
-        dpg.add_combo(items=rows)
-
-        dpg.add_separator()
-        self.displayTableSchema(tableName="IM_ITEM")
-
-    def displayTableSchema(self,tableName):
-
-        dpg.push_container_stack(self.tableEditor)
-        dpg.add_separator()
-
-        cursorStr = f'SELECT * FROM JFGC.dbo.{tableName}'
-        #cursorStr = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
-
-        self.sqlLinker.cursor.execute(cursorStr)
-
-        headers                 =   [i[0] for i in self.sqlLinker.cursor.description]
-
-        print (headers)
-        print(len(headers))
-        rows = []
- 
-        dpg.add_text(tableName)
-
-        self.editor = ColumnEditor(schema=headers)
-        #self.editor = ColumnEditor(schema=headers)
-        asyncio.run(self.editor.populateTable())
-
-
-        #with dpg.group(horizontal=True):
-
-        #    for i,columnName in enumerate(headers):
-        ##        print(i,"\t",columnName)
-        #        dpg.add_input_text(default_value=columnName,enabled=False,width=(len(columnName)*10))
-
-    
-
-        #for i,x in enumerate(self.sqlLinker.cursor):
-        #    print(i,"\t",x)
-        #    dpg.add_input_text(default_value=x,enabled=False)
-    
-
-    def linkSQL(self,sender,app_data,user_data):
-        self.sqlLinker = SQLLinker(after = self.displayAllTables)
-
-class RubricBuilderCustom(DPGStage):
-
-    columns: int  = 5
-    maxCols = 98
-    tableColumnDefaultWidth = 115
-
-    allColumns = []
-
-    def gatherInfo(self):
-
-        _newRubric = Rubric(
-            name=dpg.get_item_value(self.name),
-            subname=dpg.get_item_value(self.subtitleInput),)
-
-    def generate_id(self,**kwargs):
-
-        #self.filenameExtractor = kwargs.get("filenameExtractor")
-
-        with dpg.group() as self._id:
-           
-            self.colEditor = ColumnEditor(**kwargs)
-
-            # display the columns
-            asyncio.run(self.colEditor.populateTable())
-        
-            
-
-class RubricControl(DPGStage):
-
-    label="Build Rubric and Schema"
-
-    height=540
-    width=1000
-    spacer_width = 25
-
-    items = {
-        "Custom":RubricBuilderCustom,
-        "From SQL":RubricBuilderSQL,
-        "From Spreadsheet File":RubricBuilderFile
-        }
-    chosen = False
-
-    scannableLocations = ["INPUT","STAGED"]
-
-    filenameConvention: FileNameConvention
-
-    def generate_id(self,**kwargs):
-        with dpg.window(label=self.label,width=self.width,height=self.height):
-
-            with dpg.group():
-
-                dpg.add_separator()
-                self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
-                self.subtitleInput = dpg.add_input_text(label="Subtitle",width=300)
-                self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
-
-                with dpg.collapsing_header(default_open=False,label="Tutorial"):
-                    with dpg.group(horizontal=True):
-                        dpg.add_spacer(width=self.spacer_width)
-                        with dpg.group():
-                            dpg.add_text("When defining a rubric, we assume that the target schema may not be used in its entirety.")
-                            dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
-                            dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
-                            dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
-                    
-                with dpg.collapsing_header(default_open=False,label="Input File Tag Extractor"):
-                    with dpg.group(horizontal=True):
-                        dpg.add_spacer(width=self.spacer_width)
-                        with dpg.child_window(border=False,height=170):
-                            dpg.add_text("Converter process has two modes:")
-                            dpg.add_text("choosing the converter you want and then scanning for files whose NAMING CONVENTIONS and/or HEADER matches that found in the correspondences saved below",bullet=True)
-                            dpg.add_text("scannng for files and then, for each file, identifies which converts accept that file's NAMING CONVENTIONS and/or HEADER",bullet=True)
-                            self.fns = FilenameExtractor()
-
-            with dpg.collapsing_header(default_open=False,label="Schema Editor"):
-                with dpg.group(horizontal=True):
-                    dpg.add_spacer(width=self.spacer_width)
-                    with dpg.group():
-                        self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
-                        dpg.add_separator()
-                        with dpg.group() as self.rubricGroup: 
-                            self.rubricEditor = RubricBuilderCustom(filenameExtractor = self.fns)
-
-            dpg.add_separator()
-            dpg.add_button(
-                label="Save Rubric and add input->output schema correspondence later",
-                width=dpg.get_item_width(self.colEditor._id),
-                callback=self.saveRubric)
-
-            dpg.add_text("OR")
-
-            dpg.add_button(
-                label="Load a file right now to begin adding input->output schema correspondence",
-                width=dpg.get_item_width(self.colEditor._id))
-
-    def saveRubric(self):
-
-        self.filenameConvention = self.fns.attemptToSave()
-
-    def chooserCallback(self,sender,app_data,user_data):
-
-        if self.chosen:
-            with dpg.window(popup=True,width=300,height=50) as self.confirmationPopup:
-                dpg.add_text("Are you sure? This will reset your current schema.")
-                with dpg.group(horizontal=True):
-                    dpg.add_button(label="Yes",callback=self.filterChoice,user_data=app_data)
-                    dpg.add_spacer(width=30)
-                    dpg.add_button(label="No",callback=self.deletePopup)
-        else:
-            self.filterChoice(sender,app_data,user_data=app_data)
-
-    def deletePopup(self,sender,app_data,user_data):
-        dpg.delete_item(self.confirmationPopup)
-
-    def filterChoice(self,sender,app_data,user_data):
-
-        print(user_data)
-        try:
-            self.deletePopup(sender,app_data,user_data)
-        except:
-            # does not yet exist
-            pass
-
-        dpg.delete_item(self.rubricGroup,children_only=True)
-        dpg.push_container_stack(self.rubricGroup)
-
-        self.rubricEditor = self.items[user_data](filenameExtractor = self.fns)
-
-        '''if user_data=="Custom":
-            self.rubricEditor = RubricBuilderCustom()
-        elif user_data=="From SQL":
-            self.rubricEditor = RubricBuilderSQL()
-        elif user_data=="From Spreadsheet File":
-            self.rubricEditor = RubricBuilderFile()'''
-        self.chosen = True
-
-
+'''
 
 @dataclass
 class EditorRow(DPGStage):
@@ -298,6 +41,8 @@ class EditorRow(DPGStage):
     tooltip: str
     items: list[str] = field(init=False)
     callback: callable = None
+
+
 
 class ColumnEditor(DPGStage):
        

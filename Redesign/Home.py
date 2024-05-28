@@ -16,12 +16,12 @@ from File_Selector import FileSelector
 from File_Operations import csv_to_list,excel_to_list
 from CustomPickler import get,set
 
-from Rubric_Builder import RubricControl
+from Schema_Editor import SchemaEditor
 
 default_settings_path = "Redesign\\Settings"
 
 
-class FileFormatter(DPGStage):
+class MainPage(DPGStage):
 
     # CHOOSE DESIRED OUTPUT FIRST
     # THEN DISPLAY INCOMMING FORMAT and ASK FOR CORRELATION TABLE; CREATE IF NOT EXIST; DISPLAY IF EXIST; LET EDIT
@@ -90,7 +90,7 @@ Each format will have within it saved micro-formats that identify and save where
 
     def newBuild(self,sender,app_data,user_data):
 
-        RubricControl()
+        SchemaEditor()
 
     def updateSettings(self,sender,app_data,user_data):
         
@@ -102,7 +102,7 @@ Each format will have within it saved micro-formats that identify and save where
 
 def main():
    
-    FileFormatter()
+    MainPage()
 
     dpg.create_viewport(title='Custom Title', width=1300, height=670)
     dpg.setup_dearpygui()

@@ -6,6 +6,25 @@ from dataclasses import dataclass
 
 @dataclass
 class FilenameConvention:
+    # this means that:
+    #   when scanning a folder OR when using a rubric
+    #   files that:
+    #       match the extension
+    #       AND match the naming convention
+    #   will get picked up.
+    # 
+    #   If the EXTENSIONS match, AND the filename convention Matches
+    #   BUT it does not exist in the rubric:
+    #       >>>> give user an option to add it. <<<<
+
+
+    # Slices can have a lot of fields.
+    # When importing: all field names will be displayed as TOOLTIPS
+    # FOr every tag that is empty: ignore
+    # FOr every tag that exists: IMMEDIATELY POPULATE THAT VALUE INTO THE TABLE BELOW UNDER THAT COLUMN: 
+    #   AND SHOW IF IT WILL BE BY ITSELF, OR OPERATED UPON
+    #   LET THEM ADDITIONALLY FORMAT IT
+
 
     slices: list[str] # v        be      dimensionality v
     tags: list[str]   # ^ should    same                ^
@@ -28,19 +47,12 @@ class FilenameExtractor(DPGStage):
 
     delimitorVis: list[int]
 
-    def load_from_spreadsheet(self) -> FilenameConvention:
-        ...
-
+    # administrative
     def main(self,**kwargs):
 
+        # if tutorial, use this list, else, use []
         self.tags = kwargs.get("tags",["See Examples","ticket","Name","Dept","Vendor"])
-        
         self.setExample()
-
-        self.tagVis = []
-        self.nameSliceVis = []
-        self.delimitorVis_A = []
-        self.delimitorVis_B = []
 
     def generate_id(self,**kwargs):
 
@@ -50,7 +62,7 @@ class FilenameExtractor(DPGStage):
             self.fieldSetter = dpg.add_input_int(
                 label="Specify Naming Segments", # OR Add column before index
                 default_value=len(self.name_slices),
-                callback=self.changeFields,
+                callback=self.changeNumSlices,
                 on_enter =True,
                 min_value=1,min_clamped =True,
                 width=70)
@@ -67,13 +79,57 @@ class FilenameExtractor(DPGStage):
                     self.populateFields()
                 with dpg.group():
                     #dpg.add_listbox(label="Extensions",items=[".csv",".xlsx"])
-                    _ = dpg.add_button(label=".XXX",callback=self.manageExt)
+                    _ = dpg.add_button(label=".XXX",callback=self.manageExtensions)
                     with dpg.tooltip(_,hide_on_activity=False): dpg.add_text("Manage Extensions")
                     self._tagNote = dpg.add_text("Default Example Tags will be cleared upon entering of tags in the below columns.")
             with dpg.group(horizontal=True):
                 dpg.add_text("Example             :")
                 self.exampleVis = dpg.add_input_text(enabled=False,default_value=self.example)
-            
+    
+    # dpg field changes            
+    def populateFields(self):
+
+        # Main iterator (similar to regenerateMoments)
+
+        self.tagVis = []
+        self.nameSliceVis = []
+        self.delimitorVis_A = []
+        self.delimitorVis_B = []
+
+        with dpg.group(horizontal=True) as self.nameSliceWindow:
+                
+            for i,name in enumerate(self.name_slices):
+                #with dpg.group():
+
+                
+                _width = len(name)*10 if len(name)>0 else 24
+
+                _nms = dpg.add_input_text(default_value=name,width=_width,callback=self.resize)
+                self.nameSliceVis.append(_nms)
+                       
+                #with dpg.group():
+                if i != len(self.name_slices):
+                    _del = dpg.add_text(self.delimitors[0])
+                    self.delimitorVis_A.append(_del)
+
+        #tag dropdowns
+        with dpg.group(horizontal=True) as self.dropdownWindow:
+                
+            for i,name in enumerate(self.name_slices):
+                with dpg.group(horizontal=True):
+                    _width = dpg.get_item_width(self.nameSliceVis[i])
+                    _tv = dpg.add_combo(width=_width,items=self.tags,callback=self.checkTags,default_value=self.tags[0])
+                    self.tagVis.append(_tv)
+
+                    if i != len(self.name_slices):
+                        _del = dpg.add_text(self.delimitors[0])
+                        self.delimitorVis_B.append(_del)
+
+        dpg.delete_item(self.delimitorVis_A[-1])
+        dpg.delete_item(self.delimitorVis_B[-1])
+        self.delimitorVis_A = self.delimitorVis_A[:-1]
+        self.delimitorVis_A = self.delimitorVis_B[:-1]
+    
     def setExample(self):
 
         self.example = ""
@@ -92,100 +148,10 @@ class FilenameExtractor(DPGStage):
                             if ext!=list(self.supported_extensions.items())[-1]:
                                 self.example+=f' \\ '
 
-
-    def attemptToSave(self):
-
-        def save():
-
-            _supp = []
-
-            for key,val in self.supported_extensions.items():
-                if val: _supp.append(key)
-
-            _new = FilenameConvention(
-                slices=dpg.get_values(self.nameSliceVis),
-                tags=dpg.get_values(self.tagVis),
-                delim=dpg.get_value(self.delimInput),
-                supported_extensions=_supp
-                )
-
-            return _new
-
-        if supported_extensions.values().count(False)==len(self.supported_extensions.items):
-            with dpg.window(popup=True):
-                dpg.add_text("No extensions selected in the filename convention editor. Please check at least one")
-        else:
-            _ = save()
-        
-        return _
-
-    def changeSlices(self,sender,app_data):
-
-        def add_sliceToEnd(self,columnId):
-            ...
-
-        def delete_sliceFromEnd(self,columnId):
-            ...
-           
-
-        # Adding Columns
-        if app_data > len(self.name_slices):
-            for sliceIndex in range(len(self.name_slices),app_data):
-                add_sliceToEnd(self)
-             
-        # Subtracting Columns
-        elif app_data < self.numColumns:
-            for sliceIndex in range(app_data,len(self.name_slices)):
-                delete_sliceFromEnd(self)
-
-        self.numColumns = app_data
-
-
-    def manageExt(self,sender):
-        
-        def setVal(sender,app_data,user_data):
-
-            print(self.supported_extensions)
-            self.supported_extensions[dpg.get_item_label(sender)]=app_data
-            print(self.supported_extensions)
-            self.setExample()
-            dpg.configure_item(self.exampleVis,default_value=self.example)
-
-        with dpg.window(popup=True):
-            for ext,val in self.supported_extensions.items():
-                dpg.add_checkbox(label=ext,default_value=val,callback=setVal)
-
-    def populateFields(self):
-        with dpg.group(horizontal=True):
-                
-            for name in self.name_slices:
-                #with dpg.group():
-
-                _width = len(name)*8
-
-                _nms = dpg.add_input_text(default_value=name,width=_width,callback=self.resize)
-                self.nameSliceVis.append(_nms)
-                       
-                #with dpg.group():
-                if name != self.name_slices[-1]:
-                    _del = dpg.add_text(self.delimitors[0])
-                    self.delimitorVis_A.append(_del)
-
-        #tag dropdowns
-        with dpg.group(horizontal=True):
-                
-            for i,name in enumerate(self.name_slices):
-                with dpg.group(horizontal=True):
-                    _width = dpg.get_item_width(self.nameSliceVis[i])
-                    _tv = dpg.add_combo(width=_width,items=self.tags,callback=self.checkTags,default_value=self.tags[0])
-                    self.tagVis.append(_tv)
-
-                    if name != self.name_slices[-1]:
-                        _del = dpg.add_text(self.delimitors[0])
-                        self.delimitorVis_B.append(_del)
-
     def resize(self,sender,app_data,user_data):
-        
+        #
+        # Resizes the input fields based on length of input
+        #
         _width = len(app_data)*8
         if _width < 40: _width = 40
         _index = self.nameSliceVis.index(sender)
@@ -198,6 +164,47 @@ class FilenameExtractor(DPGStage):
 
         self.setExample()
         dpg.configure_item(self.exampleVis,default_value=self.example)
+
+    def changeNumSlices(self,sender,app_data):
+        #
+        # Adds new fields to be extracted from 
+        #
+        def add_sliceToEnd(self):
+            self.name_slices.append("")
+
+        def delete_sliceFromEnd(self):
+            self.name_slices=self.name_slices[:-1]
+           
+        # Adding Columns
+        if app_data > len(self.name_slices):
+            #for sliceIndex in range(len(self.name_slices),app_data):
+            add_sliceToEnd(self)
+             
+        # Subtracting Columns
+        elif app_data < len(self.name_slices):
+            #for sliceIndex in range(app_data,len(self.name_slices)):
+            delete_sliceFromEnd(self)
+
+        self.numColumns = app_data
+
+        dpg.delete_item(self.fieldsParent,children_only=True)
+        dpg.push_container_stack(self.fieldsParent)
+        self.populateFields()
+        self.setExample()
+
+    def manageExtensions(self,sender):
+        
+        def setVal(sender,app_data,user_data):
+
+            print(self.supported_extensions)
+            self.supported_extensions[dpg.get_item_label(sender)]=app_data
+            print(self.supported_extensions)
+            self.setExample()
+            dpg.configure_item(self.exampleVis,default_value=self.example)
+
+        with dpg.window(popup=True):
+            for ext,val in self.supported_extensions.items():
+                dpg.add_checkbox(label=ext,default_value=val,callback=setVal)
 
     def updateDels(self,sender,app_data,user_data):
 
@@ -235,3 +242,43 @@ class FilenameExtractor(DPGStage):
         for tagSelector in self.tagVis:
             #_currentIndex = self.tags.index(dpg.get_value(tagSelector))
             dpg.configure_item(tagSelector,items=_newTags,default_value='')
+
+    # loading and saving
+    def load_from_spreadsheet(self) -> FilenameConvention:
+        ...
+
+    def attemptToSave(self):
+
+        def save():
+
+            _supp = []
+
+            for key,val in self.supported_extensions.items():
+                if val: _supp.append(key)
+
+            _new = FilenameConvention(
+                slices=dpg.get_values(self.nameSliceVis),
+                tags=dpg.get_values(self.tagVis),
+                delim=dpg.get_value(self.delimInput),
+                supported_extensions=_supp
+                )
+
+            return _new
+
+        if supported_extensions.values().count(False)==len(self.supported_extensions.items):
+            with dpg.window(popup=True):
+                dpg.add_text("No extensions selected in the filename convention editor. Please check at least one")
+                _=None
+        else:
+            _ = save()
+        
+        return _
+
+    
+
+    
+
+    
+    
+
+    
