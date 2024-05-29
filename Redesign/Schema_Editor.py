@@ -11,6 +11,8 @@ from DPGStage import DPGStage
 from DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 from typing import Optional
+from File_Selector import FileSelector
+from File_Operations import csv_to_list,excel_to_list
 
 
 from CustomPickler import get,set
@@ -66,7 +68,9 @@ class SchemaEditor(DPGStage):
             with dpg.group():
 
                 dpg.add_separator()
-                self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
+                with dpg.group(horizontal=True):
+                    self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
+                    dpg.add_text("*",color=(255,0,0))
                 self.desc = dpg.add_input_text(label="Description",width=300,height=80,multiline=True)
                 self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
 
@@ -82,10 +86,7 @@ class SchemaEditor(DPGStage):
                 with dpg.collapsing_header(default_open=False,label="Input File Tag Extractor"):
                     with dpg.group(horizontal=True):
                         dpg.add_spacer(width=self.spacer_width)
-                        with dpg.child_window(border=False,height=170):
-                            dpg.add_text("Converter process has two modes:")
-                            dpg.add_text("choosing the converter you want and then scanning for files whose NAMING CONVENTIONS and/or HEADER matches that found in the correspondences saved below",bullet=True)
-                            dpg.add_text("scannng for files and then, for each file, identifies which converts accept that file's NAMING CONVENTIONS and/or HEADER",bullet=True)
+                        with dpg.child_window(border=False,height=170,horizontal_scrollbar=True):
                             self.fns = FilenameExtractor()
 
             with dpg.collapsing_header(default_open=False,label="Schema Editor"):
@@ -98,10 +99,15 @@ class SchemaEditor(DPGStage):
                             self.rubricEditor = self.items["Custom"](filenameExtractor = self.fns)
 
             dpg.add_separator()
+            with dpg.group(horizontal=True):
+                dpg.add_text("*",color=(255,0,0))
+                dpg.add_text("Required")
+            dpg.add_separator()
+
             dpg.add_button(
                 label="Save Rubric and add input->output schema correspondence later.\nFiles will be considered for this converter based on filename conventions.",
                 width=dpg.get_item_width(self.rubricEditor.colEditor._id),
-                callback=self.saveRubric)
+                callback=self.saveSchema)
 
             dpg.add_text("OR")
 
@@ -110,21 +116,26 @@ class SchemaEditor(DPGStage):
                 width=dpg.get_item_width(self.rubricEditor.colEditor._id),
                 callback=self.goToTestSchema)
 
-    def goToTestSchema(self):
-        # okay here it is
-        # give ability to make multiple compatible conventions?
+    def saveSchema(self):
 
-
-        # GATHER FILENAME CONVENTIONS
-        _fncs = self.fns.attemptToSave()
-        if not _fncs:
-            # There is no naming convention. Skipping rest of code
+        # Base check:
+        if dpg.get_value(self.nameInput)=="":
+            print("A")
+            with dpg.window(popup=True): dpg.add_text("Name not selected!")
             return
 
+        self.filenameConventions=[]
 
-        for fnc in _fncs:
-            self.filenameConventions.append(fnc)
-        
+        # GATHER FILENAME CONVENTIONS
+        if not dpg.get_value(self.fns.doNOtUse):
+            _fncs = self.fns.attemptToSave()
+            if not _fncs:
+                print("B")
+                # There is no naming convention. Skipping rest of code
+                return
+
+            for fnc in _fncs:
+                self.filenameConventions.append(fnc)
 
         schema_dict = {}
 
@@ -147,7 +158,17 @@ class SchemaEditor(DPGStage):
              rubrics={}
         )
 
+
+        self.schema = _r
+
+    def goToTestSchema(self):
+        # okay here it is
+        # give ability to make multiple compatible conventions?
+        #self.schema = self.saveSchema()
+        self.saveSchema()
         # NOW you need to EDIT AND SAVE RUBRICS
+        self.testSchema = TestSchema(schema=self.schema)
+
 
     def saveRubric(self):
 
@@ -190,5 +211,82 @@ class SchemaEditor(DPGStage):
             self.rubricEditor = RubricBuilderFile()'''
         self.chosen = True
 
+class TestSchema(DPGStage):
 
+    label="Test Adding a Rubric"
 
+    height = 500
+    width=1000
+
+    schema: Schema
+
+    def main(self,**kwargs):
+
+        self.schema=kwargs.get("schema")
+        self.allSupportedinputTypes = []
+        if self.schema.filenameConventions:
+            for fnc in self.schema.filenameConventions:
+                self.allSupportedinputTypes.extend(supported_extensions)
+        
+        # TAGS
+        _uncleanedTags = self.schema.outputSchemaDict["Tag"]
+        _cleanedTags = [t for t in _uncleanedTags if t!=""]
+        self.tags = _cleanedTags
+
+    def generate_id(self,**kwargs):
+
+        with dpg.window(height=self.height,width=self.width,label=self.label):
+
+             self.generateCells()
+             #"Column Name",
+             #"Tag",
+             #"Necessary?",
+             #"Derived from Filename?",
+             #"Operations",
+
+    def generateCells(self):
+        
+
+        with dpg.group(horizontal=True):
+            dpg.add_text("Adding an Input File to the Rubric: ")
+            dpg.add_text(self.schema.name)
+        dpg.add_separator
+        dpg.add_combo(items=self.tags)
+        dpg.add_separator
+        dpg.add_button(label="Load File",callback=self.loadFile)
+        dpg.add_text("Imported File Header")
+        with dpg.child_window(border=False) as self.tableEditor:
+            pass
+
+    def loadFile(self):
+
+        if self.allSupportedinputTypes:
+            self.fs = FileSelector(
+                label="Load Spreadsheet file to begin column correspondence with desired output schema",
+                nextStage=self.manipulateFile,
+                inputTypes = self.allSupportedinputTypes)
+        else:
+            self.fs = FileSelector(
+                label="Load Spreadsheet file to begin column correspondence with desired output schema",
+                nextStage=self.manipulateFile)
+
+    def manipulateFile(self):
+
+        dpg.delete_item(self.fs._id)
+        _filepath = self.fs.selectedFile 
+
+        readArray = []
+        error = ''
+
+        if _filepath[-3:] == 'csv':
+            readArray,error = csv_to_list(_filepath)
+        elif _filepath[-4:] == 'xlsx':
+            readArray,error = excel_to_list(_filepath)
+
+        if readArray:
+            for row in readArray: print(row)
+            dpg.push_container_stack(self.tableEditor)
+
+        else:
+            with dpg.window(popup=True):
+                dpg.add_text(error)

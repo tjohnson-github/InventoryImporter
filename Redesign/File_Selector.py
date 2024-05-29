@@ -25,7 +25,7 @@ class FileSelector(DPGStage):
     type: str = "File"
     height=300
     width = 600
-    inputTypes: list[str] = ["xlsx","csv"]
+    inputTypes: list[str]
     fileColor: tuple = (255, 255, 0, 255)
     nextStage: callable
 
@@ -33,6 +33,7 @@ class FileSelector(DPGStage):
 
         self.confirmationLabel = kwargs.get("confirmationLabel",f"Confirm Selection")
         self.nextStage = kwargs.get("nextStage",lambda x: print("No callback specified!"))
+        self.inputTypes = kwargs.get("inputTypes",["xlsx","csv"])
 
     def generate_id(self,**kwargs):
 

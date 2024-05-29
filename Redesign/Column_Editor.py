@@ -46,7 +46,7 @@ class EditorRow(DPGStage):
 
 class ColumnEditor(DPGStage):
        
-    height=200
+    height=500
     tableColumnDefaultWidth = 100
     fixedWidthCutoff = 9
     fixedWidth = False
@@ -96,7 +96,8 @@ class ColumnEditor(DPGStage):
                     dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
                     dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
                     dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
-                    
+                    dpg.add_separator()
+                    dpg.add_spacer(height=30)
 
                 with dpg.group(horizontal=True):
 
@@ -121,11 +122,11 @@ class ColumnEditor(DPGStage):
                 with dpg.group(horizontal=True):
 
                     # Row Names Key
-                    with dpg.child_window(width=120,border=False):
+                    with dpg.child_window(width=120,border=False,height=300):
                         with dpg.table(header_row=True):
 
                             rowLabels = dpg.add_table_column(label=f'Index',width_fixed=True,width=self.tableColumnDefaultWidth)
-                            for row in self.rows:
+                            for i,row in enumerate(self.rows):
 
                                 with dpg.table_row():
                                     with dpg.group(horizontal=True):
@@ -139,13 +140,35 @@ class ColumnEditor(DPGStage):
                                         dpg.add_text(row.tooltip)
 
                     # Actual Schema Builder Table
-                    with dpg.child_window(border=False,horizontal_scrollbar=True,height=self.height):
+                    with dpg.child_window(border=False,horizontal_scrollbar=True,height=300):
 
                         with dpg.group(horizontal=True) as self.columnEditor:
                             for row in self.rows:
                                 row.items = []     
 
 
+
+
+    # Updates
+    def updateTags(self,sender,app_data,user_data):
+
+        _allTags = []
+
+        for row in self.rows:
+            if row.name=="Tag":
+                _allTags = [x for x in dpg.get_values(row.items) if x !=""]
+
+                self.filenameExtractor.updateTagList(_allTags)
+
+    def checkAll(self,sender,app_data,user_data):
+
+            for row in self.rows:
+                if row.name=="Necessary?":
+                    for checkbox in row.items:
+                        dpg.configure_item(checkbox,default_value=app_data)
+
+
+    # Iterators
     def generateInputByType(self,row: EditorRow,columnIndex):
 
         parent=self.columns[columnIndex]
@@ -172,54 +195,45 @@ class ColumnEditor(DPGStage):
                pass
 
         return _   
-
-    def updateTags(self,sender,app_data,user_data):
-
-        _allTags = []
-
-        for row in self.rows:
-            if row.name=="Tag":
-                _allTags = [x for x in dpg.get_values(row.items) if x !=""]
-
-                self.filenameExtractor.updateTagList(_allTags)
-
-
-
-    async def populateTableCols(self):
-
-        self.columns = []
-
-        for columnIndex in range(0,self.numColumns):
-            _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
-            self.columns.append(_newCol)
-
-    async def populateTableRows(self):
-
-        self.columnAdd = []
-        self.columnHeaders = []
-        self.columnRemove = []
-
-        for columnIndex in range(0,self.numColumns):
-
-            parent=self.columns[columnIndex]
-
-            with dpg.group(horizontal=True,parent=parent):
-                _bf = dpg.add_button(arrow=True,direction=0,callback=self.addColumn,user_data=columnIndex)
-                with dpg.tooltip(_bf): dpg.add_text(f"Add new column before Index {columnIndex}.")
-                self.columnAdd.append(_bf)
-                _= dpg.add_text(f"Index {columnIndex}")
-                self.columnHeaders.append(_)
-                _x= dpg.add_button(label='X',callback=self.delete_column,user_data=columnIndex)
-                self.columnRemove.append(_x)
-
-            for row in self.rows:
-                _newItem = self.generateInputByType(row=row,columnIndex=columnIndex)
-                row.items.append(_newItem)
-
+    
     async def populateTable(self):
 
-        await self.populateTableCols()
-        await self.populateTableRows()
+        async def populateTableCols():
+
+            self.columns = []
+
+            for columnIndex in range(0,self.numColumns):
+                _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
+                self.columns.append(_newCol)
+
+        async def populateTableRows():
+
+            self.columnAdd = []
+            self.columnHeaders = []
+            self.columnRemove = []
+
+            for columnIndex in range(0,self.numColumns):
+
+                parent=self.columns[columnIndex]
+
+                with dpg.group(horizontal=True,parent=parent):
+                    _bf = dpg.add_button(arrow=True,direction=0,callback=self.addColumn,user_data=columnIndex)
+                    with dpg.tooltip(_bf): dpg.add_text(f"Add new column before Index {columnIndex}.")
+                    self.columnAdd.append(_bf)
+                    _= dpg.add_text(f"Index {columnIndex}")
+                    self.columnHeaders.append(_)
+                    _x= dpg.add_button(label='X',callback=self.delete_column,user_data=columnIndex)
+                    self.columnRemove.append(_x)
+
+                dpg.add_separator(parent=parent)
+            
+            
+                for row in self.rows:
+                    _newItem = self.generateInputByType(row=row,columnIndex=columnIndex)
+                    row.items.append(_newItem)
+
+        await populateTableCols()
+        await populateTableRows()
 
     def addColumn(self,sender,app_data,user_data):
         # Whether through a pattern, or an input int for adding a column to a special index: 
@@ -237,7 +251,7 @@ class ColumnEditor(DPGStage):
         print(f'A:\t{self.columns=}')
         print("------------")
         dpg.configure_item(self.columnSetter,default_value=self.numColumns)
-        dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
+        #dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
 
         _newColIndex =self.columns.index(_newCol)
 
@@ -266,7 +280,6 @@ class ColumnEditor(DPGStage):
         if self.numColumns>=1:
             dpg.configure_item(self.columnRemove[0],show=True)
 
-
     def delete_column(self,sender,app_data,user_data):
 
         print(f'{sender=}')
@@ -285,6 +298,9 @@ class ColumnEditor(DPGStage):
             dpg.configure_item(self.columnHeaders[columnIndex],default_value=f"Index {columnIndex-1}")
             dpg.set_item_user_data(self.columnRemove[columnIndex],user_data=columnIndex-1)
 
+        for row in self.rows:
+            row.items.pop(user_data)
+
         dpg.delete_item(self.columns[user_data])
         self.columnHeaders.remove(self.columnHeaders[user_data])
         self.columnRemove.remove(self.columnRemove[user_data])
@@ -292,18 +308,12 @@ class ColumnEditor(DPGStage):
         self.columns.remove(self.columns[user_data])
         self.numColumns-=1
         dpg.configure_item(self.columnSetter,default_value=dpg.get_value(self.columnSetter)-1)
-        dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
+        #dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
 
         if self.numColumns==1:
             dpg.configure_item(self.columnRemove[0],show=False)
+  
 
-
-    def checkAll(self,sender,app_data,user_data):
-
-        for row in self.rows:
-            if row.name=="Necessary?":
-                for checkbox in row.items:
-                    dpg.configure_item(checkbox,default_value=app_data)
 
     def change_columns(self,sender,app_data):
         
@@ -315,7 +325,7 @@ class ColumnEditor(DPGStage):
             self.columns.append(_newCol)
             self.schema.append('new')
             self.numColumns+=1
-            dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
+            #dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
             _newColIndex =self.columns.index(_newCol)
 
             with dpg.group(horizontal=True,parent=_newCol):
@@ -348,11 +358,13 @@ class ColumnEditor(DPGStage):
             self.columns.remove(self.columns[columnId])
 
             self.numColumns-=1
-            dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
+            #dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
             #dpg.configure_item(self.columnSetter,default_value=dpg.get_value(self.columnSetter)-1)
             if self.numColumns==1:
-                    dpg.configure_item(self.columnRemove[0],show=False)
+                dpg.configure_item(self.columnRemove[0],show=False)
 
+            for row in self.rows:
+                row.items.pop()
 
         # Adding Columns
         if app_data > self.numColumns:
