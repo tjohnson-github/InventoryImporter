@@ -42,12 +42,21 @@ class DesiredFormat:
     #   or
     # { column1: IMPORTANTCONCEPT1, column4: IMPORTANTCONCEPT2, ...
 
- 
+import random
+def randomColor():
+    r = random.randrange(0,255)
+    g = random.randrange(0,255)
+    b = random.randrange(0,255)
+    y = random.randrange(0,255)
+
+    return (r,g,b,y)
+
+
 class SchemaEditor(DPGStage):
 
     label="Build Rubric and Schema"
 
-    height=540
+    height=800
     width=1000
     spacer_width = 25
 
@@ -68,59 +77,76 @@ class SchemaEditor(DPGStage):
             with dpg.group():
 
                 dpg.add_separator()
-                with dpg.group(horizontal=True):
-                    self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
-                    dpg.add_text("*",color=(255,0,0))
-                self.desc = dpg.add_input_text(label="Description",width=300,height=80,multiline=True)
-                self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
 
-                with dpg.collapsing_header(default_open=False,label="Tutorial"):
-                    with dpg.group(horizontal=True):
-                        dpg.add_spacer(width=self.spacer_width)
-                        with dpg.group():
-                            dpg.add_text("When defining a rubric, we assume that the target schema may not be used in its entirety.")
-                            dpg.add_text("For each column, check which fields are necessary for bare minimum transformation.")
-                            dpg.add_text("You can give these necessary fields tags to better track their importance/purpose especially if the target and source schemas are not intuitively named.")
-                            dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
-                    
-                with dpg.collapsing_header(default_open=False,label="Input File Tag Extractor"):
-                    with dpg.group(horizontal=True):
-                        dpg.add_spacer(width=self.spacer_width)
-                        with dpg.child_window(border=False,height=170,horizontal_scrollbar=True):
-                            self.fns = FilenameExtractor()
-
-            with dpg.collapsing_header(default_open=False,label="Schema Editor"):
                 with dpg.group(horizontal=True):
-                    dpg.add_spacer(width=self.spacer_width)
                     with dpg.group():
-                        self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
-                        dpg.add_separator()
-                        with dpg.group() as self.rubricGroup: 
-                            self.rubricEditor = self.items["Custom"](filenameExtractor = self.fns)
+                        with dpg.group(horizontal=True):
+                            self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
+                            dpg.add_text("*",color=(255,0,0))
+                        self.desc = dpg.add_input_text(label="Description",width=300,height=80,multiline=True)
+                        with dpg.group(horizontal=True):
+                            self.color = dpg.add_color_button(width=300,default_value=randomColor(),callback=self.changeColor)
+                            dpg.add_text("Color")
+                        self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
 
-            dpg.add_separator()
-            with dpg.group(horizontal=True):
-                dpg.add_text("*",color=(255,0,0))
-                dpg.add_text("Required")
-            dpg.add_separator()
+                    #with dpg.collapsing_header(default_open=False,label="Tutorial"):
+                    with dpg.group():
+                        with dpg.child_window(height=120):
+                            #with dpg.group(horizontal=True):
+                                #dpg.add_spacer(width=self.spacer_width)
+                            with dpg.group():
+                                dpg.add_button(
+                                    label="Save Rubric and add input->output schema correspondence later.\nFiles will be considered for this converter based on filename conventions.",
+                                    width=300,
+                                    callback=self.saveSchema)
 
-            dpg.add_button(
-                label="Save Rubric and add input->output schema correspondence later.\nFiles will be considered for this converter based on filename conventions.",
-                width=dpg.get_item_width(self.rubricEditor.colEditor._id),
-                callback=self.saveSchema)
+                                dpg.add_text("OR")
 
-            dpg.add_text("OR")
+                                dpg.add_button(
+                                    label="Load a file right now to begin adding input->output schema correspondence",
+                                    width=300,
+                                    callback=self.goToTestSchema)
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("*",color=(255,0,0))
+                            dpg.add_text("Required")
+                    
+                    #with dpg.group(horizontal=True):
+                    #    dpg.add_spacer(width=self.spacer_width)
+            with dpg.collapsing_header(default_open=True,label="Input File Tag Extractor"):
+                self.fns = FilenameExtractor(color=dpg.get_value(self.color))
 
-            dpg.add_button(
-                label="Load a file right now to begin adding input->output schema correspondence",
-                width=dpg.get_item_width(self.rubricEditor.colEditor._id),
-                callback=self.goToTestSchema)
+            with dpg.collapsing_header(default_open=True,label="Schema Editor"):
+                #with dpg.group(horizontal=True):
+                    #dpg.add_spacer(width=self.spacer_width)
+                with dpg.group():
+                    self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
+                    dpg.add_separator()
+                    with dpg.group() as self.rubricGroup: 
+                        self.rubricEditor = self.items["Custom"](filenameExtractor = self.fns,color=dpg.get_value(self.color))
+
+            
+
+           
+    def changeColor(self,sender,app_data):
+        
+        with dpg.window(popup=True):
+            dpg.add_color_picker(
+                no_small_preview=False,
+                no_side_preview = True,
+                callback=self.propColors)
+             
+    def propColors(self,sender,app_data):
+
+        _newColor = tuple(i*255 for i in app_data)
+
+        dpg.configure_item(self.color,default_value=_newColor)
+        dpg.configure_item(self.fns.color,default_value=_newColor)
+        dpg.configure_item(self.rubricEditor.colEditor.color,default_value=_newColor)
 
     def saveSchema(self):
 
         # Base check:
         if dpg.get_value(self.nameInput)=="":
-            print("A")
             with dpg.window(popup=True): dpg.add_text("Name not selected!")
             return
 
@@ -130,7 +156,6 @@ class SchemaEditor(DPGStage):
         if not dpg.get_value(self.fns.doNOtUse):
             _fncs = self.fns.attemptToSave()
             if not _fncs:
-                print("B")
                 # There is no naming convention. Skipping rest of code
                 return
 
@@ -201,14 +226,8 @@ class SchemaEditor(DPGStage):
         dpg.delete_item(self.rubricGroup,children_only=True)
         dpg.push_container_stack(self.rubricGroup)
 
-        self.rubricEditor = self.items[user_data](filenameExtractor = self.fns)
+        self.rubricEditor = self.items[user_data](filenameExtractor = self.fns,color=dpg.get_value(self.color))
 
-        '''if user_data=="Custom":
-            self.rubricEditor = RubricBuilderCustom()
-        elif user_data=="From SQL":
-            self.rubricEditor = RubricBuilderSQL()
-        elif user_data=="From Spreadsheet File":
-            self.rubricEditor = RubricBuilderFile()'''
         self.chosen = True
 
 class TestSchema(DPGStage):

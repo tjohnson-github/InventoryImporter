@@ -38,6 +38,7 @@ class FilenameConvention:
 class FilenameExtractor(DPGStage):
 
     cell_height = 80
+    height=190
 
     delimitors = ["_","^"]
     delimitor = "_"
@@ -56,50 +57,62 @@ class FilenameExtractor(DPGStage):
 
     def generate_id(self,**kwargs):
 
-        with dpg.group() as self._id:
+        _color = kwargs.get("color")
+        with dpg.child_window(border=False,height=self.height) as self._id:
+            with dpg.group(horizontal=True):
 
-            dpg.add_text("Converter process has two modes:")
-            dpg.add_text("\tchoosing the converter you want and then scanning for files whose NAMING CONVENTIONS\nmatches that found in the name slices saved below",bullet=True)
-            dpg.add_text("\tscannng for files and then, for each file, identifies which converts accept that file's NAMING CONVENTIONS",bullet=True)
-            dpg.add_separator()
-            dpg.add_text("We do not filter for INPUT HEADERS because this program lets users create new correspondence rubrics between Input Headers and OUTPUT schemas on the go")
-            dpg.add_text("If a given named slice has a TAG specified (one made in the column editor), then when loading that file, it will stage that value for manipulation in that column.")
-            dpg.add_separator()
-            dpg.add_text("If unused, file scanning will accept all files, and simply pre-load no information ")
-            self.doNOtUse = dpg.add_checkbox(label="Do not Use Naming Convention Extraction",default_value=False,callback=self.hide)
-            dpg.add_separator()
+                self.color = dpg.add_color_button(height=self.height-30,width=30,default_value=_color)
 
-            with dpg.group() as self.tobeHidden:
-                self.delimInput = dpg.add_combo(label="Delimitor",items=self.delimitors,default_value = self.delimitors[0],callback=self.updateDels,width=70)
-                self.fieldSetter = dpg.add_input_int(
-                    label="Specify Naming Segments", # OR Add column before index
-                    default_value=len(self.name_slices),
-                    callback=self.changeNumSlices,
-                    on_enter =True,
-                    min_value=1,min_clamped =True,
-                    width=70)
+                with dpg.group():
 
-                dpg.add_separator()
-                #with dpg.child_window():
-                with dpg.group(horizontal=True):
-                    with dpg.group():
-                        dpg.add_text("Filename Convention:")
-                        dpg.add_text("Informs which Tag?::")
-                    with dpg.group() as self.fieldsParent:
-                        #names
-                        self.populateFields()
-                    with dpg.group():
-                        #dpg.add_listbox(label="Extensions",items=[".csv",".xlsx"])
-                        _ = dpg.add_button(label=".XXX",callback=self.manageExtensions)
-                        with dpg.tooltip(_,hide_on_activity=False): dpg.add_text("Manage Extensions")
-                        self._tagNote = dpg.add_text("Default Example Tags will be cleared upon entering of tags in the below columns.")
-                with dpg.group(horizontal=True):
-                    dpg.add_text("Example             :")
-                    self.exampleVis = dpg.add_input_text(enabled=False,default_value=self.example)
+                    self.doNOtUse = dpg.add_checkbox(label="Do not Use Naming Convention Extraction",default_value=False,callback=self.hide)
+                    with dpg.tooltip(self.doNOtUse):
+                        dpg.add_text("If used, the program will aid you in relaying what a given input file's name means and can benefit from TAGs.")
+                        dpg.add_text("If unused, file scanning pre-load no TAGGED information ")
+                    dpg.add_separator()
+
+                    with dpg.child_window(border=False,height=160,horizontal_scrollbar=True) as self.tobeHidden:
+
+                        #with dpg.group() as :
+                        self._tagNote1 = dpg.add_text("\tNote: All slices and tags seen below are example placeholders")
+                        dpg.add_separator()
+                        self.delimInput = dpg.add_combo(label="Delimitor",items=self.delimitors,default_value = self.delimitors[0],callback=self.updateDels,width=70)
+                        self.fieldSetter = dpg.add_input_int(
+                            label="Specify Naming Segments", # OR Add column before index
+                            default_value=len(self.name_slices),
+                            callback=self.changeNumSlices,
+                            on_enter =True,
+                            min_value=1,min_clamped =True,
+                            width=70)
+
+                        dpg.add_separator()
+                        #with dpg.child_window():
+                        with dpg.group(horizontal=True):
+                            with dpg.group():
+                                _fnc = dpg.add_text("Filename Convention:")
+                                with dpg.tooltip(_fnc):
+                                    dpg.add_text("Slices will be read from the -> LEFT -> , so files may contain any number of additional slices. But only what is here will be visible to the program.")
+                                _tag= dpg.add_text("Informs which Tag?::")
+                                with dpg.tooltip(_tag):
+                                    dpg.add_text("If a given named slice has a TAG specified (one made in the column editor) then, when loading that file, it will stage that value for manipulation in that column.")
+
+                            with dpg.group() as self.fieldsParent:
+                                #names
+                                self.populateFields()
+                            with dpg.group():
+                                #dpg.add_listbox(label="Extensions",items=[".csv",".xlsx"])
+                                _ = dpg.add_button(label=".XXX",callback=self.manageExtensions)
+                                with dpg.tooltip(_,hide_on_activity=False): dpg.add_text("Manage Extensions")
+                                self._tagNote2 = dpg.add_text("Default Example Tags will be cleared upon entering of tags in the below columns.")
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("Example             :")
+                            self.exampleVis = dpg.add_input_text(enabled=False,default_value=self.example)
     
     def hide(self,sender,app_data):
-        dpg.configure_item(self.tobeHidden,show=not app_data)
 
+        dpg.configure_item(self.tobeHidden,show=not app_data)
+        dpg.configure_item(self.color,height = self.height-30 if not app_data else 30)
+        dpg.configure_item(self._id,height = self.height if not app_data else 35)
     # dpg field changes            
     def populateFields(self):
 
@@ -142,7 +155,7 @@ class FilenameExtractor(DPGStage):
         dpg.delete_item(self.delimitorVis_A[-1])
         dpg.delete_item(self.delimitorVis_B[-1])
         self.delimitorVis_A = self.delimitorVis_A[:-1]
-        self.delimitorVis_A = self.delimitorVis_B[:-1]
+        self.delimitorVis_B = self.delimitorVis_B[:-1]
         self.setExample()
 
     def setExample(self):
@@ -221,7 +234,11 @@ class FilenameExtractor(DPGStage):
     def updateDels(self,sender,app_data,user_data):
 
         for item in self.delimitorVis_A+self.delimitorVis_B:
-            dpg.configure_item(item,default_value=app_data)
+            try:
+                dpg.configure_item(item,default_value=app_data)
+            except:
+                print(item)
+                print(self.delimitorVis_A+self.delimitorVis_B)
 
         self.delimitor = app_data
 
@@ -248,7 +265,8 @@ class FilenameExtractor(DPGStage):
 
     def updateTagList(self,items):
 
-        dpg.configure_item(self._tagNote,show=False)
+        dpg.configure_item(self._tagNote1,show=False)
+        dpg.configure_item(self._tagNote2,show=False)
 
         _newTags = items
         for tagSelector in self.tagVis:

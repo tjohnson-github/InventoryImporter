@@ -1,6 +1,6 @@
 
 from dearpygui import dearpygui as dpg
-from Column_Editor import ColumnEditor
+from Column_Editor import SchemaColumnEditor
 from SQLInterface import SQLLinker
 
 from File_Selector import FileSelector
@@ -10,14 +10,23 @@ from DPGStage import DPGStage
 import asyncio
 
 
-class SchemaFromFile(DPGStage):
+class SchemaLoader(DPGStage):
+    default_color: tuple
+    colEditor: SchemaColumnEditor
+    tableEditor: int
+
+    def main(self,**kwargs):
+        self.default_color = kwargs.get("color")
+        print(f"{self.default_color=}")
+
+
+class SchemaFromFile(SchemaLoader):
 
     def generate_id(self,**kwargs):
 
         with dpg.group() as self._id:
             dpg.add_button(label="Load File",callback=self.loadFile)
-            dpg.add_text("Imported File Header")
-            with dpg.child_window() as self.tableEditor:
+            with dpg.group() as self.tableEditor:
                 pass
 
     def loadFile(self):
@@ -41,20 +50,19 @@ class SchemaFromFile(DPGStage):
         if readArray:
             for row in readArray: print(row)
             dpg.push_container_stack(self.tableEditor)
-            self.colEditor = ColumnEditor(schema=readArray[0])
+            self.colEditor = SchemaColumnEditor(schema=readArray[0],color=self.default_color)
             asyncio.run(self.colEditor.populateTable())
         else:
             with dpg.window(popup=True):
                 dpg.add_text(error)
 
-class SchemaFromSQL(DPGStage):
+class SchemaFromSQL(SchemaLoader):
 
     def generate_id(self,**kwargs):
 
         with dpg.group() as self._id:
             dpg.add_button(label="Link SQL",callback=self.linkSQL)
-            dpg.add_text("Imported File Header")
-            with dpg.child_window() as self.tableEditor:
+            with dpg.group() as self.tableEditor:
                 pass
 
 
@@ -93,7 +101,7 @@ class SchemaFromSQL(DPGStage):
  
         dpg.add_text(tableName)
 
-        self.editor = ColumnEditor(schema=headers)
+        self.editor = SchemaColumnEditor(schema=headers,color=self.default_color)
         #self.editor = ColumnEditor(schema=headers)
         asyncio.run(self.editor.populateTable())
 
@@ -114,7 +122,7 @@ class SchemaFromSQL(DPGStage):
     def linkSQL(self,sender,app_data,user_data):
         self.sqlLinker = SQLLinker(after = self.displayAllTables)
 
-class SchemaFromScratch(DPGStage):
+class SchemaFromScratch(SchemaLoader):
 
     columns: int  = 5
     maxCols = 98
@@ -133,8 +141,8 @@ class SchemaFromScratch(DPGStage):
         #self.filenameExtractor = kwargs.get("filenameExtractor")
 
         with dpg.group() as self._id:
-           
-            self.colEditor = ColumnEditor(**kwargs)
+            with dpg.group() as self.tableEditor:
+                self.colEditor = SchemaColumnEditor(**kwargs)
 
             # display the columns
             asyncio.run(self.colEditor.populateTable())
