@@ -45,7 +45,7 @@ class FilenameExtractor(DPGStage):
     name_slices = ["Ticket#","Example Name","Example Department"]
 
     supported_extensions = {"xlsx":True,"csv":True}
-
+    disabled:bool
     delimitorVis: list[int]
 
     # administrative
@@ -54,6 +54,7 @@ class FilenameExtractor(DPGStage):
         # if tutorial, use this list, else, use []
         self.tags = kwargs.get("tags",["See Examples","ticket","Name","Dept","Vendor"])
         self.setExample()
+        self.editor = kwargs.get("editor")
 
     def generate_id(self,**kwargs):
 
@@ -110,9 +111,13 @@ class FilenameExtractor(DPGStage):
     
     def hide(self,sender,app_data):
 
+        self.editor.schemaEditor.colEditor.disableFilename(disabledState=app_data)
+
         dpg.configure_item(self.tobeHidden,show=not app_data)
         dpg.configure_item(self.color,height = self.height-30 if not app_data else 30)
         dpg.configure_item(self._id,height = self.height if not app_data else 35)
+
+
     # dpg field changes            
     def populateFields(self):
 
@@ -295,7 +300,7 @@ class FilenameExtractor(DPGStage):
 
             return _new
 
-        if supported_extensions.values().count(False)==len(self.supported_extensions.items):
+        if self.supported_extensions.values().count(False)==len(self.supported_extensions.items):
             with dpg.window(popup=True):
                 dpg.add_text("No extensions selected in the filename convention editor. Please check at least one")
                 _=None

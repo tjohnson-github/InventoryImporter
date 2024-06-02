@@ -40,6 +40,7 @@ class DPGStage:
     def set_themes(self):
         from DPG_Themes import global_theme
         dpg.bind_theme(global_theme)
+        #dpg.bind_theme(disabled_theme)
 
     def delete(self,**kwargs):
         dpg.delete_item(self._id)

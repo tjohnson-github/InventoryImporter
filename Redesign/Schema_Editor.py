@@ -25,9 +25,17 @@ import time
 import Schema_Loader
 
 @dataclass
+class Rubric:
+    name: str
+    subname: str
+    col_to_tag_correspondence: dict
+    color: tuple
+
+@dataclass
 class Schema:
     name: str
     subname: str
+    color: tuple
     outputSchemaDict: dict[str:any]
     rubrics: dict[str:dict] # Name_of_RUBRIC
     filenameConventions: list[FilenameConvention]
@@ -54,7 +62,7 @@ def randomColor():
 
 class SchemaEditor(DPGStage):
 
-    label="Build Rubric and Schema"
+    label="Build Schema and add Input Rubrics"
 
     height=800
     width=1000
@@ -71,6 +79,8 @@ class SchemaEditor(DPGStage):
 
     filenameConventions: list[FilenameConvention]
 
+    schemaEditor: Schema_Loader.SchemaLoader
+
     def generate_id(self,**kwargs):
         with dpg.window(label=self.label,width=self.width,height=self.height):
 
@@ -81,7 +91,7 @@ class SchemaEditor(DPGStage):
                 with dpg.group(horizontal=True):
                     with dpg.group():
                         with dpg.group(horizontal=True):
-                            self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
+                            self.nameInput = dpg.add_input_text(label="Name of Schema",width=300)
                             dpg.add_text("*",color=(255,0,0))
                         self.desc = dpg.add_input_text(label="Description",width=300,height=80,multiline=True)
                         with dpg.group(horizontal=True):
@@ -96,14 +106,14 @@ class SchemaEditor(DPGStage):
                                 #dpg.add_spacer(width=self.spacer_width)
                             with dpg.group():
                                 dpg.add_button(
-                                    label="Save Rubric and add input->output schema correspondence later.\nFiles will be considered for this converter based on filename conventions.",
+                                    label="Save Schema and add input->output schema correspondence later.\nFiles will be considered for this converter based on filename conventions.",
                                     width=300,
                                     callback=self.saveSchema)
 
                                 dpg.add_text("OR")
 
                                 dpg.add_button(
-                                    label="Load a file right now to begin adding input->output schema correspondence",
+                                    label="Load a file right now to begin adding input->output schema correspondence rubric",
                                     width=300,
                                     callback=self.goToTestSchema)
                         with dpg.group(horizontal=True):
@@ -113,7 +123,7 @@ class SchemaEditor(DPGStage):
                     #with dpg.group(horizontal=True):
                     #    dpg.add_spacer(width=self.spacer_width)
             with dpg.collapsing_header(default_open=True,label="Input File Tag Extractor"):
-                self.fns = FilenameExtractor(color=dpg.get_value(self.color))
+                self.fns = FilenameExtractor(color=dpg.get_value(self.color),editor=self)
 
             with dpg.collapsing_header(default_open=True,label="Schema Editor"):
                 #with dpg.group(horizontal=True):
@@ -121,8 +131,8 @@ class SchemaEditor(DPGStage):
                 with dpg.group():
                     self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
                     dpg.add_separator()
-                    with dpg.group() as self.rubricGroup: 
-                        self.rubricEditor = self.items["Custom"](filenameExtractor = self.fns,color=dpg.get_value(self.color))
+                    with dpg.group() as self.schemaGroup: 
+                        self.schemaEditor = self.items["Custom"](filenameExtractor = self.fns,color=dpg.get_value(self.color))
 
             
 
@@ -141,7 +151,7 @@ class SchemaEditor(DPGStage):
 
         dpg.configure_item(self.color,default_value=_newColor)
         dpg.configure_item(self.fns.color,default_value=_newColor)
-        dpg.configure_item(self.rubricEditor.colEditor.color,default_value=_newColor)
+        dpg.configure_item(self.schemaEditor.colEditor.color,default_value=_newColor)
 
     def saveSchema(self):
 
@@ -171,13 +181,14 @@ class SchemaEditor(DPGStage):
          #"Operations",
 
         # GATHER SCHEMA HERE
-        for editorRow in self.rubricEditor.colEditor.rows:
+        for editorRow in self.schemaEditor.colEditor.rows:
             schema_dict.update({editorRow.name:dpg.get_values(editorRow.items)})
 
         # BUILD RUBRIC
         _r = Schema(
              name=dpg.get_value(self.nameInput),
              subname=dpg.get_value(self.desc),
+             color = tuple(i*255 for i in dpg.get_value(self.color)),
              filenameConventions=self.filenameConventions,
              outputSchemaDict=schema_dict,
              rubrics={}
@@ -223,10 +234,10 @@ class SchemaEditor(DPGStage):
             # does not yet exist
             pass
 
-        dpg.delete_item(self.rubricGroup,children_only=True)
-        dpg.push_container_stack(self.rubricGroup)
+        dpg.delete_item(self.schemaGroup,children_only=True)
+        dpg.push_container_stack(self.schemaGroup)
 
-        self.rubricEditor = self.items[user_data](filenameExtractor = self.fns,color=dpg.get_value(self.color))
+        self.schemaEditor = self.items[user_data](filenameExtractor = self.fns,color=dpg.get_value(self.color))
 
         self.chosen = True
 
@@ -251,6 +262,10 @@ class TestSchema(DPGStage):
         _uncleanedTags = self.schema.outputSchemaDict["Tag"]
         _cleanedTags = [t for t in _uncleanedTags if t!=""]
         self.tags = _cleanedTags
+        self.tags.insert(0,"~")
+
+        _necessary = self.schema.outputSchemaDict["Necessary?"]
+        print (zip(_uncleanedTags,_necessary))
 
     def generate_id(self,**kwargs):
 
@@ -270,11 +285,24 @@ class TestSchema(DPGStage):
             dpg.add_text("Adding an Input File to the Rubric: ")
             dpg.add_text(self.schema.name)
         dpg.add_separator
+        with dpg.group():
+            with dpg.group(horizontal=True):
+                self.nameInput = dpg.add_input_text(label="Name of Rubric",width=300)
+                dpg.add_text("*",color=(255,0,0))
+            self.desc = dpg.add_input_text(label="Description",width=150,height=80,multiline=True)
+            with dpg.group(horizontal=True):
+                self.color = dpg.add_color_button(width=300,default_value=randomColor(),callback=self.changeColor)
+                dpg.add_text("Color")
+            self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
+        dpg.add_separator
+
+
         dpg.add_combo(items=self.tags)
+        self.suggest = dpg.add_checkbox(label="Suggest Tags based on Input?",default_value=True)
         dpg.add_separator
         dpg.add_button(label="Load File",callback=self.loadFile)
         dpg.add_text("Imported File Header")
-        with dpg.child_window(border=False) as self.tableEditor:
+        with dpg.child_window(border=False) as self.rubricEditor:
             pass
 
     def loadFile(self):
@@ -288,6 +316,35 @@ class TestSchema(DPGStage):
             self.fs = FileSelector(
                 label="Load Spreadsheet file to begin column correspondence with desired output schema",
                 nextStage=self.manipulateFile)
+
+
+    def populateCols(self,readArray):
+
+        header = readArray.pop(0)    
+        rows = readArray
+            
+        dpg.push_container_stack(self.rubricEditor)
+
+        headerGroup = dpg.add_group(horizontal=True)
+        TagGroup = dpg.add_group(horizontal=True)
+
+        for item in header:
+
+            component_width=8*len(f"{item}")
+            
+            dpg.add_input_text(default_value=f"{item}", readonly=True,parent=headerGroup,width=component_width)
+
+            default_tag = self.tags[0]
+
+            if self.suggest:
+                if item in self.tags:
+                    default_tag = self.tags[self.tags.index(item)]
+                else:
+                    pass
+                    # do other suggest mechanics here
+    
+            dpg.add_combo(items=self.tags,default_value = default_tag,parent=TagGroup,width=component_width)
+
 
     def manipulateFile(self):
 
@@ -303,8 +360,8 @@ class TestSchema(DPGStage):
             readArray,error = excel_to_list(_filepath)
 
         if readArray:
-            for row in readArray: print(row)
-            dpg.push_container_stack(self.tableEditor)
+            self.populateCols(readArray)
+           
 
         else:
             with dpg.window(popup=True):
