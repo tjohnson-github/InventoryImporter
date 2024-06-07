@@ -186,12 +186,12 @@ class SchemaEditor(DPGStage):
 
         # BUILD RUBRIC
         _r = Schema(
-             name=dpg.get_value(self.nameInput),
-             subname=dpg.get_value(self.desc),
-             color = tuple(i*255 for i in dpg.get_value(self.color)),
-             filenameConventions=self.filenameConventions,
-             outputSchemaDict=schema_dict,
-             rubrics={}
+             name               =   dpg.get_value(self.nameInput),
+             subname            =   dpg.get_value(self.desc),
+             color              =   tuple(i*255 for i in dpg.get_value(self.color)),
+             filenameConventions=   self.filenameConventions,
+             outputSchemaDict   =   schema_dict,
+             rubrics            =   {}
         )
 
 

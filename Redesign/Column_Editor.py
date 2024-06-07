@@ -57,7 +57,6 @@ class SchemaColumnEditor(DPGStage):
 
     def main(self,**kwargs):
 
-        print("here")
         self.filenameExtractor = kwargs.get("filenameExtractor")
 
         self.rows = [
@@ -73,15 +72,16 @@ class SchemaColumnEditor(DPGStage):
             EditorRow(name = "Necessary?",
                 type = bool,
                 tooltip = "If checked, new input schemas will be required to provide a column whose tag matches the rubric schema tag\neven if other operations will be done to the input column's values."),
-            EditorRow(name = "Derived from Filename?",
-                type = bool,                
-                tooltip = "If checked, this column's output will be populated by values derived from:\n\t - the file's name\n\t - the file's source directory\n\t - or a value manually chosen during the processing step"),
+            #EditorRow(name = "Derived from Filename?",
+            #    type = bool,                
+            #    tooltip = "If checked, this column's output will be populated by values derived from:\n\t - the file's name\n\t - the file's source directory\n\t - or a value manually chosen during the processing step"),
             EditorRow(name = "Operations",
                 type = list,                
                 tooltip = "This section provides an editor allowing us to populate columns in the output schema which are DERIVED from:\n\t- a combination of input columns\n\t- additional calculations made to individual input columns\n\t- or a combination of both"),
             ]
 
-        self.schema = kwargs.get("schema",[f'Test Name {x}' for x in range(0,5)])
+        self.schema = kwargs.get("schema",[f'Test Name {x}' for x in range(1,6)])
+        self.exampleTags = [f'Example {i}' for i in range(1,6)]
         self.numColumns = len(self.schema)
 
     def generate_id(self,**kwargs):
@@ -150,21 +150,22 @@ class SchemaColumnEditor(DPGStage):
                             with dpg.group(horizontal=True) as self.columnEditor:
                                 for row in self.rows:
                                     row.items = []     
-
-
-    def disableFilename(self,disabledState:bool):
-        for item in self.rows[3].items:
-            dpg.configure_item(item,show=not disabledState)
+    
+    #def disableFilename(self,disabledState:bool):
+    #    for item in self.rows[3].items:
+    #        dpg.configure_item(item,default_value=False)
 
    
     # Updates
-    def updateTags(self,sender,app_data,user_data):
+    def updateTags(self):
 
         _allTags = []
 
         for row in self.rows:
             if row.name=="Tag":
-                _allTags = [x for x in dpg.get_values(row.items) if x !=""]
+
+
+                _allTags = [x for x in dpg.get_values(row.items) if x !="" and x.count(" ")!=len(x)]
 
                 self.filenameExtractor.updateTagList(_allTags)
 
@@ -175,8 +176,17 @@ class SchemaColumnEditor(DPGStage):
                     for checkbox in row.items:
                         dpg.configure_item(checkbox,default_value=app_data)
 
+    #def notifyDerived(self,tagName: str):
+        #for i,item in enumerate(self.rows[3].items):
+        #    if dpg.get_value(self.rows[1].items[i])==tagName:
+        #        dpg.configure_item(item,default_value=True)
+
+
 
     # Iterators
+    def generateInputByFieldName(self,row: EditorRow,columnIndex):
+        pass
+
     def generateInputByType(self,row: EditorRow,columnIndex):
 
         parent=self.columns[columnIndex]
@@ -185,6 +195,12 @@ class SchemaColumnEditor(DPGStage):
             if row.name == "Column Name":
                 _default_value = self.schema[columnIndex]
                 _callback = None
+            elif row.name =="Tag": 
+                try:
+                    _default_value = self.exampleTags[columnIndex]
+                except:
+                    _default_value=""
+                _callback = row.callback
             else: 
                 _default_value = ""
                 _callback = row.callback
@@ -196,7 +212,8 @@ class SchemaColumnEditor(DPGStage):
             with dpg.group(horizontal=True,parent=parent):
                 dpg.add_spacer(width=40)
                 #dpg.add_text("-")
-                _ = dpg.add_checkbox()
+                _enabled= False if row.name == "Derived from Filename?" else True
+                _ = dpg.add_checkbox(enabled=_enabled)
                 #dpg.add_text("-")
         elif row.type==list:
            with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
@@ -250,6 +267,7 @@ class SchemaColumnEditor(DPGStage):
 
         await populateTableCols()
         await populateTableRows()
+        self.updateTags()
 
     def addColumn(self,sender,app_data,user_data):
         # Whether through a pattern, or an input int for adding a column to a special index: 

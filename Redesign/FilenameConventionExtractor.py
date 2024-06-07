@@ -52,7 +52,7 @@ class FilenameExtractor(DPGStage):
     def main(self,**kwargs):
 
         # if tutorial, use this list, else, use []
-        self.tags = kwargs.get("tags",["See Examples","ticket","Name","Dept","Vendor"])
+        self.tags = kwargs.get("tags",["~"])
         self.setExample()
         self.editor = kwargs.get("editor")
 
@@ -117,7 +117,6 @@ class FilenameExtractor(DPGStage):
         dpg.configure_item(self.color,height = self.height-30 if not app_data else 30)
         dpg.configure_item(self._id,height = self.height if not app_data else 35)
 
-
     # dpg field changes            
     def populateFields(self):
 
@@ -150,6 +149,7 @@ class FilenameExtractor(DPGStage):
             for i,name in enumerate(self.name_slices):
                 with dpg.group(horizontal=True):
                     _width = dpg.get_item_width(self.nameSliceVis[i])
+                    print(f"{self.tags[0]=}")
                     _tv = dpg.add_combo(width=_width,items=self.tags,callback=self.checkTags,default_value=self.tags[0])
                     self.tagVis.append(_tv)
 
@@ -252,7 +252,9 @@ class FilenameExtractor(DPGStage):
 
     def checkTags(self,sender,app_data,user_data):
         
-        if app_data=='': return
+        # General callback for the tag dropdown
+
+        if app_data=='' or app_data=="~": return
 
         _alreadyChecked = False
         for item in self.tagVis:
@@ -267,16 +269,25 @@ class FilenameExtractor(DPGStage):
             with dpg.window(popup=True):
                 dpg.add_text(f"Tag selection '{app_data}' already chosen by another naming slice.")
                 dpg.configure_item(sender,default_value='')
+            return
+
+        #self.editor.schemaEditor.colEditor.notifyDerived(tagName=app_data)
 
     def updateTagList(self,items):
 
         dpg.configure_item(self._tagNote1,show=False)
         dpg.configure_item(self._tagNote2,show=False)
 
-        _newTags = items
+        _newTags = ['~']+items
+
+        self.tags = _newTags
+
         for tagSelector in self.tagVis:
             #_currentIndex = self.tags.index(dpg.get_value(tagSelector))
-            dpg.configure_item(tagSelector,items=_newTags,default_value='')
+            dpg.configure_item(tagSelector,items=self.tags,default_value=self.tags[0])
+
+
+        # SOMEHOW MAKE SURE THAT EVEN IF MULTIPLE ITEMS COMING IN ARE THE SAME, WE ONLY GIVE ONE OPTION PER TAG COMBO HERE
 
     # loading and saving
     def load_from_spreadsheet(self) -> FilenameConvention:
