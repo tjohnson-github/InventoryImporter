@@ -1,6 +1,7 @@
 
 from dearpygui import dearpygui as dpg
-from FilenameConventionExtractor import FilenameExtractor
+from FilenameConventionExtractor import FilenameExtractor,DirnameExtractor
+
 from DPGStage import DPGStage
 from dataclasses import dataclass, field
 import asyncio
@@ -54,10 +55,12 @@ class SchemaColumnEditor(DPGStage):
     rows: list[EditorRow]
 
     filenameExtractor:FilenameExtractor
+    dirnameExtractor: DirnameExtractor
 
     def main(self,**kwargs):
 
         self.filenameExtractor = kwargs.get("filenameExtractor")
+        self.dirnameExtractor = kwargs.get("dirnameExtractor")
 
         self.rows = [
             EditorRow(
@@ -165,9 +168,12 @@ class SchemaColumnEditor(DPGStage):
             if row.name=="Tag":
 
 
-                _allTags = [x for x in dpg.get_values(row.items) if x !="" and x.count(" ")!=len(x)]
+                _allTags = [x.rstrip() for x in dpg.get_values(row.items) if x !="" and x.count(" ")!=len(x)]
 
+                #set(a)
                 self.filenameExtractor.updateTagList(_allTags)
+                self.dirnameExtractor.updateTagList(_allTags)
+
 
     def checkAll(self,sender,app_data,user_data):
 

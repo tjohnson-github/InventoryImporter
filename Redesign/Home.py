@@ -1,5 +1,11 @@
 
 
+##### WHAT HAPPENS IF THERE ARE 2 RUBRICS
+### WITH THE SAME INPUT SCHEMA, BUT DIFFERENT NAMES?
+
+
+
+
 import dearpygui.dearpygui as dpg
 dpg.create_context()
 from dataclasses import dataclass, field
@@ -77,10 +83,10 @@ class MainPage(DPGStage):
                 with dpg.menu(label="Help"):
                     _ = dpg.add_checkbox(label="Tutorials",default_value = self.settings["tutorials"],callback=self.updateSettings)
 
-            dpg.add_text("Welcome to ____________")
+            dpg.add_text("Welcome to our Many:One EZ Spreadsheet Converter")
             with dpg.child_window(height=500):
                 dpg.add_text("This program shines in aiding businesses that have:")
-                dpg.add_text(bullet=True,default_value="An array of invoices, each with different schemas, that need to be consistently reformatted to a single schema.")
+                dpg.add_text(bullet=True,default_value="An array of invoices, each with different schemas, that need to be consistently reformatted into known schema.")
                 dpg.add_text(bullet=True,default_value="The need to occasionally perform manual checks between conversion steps.")
                 dpg.add_separator()
                 dpg.add_text("To begin using it, go to File > New Converter")
