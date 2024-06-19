@@ -6,6 +6,12 @@ import sys,os
 import pandas as pd
 import tabula
 
+
+
+def mkdirWrapper(path):
+   
+    if not os.path.exists(path):
+        os.mkdir(path) 
     
 #/////////////////////////////////////////////////////
 #           EXCEL / CSV <--> LIST CONVERSIONS

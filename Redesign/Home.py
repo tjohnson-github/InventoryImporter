@@ -10,6 +10,7 @@ import dearpygui.dearpygui as dpg
 dpg.create_context()
 from dataclasses import dataclass, field
 import pyodbc
+import os
 
 import CustomPickler
 
@@ -25,6 +26,7 @@ from CustomPickler import get,set
 from Schema_Editor import SchemaEditor
 
 default_settings_path = "Redesign\\Settings"
+default_schema_path = "Redesign\\Schemas"
 
 
 class MainPage(DPGStage):
@@ -84,7 +86,8 @@ class MainPage(DPGStage):
                     _ = dpg.add_checkbox(label="Tutorials",default_value = self.settings["tutorials"],callback=self.updateSettings)
 
             dpg.add_text("Welcome to our Many:One EZ Spreadsheet Converter")
-            with dpg.child_window(height=500):
+            with dpg.collapsing_header(label="How to Use",default_open=False):
+                #with dpg.child_window(height=500):
                 dpg.add_text("This program shines in aiding businesses that have:")
                 dpg.add_text(bullet=True,default_value="An array of invoices, each with different schemas, that need to be consistently reformatted into known schema.")
                 dpg.add_text(bullet=True,default_value="The need to occasionally perform manual checks between conversion steps.")
@@ -132,6 +135,43 @@ class MainPage(DPGStage):
                 dpg.add_text("This allows for both a 1:Many and a Many:1 ")
                 dpg.add_text("*NOTE: While we do filter for NAMING CONVETIONS if given, we do not filter for INPUT HEADERS because this program enables users create NEW correspondence rubrics between INPUT<->OUTPUT schemas on the go.")
 
+            with dpg.collapsing_header(label="Schemas",default_open=True):
+                dpg.add_separator()
+                with dpg.group() as self.schemaViewer:
+                    pass
+
+        self.refreshSchemas()
+
+    def refreshSchemas(self):
+
+
+        dpg.delete_item(self.schemaViewer,children_only=True)
+        _schemas = []
+
+        for filename in os.listdir(default_schema_path):
+            f = os.path.join(default_schema_path, filename)
+            # checking if it is a file
+            if os.path.isfile(f):
+
+                try:
+                    name,ext = f.split(".")
+
+                    if ext == "schema":
+                        _schemas.append(get(f))
+                except Exception as e:
+                    print(f"Something wrong with file:{f}")
+                    print(e)
+
+        print(f"{len(_schemas)} schema found!")
+
+        dpg.push_container_stack(self.schemaViewer)
+
+        for s in _schemas:
+            s.generate_mini(openeditor=self.openEditor)
+
+    def openEditor(self,sender,app_data,user_data):
+       
+        SchemaEditor(mainpage=self,schema=user_data)
 
     def setDirs(self,sender,app_data,user_data):
 
@@ -139,7 +179,7 @@ class MainPage(DPGStage):
 
     def newBuild(self,sender,app_data,user_data):
 
-        SchemaEditor()
+        SchemaEditor(mainpage=self)
 
     def updateSettings(self,sender,app_data,user_data):
         

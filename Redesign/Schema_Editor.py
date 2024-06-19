@@ -12,7 +12,7 @@ from DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 from typing import Optional
 from File_Selector import FileSelector
-from File_Operations import csv_to_list,excel_to_list
+from File_Operations import csv_to_list,excel_to_list,mkdirWrapper
 
 
 from CustomPickler import get,set
@@ -21,6 +21,7 @@ from FilenameConventionExtractor import FilenameExtractor,FilenameConvention,Dir
 
 
 default_settings_path = "Redesign\\Settings"
+default_schema_path = "Redesign\\Schemas"
 
 import time
 
@@ -29,19 +30,35 @@ import Schema_Loader
 @dataclass
 class Rubric:
     name: str
-    subname: str
-    col_to_tag_correspondence: dict
+    description: str
     color: tuple
+    col_to_tag_correspondence: dict
 
 @dataclass
 class Schema:
-    name: str
-    subname: str
-    color: tuple
-    outputSchemaDict: dict[str:any]
-    rubrics: dict[str:dict] # Name_of_RUBRIC
-    filenameConventions: list[FilenameConvention]
-    dirnameConvention: DirnameConvention
+    name: str = ''
+    desc: str = ''
+    color: tuple = (0,0,0,0)
+    outputSchemaDict: dict[str:any] =  field(default_factory=lambda: {})
+    rubrics: dict[str:dict] = field(default_factory=lambda: {}) # Name_of_RUBRIC
+    filenameConventions: list[FilenameConvention] = field(default_factory=lambda: [])
+    dirnameConvention: DirnameConvention = field(default_factory=lambda: [])
+
+    height = 100
+
+    def generate_mini(self,openeditor: callable):
+        with dpg.child_window(height=self.height) as self._id:
+
+            with dpg.group(horizontal=True):
+                dpg.add_color_button(label=f"{self.name}'s Color",default_value=self.color,height=self.height-16,width=50)
+                with dpg.group():
+                    dpg.add_input_text(label="Name",default_value=self.name,enabled=False,width=200)
+                    dpg.add_input_text(label="Subtitle",default_value=self.desc,enabled=False,width=200)
+                    #dpg.add_input_text(label="Name",default_value=self.name,enabled=False)
+                with dpg.group():
+                    dpg.add_button(label="Edit",callback=openeditor,user_data=self)
+
+
 
 @dataclass
 class DesiredFormat:
@@ -85,8 +102,14 @@ class SchemaEditor(DPGStage):
 
     schemaLoader: Schema_Loader.SchemaLoader
 
+    def main(self,**kwargs):
+
+        self.mainpage = kwargs.get("mainpage")
+        self.schema = kwargs.get("schema",Schema())
+        # NEED TO ALSO DO THIS FOR THE CONVENTIONS!!!
+
     def generate_id(self,**kwargs):
-        with dpg.window(label=self.label,width=self.width,height=self.height):
+        with dpg.window(label=self.label,width=self.width,height=self.height) as self._id:
 
             with dpg.group():
 
@@ -95,11 +118,11 @@ class SchemaEditor(DPGStage):
                 with dpg.group(horizontal=True):
                     with dpg.group():
                         with dpg.group(horizontal=True):
-                            self.nameInput = dpg.add_input_text(label="Name of Schema",width=300)
+                            self.nameInput = dpg.add_input_text(label="Name of Schema",width=300,default_value=self.schema.name)
                             dpg.add_text("*",color=(255,0,0))
-                        self.desc = dpg.add_input_text(label="Description",width=300,height=80,multiline=True)
+                        self.desc = dpg.add_input_text(label="Description",width=300,height=80,multiline=True,default_value=self.schema.desc)
                         with dpg.group(horizontal=True):
-                            self.color = dpg.add_color_button(width=300,default_value=randomColor(),callback=self.changeColor)
+                            self.color = dpg.add_color_button(width=300,callback=self.changeColor,default_value=self.schema.color)
                             dpg.add_text("Color")
                         self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
 
@@ -159,6 +182,8 @@ class SchemaEditor(DPGStage):
         dpg.configure_item(self.dns.color,default_value=_newColor)
         dpg.configure_item(self.schemaLoader.colEditor.color,default_value=_newColor)
 
+        #self.color = _newColor
+
     def saveSchema(self):
 
         # Base check:
@@ -210,8 +235,8 @@ class SchemaEditor(DPGStage):
         # BUILD RUBRIC
         _r = Schema(
              name               =   dpg.get_value(self.nameInput),
-             subname            =   dpg.get_value(self.desc),
-             color              =   tuple(i*255 for i in dpg.get_value(self.color)),
+             desc            =   dpg.get_value(self.desc),
+             color              =   dpg.get_value(self.color),
              filenameConventions=   self.filenameConventions,
              dirnameConvention  =   self.dirnameConvention,
 
@@ -222,6 +247,11 @@ class SchemaEditor(DPGStage):
 
         self.schema = _r
 
+        mkdirWrapper(default_schema_path)
+
+        set(f'{default_schema_path}\\{_r.name}.schema',_r)
+        self.mainpage.refreshSchemas()
+
     def goToTestSchema(self):
         # okay here it is
         # give ability to make multiple compatible conventions?
@@ -229,6 +259,7 @@ class SchemaEditor(DPGStage):
         self.saveSchema()
         # NOW you need to EDIT AND SAVE RUBRICS
         self.testSchema = TestSchema(schema=self.schema)
+        dpg.delete_item(self._id)
 
     def chooserCallback(self,sender,app_data,user_data):
 
@@ -270,6 +301,11 @@ class TestSchema(DPGStage):
 
     schema: Schema
 
+    names: list[str]
+    items: list[int]
+
+    null_item = '~'
+
     def main(self,**kwargs):
 
         self.schema=kwargs.get("schema")
@@ -282,7 +318,7 @@ class TestSchema(DPGStage):
         _uncleanedTags = self.schema.outputSchemaDict["Tag"]
         _cleanedTags = [t for t in _uncleanedTags if t!=""]
         self.tags = _cleanedTags
-        self.tags.insert(0,"~")
+        self.tags.insert(0,self.null_item)
 
         _necessary = self.schema.outputSchemaDict["Necessary?"]
         print (zip(_uncleanedTags,_necessary))
@@ -318,17 +354,21 @@ class TestSchema(DPGStage):
             dpg.add_text("Adding an Input File to the Rubric: ")
             dpg.add_input_text(default_value=self.schema.name,enabled=False)
         dpg.add_separator
-        with dpg.group():
-            with dpg.group(horizontal=True):
-                self.nameInput = dpg.add_input_text(label="Name of Rubric",width=150)
-                dpg.add_text("*",color=(255,0,0))
-            self.desc = dpg.add_input_text(label="Description",width=150,height=80,multiline=True)
-            with dpg.group(horizontal=True):
-                _c = dpg.add_color_button(width=42,default_value=self.schema.color,enabled=False)
-                with dpg.tooltip(_c): dpg.add_text(f"{self.schema.name}'s Color")
-                self.color = dpg.add_color_button(width=92,default_value=randomColor(),callback=self.changeColor)
-                with dpg.tooltip(self.color): dpg.add_text(f"This Rubric's Color")
-                dpg.add_text("Color")
+
+        with dpg.group(horizontal=True):
+            with dpg.group():
+                with dpg.group(horizontal=True):
+                    self.nameInput = dpg.add_input_text(label="Name of Rubric",width=150)
+                    dpg.add_text("*",color=(255,0,0))
+                self.desc = dpg.add_input_text(label="Description",width=150,height=80,multiline=True)
+                with dpg.group(horizontal=True):
+                    _c = dpg.add_color_button(width=50,default_value=self.schema.color,enabled=False)
+                    with dpg.tooltip(_c): dpg.add_text(f"{self.schema.name}'s Color")
+                    self.color = dpg.add_color_button(width=92,default_value=randomColor(),callback=self.changeColor)
+                    with dpg.tooltip(self.color): dpg.add_text(f"This Rubric's Color")
+                    dpg.add_text("Color")
+            with dpg.group():
+                dpg.add_button(label="Save",callback=self.addRubricToSchema)
             #self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
         dpg.add_separator()
 
@@ -340,10 +380,32 @@ class TestSchema(DPGStage):
         dpg.add_button(label="Load File",callback=self.loadFile) 
         # can also build from scratch like before:::
         # make a decoupled column editor??
-
+        dpg.add_separator()
         
-        with dpg.child_window(border=False) as self.rubricEditor:
+        with dpg.child_window(border=False,horizontal_scrollbar=True) as self.rubricEditor:
             pass
+
+    def addRubricToSchema(self):
+
+        _names = dpg.get_values(self.names)
+        _items = dpg.get_values(self.items)
+        print("<><><><><><><>")
+        print(_names)
+        print(_items)
+        print("<><><><><><><>")
+        for x in _items:
+            if x==self.null_item: x = "" 
+
+        _col_to_tag_correspondence = dict(zip(self.names,_items))
+
+        print(_col_to_tag_correspondence)
+
+        _rubric = Rubric(
+            name        =   dpg.get_value(self.nameInput),
+            description =   dpg.get_value(self.desc),
+            color       =   dpg.get_value(self.color),
+            col_to_tag_correspondence = _col_to_tag_correspondence
+            )
 
     def loadFile(self):
 
@@ -359,6 +421,8 @@ class TestSchema(DPGStage):
                 readArray,error = csv_to_list(_filepath)
             elif _filepath[-4:] == 'xlsx':
                 readArray,error = excel_to_list(_filepath)
+
+
 
             if readArray:
                 self.populateCols(readArray)
@@ -392,15 +456,20 @@ class TestSchema(DPGStage):
             dpg.add_text("|")
 
         with dpg.group(horizontal=True) as TagGroup:
-            dpg.add_text("Available Tags :::::")
+            dpg.add_text("Available Tags ::::::")
             dpg.add_spacer(width=20)
             dpg.add_text("|")
+
+        self.names = []
+        self.items = []
 
         for colName in header:
 
             component_width=8*len(f"{colName}")
+            if component_width < 50: component_width+=40
             
-            dpg.add_input_text(default_value=f"{colName}", readonly=True,parent=headerGroup,width=component_width)
+            _name = dpg.add_input_text(default_value=f"{colName}", readonly=True,parent=headerGroup,width=component_width)
+            self.names.append(_name)
 
             with dpg.group(horizontal=True,parent=headerGroup):
                 dpg.add_spacer(width=20)
@@ -416,7 +485,9 @@ class TestSchema(DPGStage):
                     pass
                     # do other suggest mechanics here
     
-            dpg.add_combo(items=self.tags,default_value = default_tag,parent=TagGroup,width=component_width)
+            _combo = dpg.add_combo(items=self.tags,default_value = default_tag,parent=TagGroup,width=component_width)
+            self.items.append(_combo)
+
             with dpg.group(horizontal=True,parent=TagGroup):
                 dpg.add_spacer(width=20)
                 dpg.add_text("|")
