@@ -16,8 +16,8 @@ from File_Operations import csv_to_list,excel_to_list,mkdirWrapper
 
 
 from CustomPickler import get,set
-from FilenameConventionExtractor import FilenameExtractor,FilenameConvention,DirnameExtractor,DirnameConvention,setFixer
-
+from FilenameConventionExtractor import FilenameExtractorManager,FilenameExtractor,FilenameConvention,setFixer
+from DirnameConventionExtractor import DirnameExtractor,DirnameConvention,setFixer
 
 
 default_settings_path = "Redesign\\Settings"
@@ -42,7 +42,7 @@ class Schema:
     outputSchemaDict: dict[str:any] =  field(default_factory=lambda: {})
     rubrics: dict[str:dict] = field(default_factory=lambda: {}) # Name_of_RUBRIC
     filenameConventions: list[FilenameConvention] = field(default_factory=lambda: [])
-    dirnameConvention: DirnameConvention = field(default_factory=lambda: [])
+    dirnameConvention: DirnameConvention = field(default_factory=lambda: DirnameConvention())
 
     height = 100
 
@@ -54,9 +54,16 @@ class Schema:
                 with dpg.group():
                     dpg.add_input_text(label="Name",default_value=self.name,enabled=False,width=200)
                     dpg.add_input_text(label="Subtitle",default_value=self.desc,enabled=False,width=200)
-                    #dpg.add_input_text(label="Name",default_value=self.name,enabled=False)
-                with dpg.group():
                     dpg.add_button(label="Edit",callback=openeditor,user_data=self)
+                    #dpg.add_input_text(label="Name",default_value=self.name,enabled=False)
+                
+                with dpg.group():
+                    dpg.add_text("Rubrics")
+                    dpg.add_listbox(items=[])
+                    
+                #with dpg.group():
+                #    dpg.add_button(label="Edit",callback=openeditor,user_data=self)
+                #with 
 
 
 
@@ -98,6 +105,7 @@ class SchemaEditor(DPGStage):
     scannableLocations = ["INPUT","STAGED"]
 
     filenameConventions: list[FilenameConvention]
+    #filenameConvention: filenameConvention
     dirnameConvention: DirnameConvention
 
     schemaLoader: Schema_Loader.SchemaLoader
@@ -143,6 +151,7 @@ class SchemaEditor(DPGStage):
                                     label="Load a file right now to begin adding input->output schema correspondence rubric",
                                     width=300,
                                     callback=self.goToTestSchema)
+
                         with dpg.group(horizontal=True):
                             dpg.add_text("*",color=(255,0,0))
                             dpg.add_text("Required")
@@ -151,10 +160,10 @@ class SchemaEditor(DPGStage):
                     #    dpg.add_spacer(width=self.spacer_width)
 
             with dpg.collapsing_header(default_open=True,label="Input Directory Tag Extractor"):
-                self.dns = DirnameExtractor(color=dpg.get_value(self.color),editor=self)
+                self.dns = DirnameExtractor(color=dpg.get_value(self.color),editor=self,dirnameConvention=self.schema.dirnameConvention)
 
             with dpg.collapsing_header(default_open=True,label="Input File Tag Extractor"):
-                self.fns = FilenameExtractor(color=dpg.get_value(self.color),editor=self)
+                self.fns = FilenameExtractorManager(color=dpg.get_value(self.color),editor=self,filenameConventions=self.schema.filenameConventions)
 
             with dpg.collapsing_header(default_open=True,label="Schema Editor"):
                 #with dpg.group(horizontal=True):
@@ -163,7 +172,7 @@ class SchemaEditor(DPGStage):
                     self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
                     dpg.add_separator()
                     with dpg.group() as self.schemaGroup: 
-                        self.schemaLoader = self.items["Custom"](filenameExtractor = self.fns,dirnameExtractor = self.dns,color=dpg.get_value(self.color))
+                        self.schemaLoader = self.items["Custom"](filenameExtractorManager = self.fns,dirnameExtractor = self.dns,color=dpg.get_value(self.color))
   
     def changeColor(self,sender,app_data):
         
@@ -204,10 +213,9 @@ class SchemaEditor(DPGStage):
             _fncs = self.fns.attemptToSave()
             if not _fncs:
                 # There is no naming convention. Skipping rest of code
-                return
+                pass
 
-            for fnc in _fncs:
-                self.filenameConventions.append(fnc)
+            self.filenameConventions = _fncs
 
         schema_dict = {}
 
@@ -251,6 +259,7 @@ class SchemaEditor(DPGStage):
 
         set(f'{default_schema_path}\\{_r.name}.schema',_r)
         self.mainpage.refreshSchemas()
+        dpg.delete_item(self._id)
 
     def goToTestSchema(self):
         # okay here it is
@@ -259,7 +268,7 @@ class SchemaEditor(DPGStage):
         self.saveSchema()
         # NOW you need to EDIT AND SAVE RUBRICS
         self.testSchema = TestSchema(schema=self.schema)
-        dpg.delete_item(self._id)
+        
 
     def chooserCallback(self,sender,app_data,user_data):
 

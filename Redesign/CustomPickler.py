@@ -6,7 +6,7 @@ def get(file):
     #--------------
     try:
         loadedObj = pickle.load(open(file,'rb'))
-        print (loadedObj)
+        #print (loadedObj)
         return loadedObj
     except Exception as e:
         raise Exception(f"'{file}' not loaded correctly. Check permissions:\n\t{e}")

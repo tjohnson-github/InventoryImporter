@@ -43,7 +43,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\DPG_Themes.py" />
-    <Compile Include="Redesign\FilenameConventionExtractor.py">
+    <Compile Include="Redesign\FilenameConventionExtractor.py" />
+    <Compile Include="Redesign\DirnameConventionExtractor.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\File_Operations.py" />

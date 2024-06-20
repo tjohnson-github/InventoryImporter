@@ -1,6 +1,7 @@
 
 from dearpygui import dearpygui as dpg
-from FilenameConventionExtractor import FilenameExtractor,DirnameExtractor
+from FilenameConventionExtractor import FilenameExtractor,FilenameExtractorManager
+from DirnameConventionExtractor import DirnameExtractor
 
 from DPGStage import DPGStage
 from dataclasses import dataclass, field
@@ -54,12 +55,12 @@ class SchemaColumnEditor(DPGStage):
 
     rows: list[EditorRow]
 
-    filenameExtractor:FilenameExtractor
+    filenameExtractorManager:FilenameExtractorManager
     dirnameExtractor: DirnameExtractor
 
     def main(self,**kwargs):
 
-        self.filenameExtractor = kwargs.get("filenameExtractor")
+        self.filenameExtractorManager = kwargs.get("filenameExtractorManager")
         self.dirnameExtractor = kwargs.get("dirnameExtractor")
 
         self.rows = [
@@ -167,12 +168,14 @@ class SchemaColumnEditor(DPGStage):
         for row in self.rows:
             if row.name=="Tag":
 
-
                 _allTags = [x.rstrip() for x in dpg.get_values(row.items) if x !="" and x.count(" ")!=len(x)]
+                _allTags.sort()
+                minItems = list(set(_allTags))
+                #minItems.sort()
 
                 #set(a)
-                self.filenameExtractor.updateTagList(_allTags)
-                self.dirnameExtractor.updateTagList(_allTags)
+                self.filenameExtractorManager.updateTagList(minItems)
+                self.dirnameExtractor.updateTagList(minItems)
 
 
     def checkAll(self,sender,app_data,user_data):

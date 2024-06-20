@@ -101,9 +101,9 @@ class SchemaFromSQL(SchemaLoader):
  
         dpg.add_text(tableName)
 
-        self.editor = SchemaColumnEditor(schema=headers,color=self.default_color)
+        self.colEditor = SchemaColumnEditor(schema=headers,color=self.default_color)
         #self.editor = ColumnEditor(schema=headers)
-        asyncio.run(self.editor.populateTable())
+        asyncio.run(self.colEditor.populateTable())
 
 
         #with dpg.group(horizontal=True):

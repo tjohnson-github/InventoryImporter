@@ -3,8 +3,34 @@
 ##### WHAT HAPPENS IF THERE ARE 2 RUBRICS
 ### WITH THE SAME INPUT SCHEMA, BUT DIFFERENT NAMES?
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
+#+++ TO DO 
+
+#  make sure that when editing an EXISTING schema, you use the 'create schema' with the default.
+# Make sure new imports that change all the tags also change the extractors.availTags
+
+
+# then need to add custom import of data; most likely via spreadsheet format
+# if spreadsheet; can merely include math there?
+# no; maybe can do more complex markups inside...
+
+# VENDOR CODE:
+# code : name
+
+
+
+
+
+
+
+
+
+
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 import dearpygui.dearpygui as dpg
 dpg.create_context()
