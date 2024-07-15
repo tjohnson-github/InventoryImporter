@@ -2,7 +2,7 @@
 
 import dearpygui.dearpygui as dpg
 dpg.create_context()
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field,asdict
 import pyodbc
 
 import CustomPickler
@@ -61,11 +61,7 @@ class Schema:
                     dpg.add_text("Rubrics")
                     dpg.add_listbox(items=[])
                     
-                #with dpg.group():
-                #    dpg.add_button(label="Edit",callback=openeditor,user_data=self)
-                #with 
-
-
+               
 
 @dataclass
 class DesiredFormat:
@@ -160,8 +156,19 @@ class SchemaEditor(DPGStage):
                     #    dpg.add_spacer(width=self.spacer_width)
 
             with dpg.collapsing_header(default_open=True,label="Input Directory Tag Extractor"):
-                self.dns = DirnameExtractor(color=dpg.get_value(self.color),editor=self,dirnameConvention=self.schema.dirnameConvention)
 
+                #============================================================================================
+                # find a way to let extractors be None to equate not being in use::::
+                if not self.schema.dirnameConvention:
+
+                    self.dns = DirnameExtractor(color=dpg.get_value(self.color),editor=self)
+
+                    dpg.configure_item(self.dns.doNOtUse,default_value=True)
+                    self.dns.hide(sender=self.dns.doNOtUse,app_data=True)
+
+                else: 
+                    self.dns = DirnameExtractor(color=dpg.get_value(self.color),editor=self,dirnameConvention=self.schema.dirnameConvention)
+                #============================================================================================
             with dpg.collapsing_header(default_open=True,label="Input File Tag Extractor"):
                 self.fns = FilenameExtractorManager(color=dpg.get_value(self.color),editor=self,filenameConventions=self.schema.filenameConventions)
 
@@ -205,6 +212,8 @@ class SchemaEditor(DPGStage):
         if not dpg.get_value(self.dns.doNOtUse):
             _dncs = self.dns.attemptToSave()
             self.dirnameConvention = _dncs
+        else:
+            self.dirnameConvention = None
 
 
         # GATHER FILENAME CONVENTIONS
@@ -216,6 +225,8 @@ class SchemaEditor(DPGStage):
                 pass
 
             self.filenameConventions = _fncs
+        else:
+            self.filenameConventions = []
 
         schema_dict = {}
 
@@ -243,7 +254,7 @@ class SchemaEditor(DPGStage):
         # BUILD RUBRIC
         _r = Schema(
              name               =   dpg.get_value(self.nameInput),
-             desc            =   dpg.get_value(self.desc),
+             desc               =   dpg.get_value(self.desc),
              color              =   dpg.get_value(self.color),
              filenameConventions=   self.filenameConventions,
              dirnameConvention  =   self.dirnameConvention,
@@ -252,8 +263,15 @@ class SchemaEditor(DPGStage):
              rubrics            =   {}
         )
 
+        print(f'\t\n{asdict(_r)=}\n')
+
+        _rDict = asdict(_r)
+        for key,val in _rDict.items():
+            print(f'{key}\t:\t{val}')
 
         self.schema = _r
+
+
 
         mkdirWrapper(default_schema_path)
 

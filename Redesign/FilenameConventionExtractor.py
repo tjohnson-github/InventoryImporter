@@ -29,7 +29,7 @@ class FilenameConvention:
     #   AND SHOW IF IT WILL BE BY ITSELF, OR OPERATED UPON
     #   LET THEM ADDITIONALLY FORMAT IT
 
-
+    name: str = ""
     slices: list[str] = field(default_factory=lambda: ["Ticket#","Example Name","Example Department"]) # v        be      dimensionality v
     tags: list[str] = field(default_factory=lambda: ['','',''])  # ^ should    same                ^
 
@@ -76,9 +76,9 @@ class FilenameExtractorManager(DPGStage):
 
                             for i,fnc in enumerate(self.conventions):
 
-                                with dpg.tab(label=f"Convention {i+1}") as _tab:
+                                with dpg.tab(label=f"{i+1}") as _tab:
                                     
-                                    _fns = FilenameExtractor(editor=self.editor,filenameConvention=fnc)
+                                    _fns = FilenameExtractor(editor=self.editor,manager=self,filenameConvention=fnc,index=i)
                                     self.extractors.append(_fns)
 
                                 self.extractorTabs.append(_tab)
@@ -96,6 +96,39 @@ class FilenameExtractorManager(DPGStage):
                 self.editor.schemaLoader.colEditor.updateTags()
             except Exception as e:
                 print(f'schemaLoader DNE')
+
+    def renameExtractor(self,index,newName):
+
+        _tab = self.extractorTabs[index]
+        dpg.configure_item(_tab,label=newName)
+
+    def deleteExtractor(self,extractor):
+
+        try:
+            _id = self.extractors.index(extractor)
+
+            _c = self.conventions.pop(_id)
+            _e = self.extractors.pop(_id)
+            _eT = self.extractorTabs.pop(_id)
+
+            print("a")
+            #dpg.delete_item(_c)
+            print("b")
+
+            dpg.delete_item(_e)
+            print("c")
+
+            dpg.delete_item(_eT)
+            print("d")
+
+
+        except Exception as e:
+            print(f"{e}")
+            #print (self.extractors)
+
+    def displayExtractors(self):
+        pass
+
 
     def addNew(self):
 
@@ -116,9 +149,10 @@ class FilenameExtractorManager(DPGStage):
         dpg.push_container_stack(self.tabBar)
         for i,fnc in enumerate(self.conventions):
 
-            with dpg.tab(label=f"Convention {i+1}") as _tab:
+            
+            with dpg.tab(label=f"{i+1}") as _tab:
                                     
-                _fns = FilenameExtractor(editor=self.editor,filenameConvention=fnc)
+                _fns = FilenameExtractor(editor=self.editor,manager=self,filenameConvention=fnc,index=i)
                 self.extractors.append(_fns)
 
             self.extractorTabs.append(_tab)
@@ -172,6 +206,7 @@ class FilenameExtractor(DPGStage):
     cell_height = 80
     height=190
 
+    name: str
     delimitors = ["_","^"]
     #delimitor = "_"
     #name_slices = ["Ticket#","Example Name","Example Department"]
@@ -185,46 +220,63 @@ class FilenameExtractor(DPGStage):
     # administrative
     def main(self,**kwargs):
 
-        self.editor = kwargs.get("editor")
-        self.convention = kwargs.get("filenameConvention")
-        self.availTags = [self.default_option] #+ self.convention.tags
+        self.editor         = kwargs.get("editor")
+        self.manager        = kwargs.get("manager")
+        self.convention     = kwargs.get("filenameConvention")
+        self.index          = kwargs.get("index",0)
+        self.availTags      = [self.default_option] #+ self.convention.tags
+        self.name = f"{self.index+1}"
 
     def generate_id(self,**kwargs):
 
-        self._tagNote1 = dpg.add_text("\tNote: All slices and tags seen below are example placeholders")
+        with dpg.group()as self._id:
+            self._tagNote1 = dpg.add_text("\tNote: All slices and tags seen below are example placeholders")
 
-        dpg.add_separator()
+            dpg.add_separator()
 
-        self.delimInput = dpg.add_combo(label="Delimitor",items=self.delimitors,default_value = self.convention.delim,callback=self.updateDels,width=70)
-        self.fieldSetter = dpg.add_input_int(
-            label="Specify Naming Segments", # OR Add column before index
-            default_value=len(self.convention.slices),
-            callback=self.changeNumSlices,
-            on_enter =True,
-            min_value=1,min_clamped =True,
-            width=70)
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    
+                    self.delimInput     = dpg.add_combo(label="Delimitor",items=self.delimitors,default_value = self.convention.delim,callback=self.updateDels,width=70)
+                    self.fieldSetter    = dpg.add_input_int(
+                        label               =   "Specify Naming Segments", # OR Add column before index
+                        default_value       =   len(self.convention.slices),
+                        callback            =   self.changeNumSlices,
+                        on_enter            =   True,
+                        min_value           =   1,
+                        min_clamped         =   True,
+                        width               =   70)
+                with dpg.group():
+                    self.nameBtn = dpg.add_input_text(label="Name",default_value=self.name,callback=self.rename)
+                with dpg.group():
+                    _x = dpg.add_button(label="Delete",callback=self.delete)
 
-        dpg.add_separator()
+            dpg.add_separator()
 
-        with dpg.group(horizontal=True):
-            with dpg.group():
-                _fnc = dpg.add_text("Filename Convention:")
-                with dpg.tooltip(_fnc):
-                    dpg.add_text("Slices will be read from the -> LEFT -> , so files may contain any number of additional slices. But only what is here will be visible to the program.")
-                _tag= dpg.add_text("Informs which Tag?::")
-                with dpg.tooltip(_tag):
-                    dpg.add_text("If a given named slice has a TAG specified (one made in the column editor) then, when loading that file, it will stage that value for manipulation in that column.")
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    _fnc = dpg.add_text("Filename Convention:")
+                    with dpg.tooltip(_fnc):
+                        dpg.add_text("Slices will be read from the -> LEFT -> , so files may contain any number of additional slices. But only what is here will be visible to the program.")
+                    _tag= dpg.add_text("Informs which Tag?::")
+                    with dpg.tooltip(_tag):
+                        dpg.add_text("If a given named slice has a TAG specified (one made in the column editor) then, when loading that file, it will stage that value for manipulation in that column.")
 
-            with dpg.group() as self.fieldsParent:
-                self.populateFields()
-            with dpg.group():
-                _ = dpg.add_button(label=".XXX",callback=self.manageExtensions)
-                with dpg.tooltip(_,hide_on_activity=False): dpg.add_text("Manage Extensions")
-                self._tagNote2 = dpg.add_text("Default Example Tags will be cleared upon entering of tags in the below columns.")
-        with dpg.group(horizontal=True):
-            dpg.add_text("Example            :")
-            self.exampleVis = dpg.add_input_text(enabled=False)
-            self.setExample()
+                with dpg.group() as self.fieldsParent:
+                    self.populateFields()
+                with dpg.group():
+                    _ = dpg.add_button(label=".XXX",callback=self.manageExtensions)
+                    with dpg.tooltip(_,hide_on_activity=False): dpg.add_text("Manage Extensions")
+                    self._tagNote2 = dpg.add_text("Default Example Tags will be cleared upon entering of tags in the below columns.")
+            with dpg.group(horizontal=True):
+                dpg.add_text("Example            :")
+                self.exampleVis = dpg.add_input_text(enabled=False)
+                self.setExample()
+
+    def rename(self,sender,app_data):
+
+        self.name = app_data
+        self.manager.renameExtractor(index=self.index,newName=app_data)
 
     # dpg field changes            
     def populateFields(self):
@@ -297,7 +349,6 @@ class FilenameExtractor(DPGStage):
                                 self.example+=f' \\ '
 
         dpg.configure_item(self.exampleVis,default_value=self.example)
-
 
     def resize(self,sender,app_data,user_data):
         #
@@ -457,6 +508,7 @@ class FilenameExtractor(DPGStage):
                     _tags[i] = ""
 
             _new = FilenameConvention(
+                name = self.name,
                 slices  =   dpg.get_values(self.nameSliceVis),
                 tags    =   _tags,
                 delim   =   dpg.get_value(self.delimInput),
@@ -475,7 +527,8 @@ class FilenameExtractor(DPGStage):
         return _
 
     
-
+    def delete(self):
+        self.manager.deleteExtractor(self)
     
 
     

@@ -8,8 +8,8 @@
 
 #+++ TO DO 
 
-#  make sure that when editing an EXISTING schema, you use the 'create schema' with the default.
-# Make sure new imports that change all the tags also change the extractors.availTags
+#  1. make sure that when editing an EXISTING schema, you use the 'create schema' with the default.
+#  2. Make sure new imports that change all the tags also change the extractors.availTags
 
 
 # then need to add custom import of data; most likely via spreadsheet format
@@ -18,15 +18,6 @@
 
 # VENDOR CODE:
 # code : name
-
-
-
-
-
-
-
-
-
 
 
 
@@ -64,6 +55,8 @@ class MainPage(DPGStage):
     
     # LATER, UPON LOAD, WHEN VERIFYING A TABLE WITH THAT SCHEMA, CAN SUGGEST OR EVEN AUTO-RUN FORMATTER
     #   BUT THIS NEEDS TO ASK IF 
+
+
     tutorials: bool  = False
 
     height: int  = 500
@@ -72,20 +65,20 @@ class MainPage(DPGStage):
     settingsName = f'{default_settings_path}\\generalSettings.txt'
     settings: dict = {"tutorials":False}
 
-    def print_me(sender):
-        print(f"Menu Item: {sender}")
-
-    def loadSettings(self):
-        try:
-            settingsDict = get(self.settingsName)
-            for key,val in settingsDict.items():
-                self.settings[key]=val
-        except Exception as e:
-           print ("Probably doesnt exist yet:\t",e)
-
     def main(self,**kwargs):
     
-        self.loadSettings()
+        def loadSettings():
+            try:
+                settingsDict = get(self.settingsName)
+                for key,val in settingsDict.items():
+                    self.settings[key]=val
+            except Exception as e:
+               print ("Probably doesnt exist yet:\t",e)
+
+        loadSettings()
+
+    def print_me(sender):
+        print(f"Menu Item: {sender}")
 
     def generate_id(self,**kwargs):
         
@@ -166,13 +159,12 @@ class MainPage(DPGStage):
                 with dpg.group() as self.schemaViewer:
                     pass
 
+        self.loadSchemas()
         self.refreshSchemas()
 
-    def refreshSchemas(self):
+    def loadSchemas(self):
 
-
-        dpg.delete_item(self.schemaViewer,children_only=True)
-        _schemas = []
+        self.schemas = []
 
         for filename in os.listdir(default_schema_path):
             f = os.path.join(default_schema_path, filename)
@@ -183,17 +175,46 @@ class MainPage(DPGStage):
                     name,ext = f.split(".")
 
                     if ext == "schema":
-                        _schemas.append(get(f))
+                        self.schemas.append(get(f))
                 except Exception as e:
                     print(f"Something wrong with file:{f}")
                     print(e)
 
-        print(f"{len(_schemas)} schema found!")
+        print(f"{len(self.schemas)} schema found!")
+
+    def refreshSchemas(self):
+
+        dpg.delete_item(self.schemaViewer,children_only=True)
 
         dpg.push_container_stack(self.schemaViewer)
 
-        for s in _schemas:
-            s.generate_mini(openeditor=self.openEditor)
+        for i,s in enumerate(self.schemas):
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="Delete",callback=self.deleteSchema,user_data=i)
+
+                s.generate_mini(openeditor=self.openEditor)
+
+    def deleteSchema(self,sender,app_data,user_data):
+
+        index = user_data
+
+        def back():
+            dpg.delete_item(_pop)
+
+        def proceed():
+
+            s = self.schemas.pop(index)
+            dpg.delete_item(s._id)
+            self.refreshSchemas()
+            back()
+
+        with dpg.window(popup=True) as _pop:
+            with dpg.group(horizontal=True):
+                dpg.add_text(f"Are you sure you wish you delete ")
+                dpg.add_input_text(default_value=f"{self.schemas[index].name}",enabled=False)
+                dpg.add_text(f"?")
+            dpg.add_button(label="Y",callback = proceed)
+            dpg.add_button(label="N",callback = back)
 
     def openEditor(self,sender,app_data,user_data):
        
