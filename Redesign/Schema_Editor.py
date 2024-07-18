@@ -39,10 +39,15 @@ class Schema:
     name: str = ''
     desc: str = ''
     color: tuple = (0,0,0,0)
+
+    schema_cols: list[str] = field(default_factory=lambda: [])
+    schema_tags: list[str] = field(default_factory=lambda: [])
+
     outputSchemaDict: dict[str:any] =  field(default_factory=lambda: {})
+
     rubrics: dict[str:dict] = field(default_factory=lambda: {}) # Name_of_RUBRIC
     filenameConventions: list[FilenameConvention] = field(default_factory=lambda: [])
-    dirnameConvention: DirnameConvention = field(default_factory=lambda: DirnameConvention())
+    dirnameConvention: DirnameConvention = field(default_factory=lambda: None)
 
     height = 100
 
@@ -92,7 +97,8 @@ class SchemaEditor(DPGStage):
     spacer_width = 25
 
     items = {
-        "Custom":Schema_Loader.SchemaFromScratch,
+        "Existing":Schema_Loader.SchemaFromBuilder,
+        "Custom":Schema_Loader.SchemaFromBuilder,
         "From SQL":Schema_Loader.SchemaFromSQL,
         "From Spreadsheet File":Schema_Loader.SchemaFromFile
         }
@@ -109,6 +115,7 @@ class SchemaEditor(DPGStage):
     def main(self,**kwargs):
 
         self.mainpage = kwargs.get("mainpage")
+
         self.schema = kwargs.get("schema",Schema())
         # NEED TO ALSO DO THIS FOR THE CONVENTIONS!!!
 
@@ -159,15 +166,15 @@ class SchemaEditor(DPGStage):
 
                 #============================================================================================
                 # find a way to let extractors be None to equate not being in use::::
-                if not self.schema.dirnameConvention:
+                '''if not self.schema.dirnameConvention:
 
                     self.dns = DirnameExtractor(color=dpg.get_value(self.color),editor=self)
 
                     dpg.configure_item(self.dns.doNOtUse,default_value=True)
                     self.dns.hide(sender=self.dns.doNOtUse,app_data=True)
 
-                else: 
-                    self.dns = DirnameExtractor(color=dpg.get_value(self.color),editor=self,dirnameConvention=self.schema.dirnameConvention)
+                else: '''
+                self.dns = DirnameExtractor(color=dpg.get_value(self.color),editor=self,dirnameConvention=self.schema.dirnameConvention)
                 #============================================================================================
             with dpg.collapsing_header(default_open=True,label="Input File Tag Extractor"):
                 self.fns = FilenameExtractorManager(color=dpg.get_value(self.color),editor=self,filenameConventions=self.schema.filenameConventions)
@@ -179,7 +186,7 @@ class SchemaEditor(DPGStage):
                     self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
                     dpg.add_separator()
                     with dpg.group() as self.schemaGroup: 
-                        self.schemaLoader = self.items["Custom"](filenameExtractorManager = self.fns,dirnameExtractor = self.dns,color=dpg.get_value(self.color))
+                        self.schemaLoader = self.items["Custom"](schema=self.schema,filenameExtractorManager = self.fns,dirnameExtractor = self.dns,color=dpg.get_value(self.color))
   
     def changeColor(self,sender,app_data):
         
@@ -212,8 +219,8 @@ class SchemaEditor(DPGStage):
         if not dpg.get_value(self.dns.doNOtUse):
             _dncs = self.dns.attemptToSave()
             self.dirnameConvention = _dncs
-        else:
-            self.dirnameConvention = None
+        #else:
+        #    self.dirnameConvention = None
 
 
         # GATHER FILENAME CONVENTIONS
@@ -225,8 +232,8 @@ class SchemaEditor(DPGStage):
                 pass
 
             self.filenameConventions = _fncs
-        else:
-            self.filenameConventions = []
+        #else:
+        #    self.filenameConventions = []
 
         schema_dict = {}
 
@@ -238,7 +245,20 @@ class SchemaEditor(DPGStage):
         
         # GATHER SCHEMA HERE
         for editorRow in self.schemaLoader.colEditor.rows:
+
+            _items = list(dpg.get_values(editorRow.items))
+
             if editorRow.name == "Tag":
+                _schema_tags = [x.rstrip() for x in _items]
+                _items = setFixer(_items)
+
+            elif editorRow.name == "Column Name":
+
+                _schema_cols = [x.rstrip() for x in _items]
+
+            schema_dict.update({editorRow.name:_items})
+
+            '''if editorRow.name == "Tag":
 
                 _tempItems = [x.rstrip() for x in list(dpg.get_values(editorRow.items))]
                 #print(_tempItems)
@@ -248,8 +268,16 @@ class SchemaEditor(DPGStage):
                 _setted = setFixer(_tempItems)
 
                 schema_dict.update({editorRow.name:_setted})
-            else:
+
+                _schema_tags = [x.rstrip() for x in list(dpg.get_values(editorRow.items))]
+
+            elif editorRow.name == "Column Name":
+                 
+                _schema_cols = [x.rstrip() for x in list(dpg.get_values(editorRow.items))]
                 schema_dict.update({editorRow.name:list(dpg.get_values(editorRow.items))})
+
+            else:
+                schema_dict.update({editorRow.name:list(dpg.get_values(editorRow.items))})'''
 
         # BUILD RUBRIC
         _r = Schema(

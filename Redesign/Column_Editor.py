@@ -60,6 +60,13 @@ class SchemaColumnEditor(DPGStage):
 
     def main(self,**kwargs):
 
+        self.schema = kwargs.get("schema")# NO DEFAULT HERE AS ITS ALREADY POPULATED BY SCHEMAEDITOR
+
+        # Turn the complex dict obj into ez lists, which then save over the dict object in save
+        self.schemaColNames = self.schema.outputSchemaDict["Column Name"]# if kwargs.get("schema") else 
+        self.exampleTags = self.schema.outputSchemaDict["Tag"] #if kwargs.get("schema") else [f'Example {i}' for i in range(1,6)]
+        self.numColumns = len(self.schemaColNames)
+
         self.filenameExtractorManager = kwargs.get("filenameExtractorManager")
         self.dirnameExtractor = kwargs.get("dirnameExtractor")
 
@@ -84,9 +91,10 @@ class SchemaColumnEditor(DPGStage):
                 tooltip = "This section provides an editor allowing us to populate columns in the output schema which are DERIVED from:\n\t- a combination of input columns\n\t- additional calculations made to individual input columns\n\t- or a combination of both"),
             ]
 
-        self.schema = kwargs.get("schema",[f'Test Name {x}' for x in range(1,6)])
-        self.exampleTags = [f'Example {i}' for i in range(1,6)]
-        self.numColumns = len(self.schema)
+        #self.schemaColNames = kwargs.get("schema",[f'Test Name {x}' for x in range(1,6)])
+
+
+
 
     def generate_id(self,**kwargs):
 
@@ -202,7 +210,7 @@ class SchemaColumnEditor(DPGStage):
 
         if row.type==str:
             if row.name == "Column Name":
-                _default_value = self.schema[columnIndex]
+                _default_value = self.schemaColNames[columnIndex]
                 _callback = None
             elif row.name =="Tag": 
                 try:
@@ -252,7 +260,6 @@ class SchemaColumnEditor(DPGStage):
             row.items.append(_newItem) if not insert else row.items.insert(insert,_newItem)
 
 
-
     async def populateTable(self):
 
         async def populateTableCols():
@@ -289,7 +296,7 @@ class SchemaColumnEditor(DPGStage):
 
         _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,before=self.columns[index_to_add_before],border=False)
         self.columns.insert(index_to_add_before,_newCol)
-        self.schema.insert(index_to_add_before,'new')
+        self.schemaColNames.insert(index_to_add_before,'new')
         self.numColumns+=1
         print(f'A:\t{self.columns=}')
         print("------------")
@@ -321,7 +328,7 @@ class SchemaColumnEditor(DPGStage):
         print(f'{user_data=}')
 
         try:
-            self.schema.remove(self.schema[user_data])
+            self.schemaColNames.remove(self.schemaColNames[user_data])
         except Exception as e:
             print("greater than schema index:",e)
 
@@ -372,7 +379,7 @@ class SchemaColumnEditor(DPGStage):
 
             _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
             self.columns.append(_newCol)
-            self.schema.append('new')
+            self.schemaColNames.append('new')
             self.numColumns+=1
             #dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
             _newColIndex =self.columns.index(_newCol)
@@ -398,7 +405,7 @@ class SchemaColumnEditor(DPGStage):
         def delete_columnFromEnd(self,columnId):
 
             try:
-                self.schema.remove(self.schema[columnId])
+                self.schemaColNames.remove(self.schemaColNames[columnId])
             except:
                 print("greater than schema index")
 

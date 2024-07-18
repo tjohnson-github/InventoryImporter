@@ -122,7 +122,7 @@ class SchemaFromSQL(SchemaLoader):
     def linkSQL(self,sender,app_data,user_data):
         self.sqlLinker = SQLLinker(after = self.displayAllTables)
 
-class SchemaFromScratch(SchemaLoader):
+class SchemaFromBuilder(SchemaLoader):
 
     columns: int  = 5
     maxCols = 98
@@ -133,8 +133,8 @@ class SchemaFromScratch(SchemaLoader):
     def gatherInfo(self):
 
         _newRubric = Rubric(
-            name=dpg.get_item_value(self.name),
-            subname=dpg.get_item_value(self.subtitleInput),)
+            name    =   dpg.get_item_value(self.name),
+            subname =   dpg.get_item_value(self.subtitleInput),)
 
     def generate_id(self,**kwargs):
 
