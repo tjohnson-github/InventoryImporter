@@ -42,6 +42,8 @@ from CustomPickler import get,set
 
 from Schema_Editor import SchemaEditor
 
+from dataclasses import dataclass
+
 default_settings_path = "Redesign\\Settings"
 default_schema_path = "Redesign\\Schemas"
 
@@ -63,10 +65,23 @@ class MainPage(DPGStage):
     width: int   = 800
 
     settingsName = f'{default_settings_path}\\generalSettings.txt'
+
+    # ======================================
+    # SEVERAL WAYS TO DO THIS
+    # a
     settings: dict = {"tutorials":False}
+    # b
+    tutorials = False
+    # see MAIN()
+
+    @dataclass
+    class Settings:
+        tutorials: bool = False
 
     def main(self,**kwargs):
     
+        self.settings_dc_instance = Settings()
+
         def loadSettings():
             try:
                 settingsDict = get(self.settingsName)
@@ -102,7 +117,10 @@ class MainPage(DPGStage):
                     dpg.add_color_picker(label="Color Me", callback=self.print_me)
 
                 with dpg.menu(label="Help"):
-                    _ = dpg.add_checkbox(label="Tutorials",default_value = self.settings["tutorials"],callback=self.updateSettings)
+                    _tut = dpg.add_checkbox(label="Tutorials",default_value = self.settings["tutorials"],callback=self.updateSettings)
+                    
+                    self.alt_settings: dict    = {_tut:self.tutorials}
+                    self.dc_settings: dict    = {_tut:self.settings_dc_instance.tutorials}
 
             dpg.add_text("Welcome to our Many:One EZ Spreadsheet Converter")
             with dpg.collapsing_header(label="How to Use",default_open=False):
@@ -232,9 +250,30 @@ class MainPage(DPGStage):
 
     def updateSettings(self,sender,app_data,user_data):
         
-        _label = dpg.get_item_label(sender).lower()
+        # Supposed to be easy way to change values sent in from menu items.
+        # I have new functionlity for this in my dataclasses in private git.
+
+        #----------------------------------
+        # a
+        _label = dpg.get_item_label(sender).lower() # some times the label itself has the secret!
         self.settings[_label] = app_data
 
+        #----------------------------------
+        # b
+        # self.reversed_alt_settings: dict    = {_tut:self.tutorials}
+        self.alt_settings[sender] = app_data
+
+        #----------------------------------
+        # c
+        # self.dc_settings: dict    = {_tut:self.settings_dc.tutorials}
+        self.dc_settings[sender] = app_data
+        
+        #----------------------------------
+        # d
+        # only if the label is equal to the field name!
+        setattr(self.settings_dc_instance,_label,app_data)
+        #----------------------------------
+        # Save as pickle
         set(self.settingsName,self.settings)
 
 

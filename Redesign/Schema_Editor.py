@@ -47,7 +47,7 @@ class Schema:
 
     rubrics: dict[str:dict] = field(default_factory=lambda: {}) # Name_of_RUBRIC
     filenameConventions: list[FilenameConvention] = field(default_factory=lambda: [])
-    dirnameConvention: DirnameConvention = field(default_factory=lambda: None)
+    dirnameConvention: DirnameConvention = field(default_factory=lambda: DirnameConvention())
 
     height = 100
 
@@ -106,9 +106,9 @@ class SchemaEditor(DPGStage):
 
     scannableLocations = ["INPUT","STAGED"]
 
-    filenameConventions: list[FilenameConvention]
+    #filenameConventions: list[FilenameConvention]
     #filenameConvention: filenameConvention
-    dirnameConvention: DirnameConvention
+    #dirnameConvention: DirnameConvention
 
     schemaLoader: Schema_Loader.SchemaLoader
 
@@ -117,6 +117,9 @@ class SchemaEditor(DPGStage):
         self.mainpage = kwargs.get("mainpage")
 
         self.schema = kwargs.get("schema",Schema())
+        #self.schema = kwargs.get("schema",Schema())
+        #self.schema = kwargs.get("schema",Schema())
+
         # NEED TO ALSO DO THIS FOR THE CONVENTIONS!!!
 
     def generate_id(self,**kwargs):
@@ -208,33 +211,28 @@ class SchemaEditor(DPGStage):
         #self.color = _newColor
 
     def saveSchema(self):
-
+        #+=========================================
         # Base check:
         if dpg.get_value(self.nameInput)=="":
             with dpg.window(popup=True): dpg.add_text("Name not selected!")
             return
-
+        #+=========================================
         # GATHER DIRNAME CONVENTIONS
         self.dirnameConvention=None
         if not dpg.get_value(self.dns.doNOtUse):
             _dncs = self.dns.attemptToSave()
             self.dirnameConvention = _dncs
-        #else:
-        #    self.dirnameConvention = None
 
-
+        #+=========================================
         # GATHER FILENAME CONVENTIONS
         self.filenameConventions=[]
         if not dpg.get_value(self.fns.doNOtUse):
             _fncs = self.fns.attemptToSave()
             if not _fncs:
-                # There is no naming convention. Skipping rest of code
                 pass
 
             self.filenameConventions = _fncs
-        #else:
-        #    self.filenameConventions = []
-
+        #+=========================================
         schema_dict = {}
 
          #"Column Name",
@@ -248,37 +246,15 @@ class SchemaEditor(DPGStage):
 
             _items = list(dpg.get_values(editorRow.items))
 
+            #+--------------------------------------------------------
             if editorRow.name == "Tag":
                 _schema_tags = [x.rstrip() for x in _items]
-                _items = setFixer(_items)
-
             elif editorRow.name == "Column Name":
-
                 _schema_cols = [x.rstrip() for x in _items]
-
+            #+--------------------------------------------------------
             schema_dict.update({editorRow.name:_items})
 
-            '''if editorRow.name == "Tag":
-
-                _tempItems = [x.rstrip() for x in list(dpg.get_values(editorRow.items))]
-                #print(_tempItems)
-                #print(f"GETTING _tempItems:: {_tempItems}")
-                #_tempItems = set()
-
-                _setted = setFixer(_tempItems)
-
-                schema_dict.update({editorRow.name:_setted})
-
-                _schema_tags = [x.rstrip() for x in list(dpg.get_values(editorRow.items))]
-
-            elif editorRow.name == "Column Name":
-                 
-                _schema_cols = [x.rstrip() for x in list(dpg.get_values(editorRow.items))]
-                schema_dict.update({editorRow.name:list(dpg.get_values(editorRow.items))})
-
-            else:
-                schema_dict.update({editorRow.name:list(dpg.get_values(editorRow.items))})'''
-
+        #+=============================================================
         # BUILD RUBRIC
         _r = Schema(
              name               =   dpg.get_value(self.nameInput),
@@ -291,20 +267,25 @@ class SchemaEditor(DPGStage):
              rubrics            =   {}
         )
 
-        print(f'\t\n{asdict(_r)=}\n')
 
-        _rDict = asdict(_r)
+        '''_rDict = asdict(_r)
         for key,val in _rDict.items():
-            print(f'{key}\t:\t{val}')
+            print(f'{key}\t:\t{val}')'''
 
         self.schema = _r
 
-
-
+        #+=============================================================
+        # Save
         mkdirWrapper(default_schema_path)
-
         set(f'{default_schema_path}\\{_r.name}.schema',_r)
+
+        #+=============================================================
+        # Refresh mainpage
+        self.mainpage.schemas.append(self.schema) 
         self.mainpage.refreshSchemas()
+
+        #+=============================================================
+        # Close this window
         dpg.delete_item(self._id)
 
     def goToTestSchema(self):
@@ -347,8 +328,8 @@ class SchemaEditor(DPGStage):
 
         self.chosen = True
 
-class TestSchema(DPGStage):
-
+class TestSchema(DPGStage):  #SchemaRubricZipper
+ 
     label="Test Adding a Rubric"
 
     height = 500

@@ -63,8 +63,8 @@ class SchemaColumnEditor(DPGStage):
         self.schema = kwargs.get("schema")# NO DEFAULT HERE AS ITS ALREADY POPULATED BY SCHEMAEDITOR
 
         # Turn the complex dict obj into ez lists, which then save over the dict object in save
-        self.schemaColNames = self.schema.outputSchemaDict["Column Name"]# if kwargs.get("schema") else 
-        self.exampleTags = self.schema.outputSchemaDict["Tag"] #if kwargs.get("schema") else [f'Example {i}' for i in range(1,6)]
+        self.schemaColNames = self.schema.outputSchemaDict.get("Column Name",[f'Test Name {x}' for x in range(1,6)])
+        self.exampleTags = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i in range(1,6)])
         self.numColumns = len(self.schemaColNames)
 
         self.filenameExtractorManager = kwargs.get("filenameExtractorManager")

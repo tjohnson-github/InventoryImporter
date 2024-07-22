@@ -98,6 +98,12 @@ class FilenameExtractorManager(DPGStage):
                 print(f'schemaLoader DNE')
 
     def renameExtractor(self,index,newName):
+            
+        print(f'{self.extractorTabs=}')
+        print(f'{index=}')
+
+        if not newName:
+            newName = str(index+1)
 
         _tab = self.extractorTabs[index]
         dpg.configure_item(_tab,label=newName)
