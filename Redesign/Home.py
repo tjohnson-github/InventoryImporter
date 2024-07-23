@@ -80,7 +80,7 @@ class MainPage(DPGStage):
 
     def main(self,**kwargs):
     
-        self.settings_dc_instance = Settings()
+        self.settings_dc_instance = MainPage.Settings()
 
         def loadSettings():
             try:

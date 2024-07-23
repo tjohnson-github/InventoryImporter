@@ -1,7 +1,7 @@
 
 from dearpygui import dearpygui as dpg
-from FilenameConventionExtractor import FilenameExtractor,FilenameExtractorManager
-from DirnameConventionExtractor import DirnameExtractor
+from Schema_Extractor_FilenameConvention import FilenameExtractor,FilenameExtractorManager
+from Schema_Extractor_DirnameConvention import DirnameExtractor
 
 from DPGStage import DPGStage
 from dataclasses import dataclass, field
@@ -37,26 +37,27 @@ Create correspondence dict for TAG
 
 @dataclass
 class EditorRow(DPGStage):
-
-    name: str
-    type: type
-    tooltip: str
-    items: list[str] = field(init=False)
-    callback: callable = None
-
-
+    name        :   str
+    type        :   type
+    tooltip     :   str
+    items       :   list[str] = field(init=False)
+    callback    :   callable = None
 
 class SchemaColumnEditor(DPGStage):
        
-    height=400
+    height: int  = 400
     tableColumnDefaultWidth = 100
     fixedWidthCutoff = 9
     fixedWidth = False
 
     rows: list[EditorRow]
 
-    filenameExtractorManager:FilenameExtractorManager
-    dirnameExtractor: DirnameExtractor
+    filenameExtractorManager:   FilenameExtractorManager
+    dirnameExtractor        :   DirnameExtractor
+
+    def getNumColumns(self):
+
+        return len(self.schemaColNames)
 
     def main(self,**kwargs):
 
@@ -64,8 +65,8 @@ class SchemaColumnEditor(DPGStage):
 
         # Turn the complex dict obj into ez lists, which then save over the dict object in save
         self.schemaColNames = self.schema.outputSchemaDict.get("Column Name",[f'Test Name {x}' for x in range(1,6)])
-        self.exampleTags = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i in range(1,6)])
-        self.numColumns = len(self.schemaColNames)
+        self.tags    = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i in range(1,6)])
+        self.numColumns     = len(self.schemaColNames)
 
         self.filenameExtractorManager = kwargs.get("filenameExtractorManager")
         self.dirnameExtractor = kwargs.get("dirnameExtractor")
@@ -91,18 +92,11 @@ class SchemaColumnEditor(DPGStage):
                 tooltip = "This section provides an editor allowing us to populate columns in the output schema which are DERIVED from:\n\t- a combination of input columns\n\t- additional calculations made to individual input columns\n\t- or a combination of both"),
             ]
 
-        #self.schemaColNames = kwargs.get("schema",[f'Test Name {x}' for x in range(1,6)])
-
-
-
-
     def generate_id(self,**kwargs):
-
-        _color = kwargs.get("color")
 
         with dpg.group(horizontal=True):
 
-            self.color = dpg.add_color_button(height=self.height,width=30,default_value=_color)
+            self.color = dpg.add_color_button(height=self.height,width=30,default_value=self.schema.color)
 
             with dpg.group() as self._id:
       
@@ -179,9 +173,7 @@ class SchemaColumnEditor(DPGStage):
                 _allTags = [x.rstrip() for x in dpg.get_values(row.items) if x !="" and x.count(" ")!=len(x)]
                 _allTags.sort()
                 minItems = list(set(_allTags))
-                #minItems.sort()
 
-                #set(a)
                 self.filenameExtractorManager.updateTagList(minItems)
                 self.dirnameExtractor.updateTagList(minItems)
 
@@ -199,7 +191,6 @@ class SchemaColumnEditor(DPGStage):
         #        dpg.configure_item(item,default_value=True)
 
 
-
     # Iterators
     def generateInputByFieldName(self,row: EditorRow,columnIndex):
         pass
@@ -214,7 +205,7 @@ class SchemaColumnEditor(DPGStage):
                 _callback = None
             elif row.name =="Tag": 
                 try:
-                    _default_value = self.exampleTags[columnIndex]
+                    _default_value = self.tags[columnIndex]
                 except:
                     _default_value=""
                 _callback = row.callback
@@ -224,14 +215,11 @@ class SchemaColumnEditor(DPGStage):
 
             _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
         
-
         elif row.type==bool:
             with dpg.group(horizontal=True,parent=parent):
                 dpg.add_spacer(width=40)
-                #dpg.add_text("-")
                 _enabled= False if row.name == "Derived from Filename?" else True
                 _ = dpg.add_checkbox(enabled=_enabled)
-                #dpg.add_text("-")
         elif row.type==list:
            with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
                pass
@@ -239,25 +227,31 @@ class SchemaColumnEditor(DPGStage):
         return _   
     
 
-    def oneColumn(self,columnIndex,insert=False):
+    def oneColumn(self,columnIndex,**kwargs):
 
         parent=self.columns[columnIndex]
 
+        insertion_index = kwargs.get("insertion_index",len(self.columns))
+
         with dpg.group(horizontal=True,parent=parent):
+
             _bf = dpg.add_button(arrow=True,direction=0,callback=self.addColumn,user_data=columnIndex)
+            self.columnAdd.insert(insertion_index,_bf)
+
             with dpg.tooltip(_bf) as _tt: dpg.add_text(f"Add new column before Index {columnIndex}.")
-            self.columnTT.append(_tt) if not insert else self.columnTT.insert(insert,_tt)
-            self.columnAdd.append(_bf) if not insert else self.columnAdd.insert(insert,_bf)
+            self.columnTooltips.insert(insertion_index,_tt)
+
             _= dpg.add_text(f"Index {columnIndex}")
-            self.columnHeaders.append(_) if not insert else self.columnHeaders.insert(insert,_)
+            self.columnHeaders.insert(insertion_index,_)
+
             _x= dpg.add_button(label='X',callback=self.delete_column,user_data=columnIndex)
-            self.columnRemove.append(_x) if not insert else self.columnRemove.insert(insert,_x)
+            self.columnRemove.insert(insertion_index,_x)
 
         dpg.add_separator(parent=parent)
             
         for row in self.rows:
             _newItem = self.generateInputByType(row=row,columnIndex=columnIndex)
-            row.items.append(_newItem) if not insert else row.items.insert(insert,_newItem)
+            row.items.insert(insertion_index,_newItem)
 
 
     async def populateTable(self):
@@ -273,7 +267,7 @@ class SchemaColumnEditor(DPGStage):
         async def populateTableRows():
 
             self.columnAdd = []
-            self.columnTT =[]
+            self.columnTooltips =[] #tooltips
             self.columnHeaders = []
             self.columnRemove = []
 
@@ -288,35 +282,56 @@ class SchemaColumnEditor(DPGStage):
     def addColumn(self,sender,app_data,user_data):
         # Whether through a pattern, or an input int for adding a column to a special index: 
         # add column @ that index
-          #parent = self.columnEditor
 
         index_to_add_before = user_data
-        print(f'B:\t{self.columns=}')
-        print(f"inserting @:\t{app_data}")
 
+        print(f"======================================= addColumn({user_data=}):")
+        print(f'Before:\t{self.columns=}')
+        print(f'Before:\t{self.schemaColNames=}')
+
+
+        # create new column window
         _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,before=self.columns[index_to_add_before],border=False)
+        
+        # add to given lists
         self.columns.insert(index_to_add_before,_newCol)
-        self.schemaColNames.insert(index_to_add_before,'new')
+        self.schemaColNames.insert(index_to_add_before,f'New_@_{index_to_add_before}')
+        self.tags.insert(index_to_add_before,f'New_@_{index_to_add_before}')
+
         self.numColumns+=1
-        print(f'A:\t{self.columns=}')
-        print("------------")
+
+        print(f'After :\t{self.columns=}')
+        print(f'After :\t{self.schemaColNames=}')
+
+        # Update value displayed in column setter
         dpg.configure_item(self.columnSetter,default_value=self.numColumns)
 
         _newColIndex =self.columns.index(_newCol)
-        
-        self.oneColumn(_newColIndex,insert=index_to_add_before)
+        print(f'Added @ {_newColIndex=}')
+        self.oneColumn(_newColIndex,insertion_index=index_to_add_before)
+
+
+        print(f'{self.columns[index_to_add_before:]}')
+        print(f'{self.columns[_newColIndex:]}')
 
         # Now change the index labels of everything ahead of it: 
-        for column in self.columns[index_to_add_before:]:
-      
-            _currentIndex = self.columns.index(column)
+        #for i,column in enumerate(self.columns[index_to_add_before:],index_to_add_before):
+        for i,column in enumerate(self.columns):
+        
+            # Add
+            dpg.configure_item(self.columnAdd[i],user_data=i)
 
-            dpg.configure_item(self.columnHeaders[_currentIndex],default_value=f"Index {_currentIndex}")
-            dpg.set_item_user_data(self.columnRemove[_currentIndex],user_data=_currentIndex)
+            # TT
+            dpg.delete_item(self.columnTooltips[i])
+            with dpg.tooltip(self.columnAdd[i]) as _tt: dpg.add_text(f"Add new column before Index {i}.")
+            self.columnTooltips[i] = _tt
 
-            dpg.delete_item(self.columnTT[_currentIndex])
-            with dpg.tooltip(self.columnAdd[_currentIndex]) as _tt: dpg.add_text(f"Add new column before Index {_currentIndex}.")
-            self.columnTT[_currentIndex] = _tt
+            # Headers
+            dpg.configure_item(self.columnHeaders[i],default_value=f"Index {i}")
+
+            # Remove
+            dpg.set_item_user_data(self.columnRemove[i],user_data=i)
+
 
         if self.numColumns>=1:
             dpg.configure_item(self.columnRemove[0],show=True)
@@ -334,7 +349,7 @@ class SchemaColumnEditor(DPGStage):
 
 
         print (f'{self.columnAdd=}')
-        print (f'{self.columnTT=}')
+        print (f'{self.columnTooltips=}')
 
         # Move all things down
         for column in self.columns[user_data:]:
@@ -345,9 +360,9 @@ class SchemaColumnEditor(DPGStage):
             dpg.set_item_user_data(self.columnRemove[columnIndex],user_data=columnIndex-1)
 
             #tooltip
-            dpg.delete_item(self.columnTT[columnIndex])
+            dpg.delete_item(self.columnTooltips[columnIndex])
             with dpg.tooltip(parent=self.columnAdd[columnIndex]) as _tt: dpg.add_text(f"Add new column before Index {columnIndex-1}.")
-            self.columnTT[columnIndex] = _tt
+            self.columnTooltips[columnIndex] = _tt
 
 
         for row in self.rows:
@@ -357,7 +372,7 @@ class SchemaColumnEditor(DPGStage):
         dpg.delete_item(self.columns[user_data])
 
         self.columnAdd.remove(self.columnAdd[user_data])
-        self.columnTT.remove(self.columnTT[user_data])
+        self.columnTooltips.remove(self.columnTooltips[user_data])
         self.columnHeaders.remove(self.columnHeaders[user_data])
         self.columnRemove.remove(self.columnRemove[user_data])
 
@@ -369,20 +384,17 @@ class SchemaColumnEditor(DPGStage):
         if self.numColumns==1:
             dpg.configure_item(self.columnRemove[0],show=False)
   
-
-
     def change_columns(self,sender,app_data):
         
         def add_columnToEnd(self,columnId):
 
-            #parent = self.columnEditor
-
             _newCol = dpg.add_child_window(width=self.tableColumnDefaultWidth,parent=self.columnEditor,border=False)
             self.columns.append(_newCol)
-            self.schemaColNames.append('new')
+            _newColIndex =self.columns.index(_newCol)
+
+            self.schemaColNames.append(f'New_@_{_newColIndex}')
             self.numColumns+=1
             #dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
-            _newColIndex =self.columns.index(_newCol)
 
             self.oneColumn(_newColIndex)
 

@@ -1,7 +1,7 @@
 
 
+
 import dearpygui.dearpygui as dpg
-dpg.create_context()
 from dataclasses import dataclass, field,asdict
 import pyodbc
 
@@ -14,69 +14,17 @@ from typing import Optional
 from File_Selector import FileSelector
 from File_Operations import csv_to_list,excel_to_list,mkdirWrapper
 
-
 from CustomPickler import get,set
-from FilenameConventionExtractor import FilenameExtractorManager,FilenameExtractor,FilenameConvention,setFixer
-from DirnameConventionExtractor import DirnameExtractor,DirnameConvention,setFixer
+from Schema_Extractor_FilenameConvention import FilenameConvention,FilenameExtractorManager,FilenameExtractor,setFixer
+from Schema_Extractor_DirnameConvention import DirnameConvention,DirnameExtractor,setFixer
 
+import time
+import Schema_Loader
+
+from Schema import Schema
 
 default_settings_path = "Redesign\\Settings"
 default_schema_path = "Redesign\\Schemas"
-
-import time
-
-import Schema_Loader
-
-@dataclass
-class Rubric:
-    name: str
-    description: str
-    color: tuple
-    col_to_tag_correspondence: dict
-
-@dataclass
-class Schema:
-    name: str = ''
-    desc: str = ''
-    color: tuple = (0,0,0,0)
-
-    schema_cols: list[str] = field(default_factory=lambda: [])
-    schema_tags: list[str] = field(default_factory=lambda: [])
-
-    outputSchemaDict: dict[str:any] =  field(default_factory=lambda: {})
-
-    rubrics: dict[str:dict] = field(default_factory=lambda: {}) # Name_of_RUBRIC
-    filenameConventions: list[FilenameConvention] = field(default_factory=lambda: [])
-    dirnameConvention: DirnameConvention = field(default_factory=lambda: DirnameConvention())
-
-    height = 100
-
-    def generate_mini(self,openeditor: callable):
-        with dpg.child_window(height=self.height) as self._id:
-
-            with dpg.group(horizontal=True):
-                dpg.add_color_button(label=f"{self.name}'s Color",default_value=self.color,height=self.height-16,width=50)
-                with dpg.group():
-                    dpg.add_input_text(label="Name",default_value=self.name,enabled=False,width=200)
-                    dpg.add_input_text(label="Subtitle",default_value=self.desc,enabled=False,width=200)
-                    dpg.add_button(label="Edit",callback=openeditor,user_data=self)
-                    #dpg.add_input_text(label="Name",default_value=self.name,enabled=False)
-                
-                with dpg.group():
-                    dpg.add_text("Rubrics")
-                    dpg.add_listbox(items=[])
-                    
-               
-
-@dataclass
-class DesiredFormat:
-    name: str
-    headersAKAColumns: list[str]
-    correspondenceDict: dict
-    # will be something like:
-    # { column1: 1, column2: 2, ...
-    #   or
-    # { column1: IMPORTANTCONCEPT1, column4: IMPORTANTCONCEPT2, ...
 
 import random
 def randomColor():
@@ -87,14 +35,12 @@ def randomColor():
 
     return (r,g,b,y)
 
-
 class SchemaEditor(DPGStage):
 
     label="Build Schema and add Input Rubrics"
-
-    height=800
-    width=1000
-    spacer_width = 25
+    height       =  800
+    width        =  1000
+    spacer_width =  25
 
     items = {
         "Existing":Schema_Loader.SchemaFromBuilder,
@@ -106,21 +52,12 @@ class SchemaEditor(DPGStage):
 
     scannableLocations = ["INPUT","STAGED"]
 
-    #filenameConventions: list[FilenameConvention]
-    #filenameConvention: filenameConvention
-    #dirnameConvention: DirnameConvention
-
     schemaLoader: Schema_Loader.SchemaLoader
 
     def main(self,**kwargs):
 
         self.mainpage = kwargs.get("mainpage")
-
         self.schema = kwargs.get("schema",Schema())
-        #self.schema = kwargs.get("schema",Schema())
-        #self.schema = kwargs.get("schema",Schema())
-
-        # NEED TO ALSO DO THIS FOR THE CONVENTIONS!!!
 
     def generate_id(self,**kwargs):
         with dpg.window(label=self.label,width=self.width,height=self.height) as self._id:
@@ -189,27 +126,28 @@ class SchemaEditor(DPGStage):
                     self.chooser = dpg.add_combo(items=[key for key,val in self.items.items()],default_value=[key for key,val in self.items.items()][0],label="Select how you want to build your converter schema.",callback=self.chooserCallback,width=140)
                     dpg.add_separator()
                     with dpg.group() as self.schemaGroup: 
-                        self.schemaLoader = self.items["Custom"](schema=self.schema,filenameExtractorManager = self.fns,dirnameExtractor = self.dns,color=dpg.get_value(self.color))
+                        self.schemaLoader = self.items["Custom"](schema=self.schema,filenameExtractorManager = self.fns,dirnameExtractor = self.dns)#,color=dpg.get_value(self.color))
   
     def changeColor(self,sender,app_data):
         
+        def propColors(sender,app_data):
+
+            _newColor = tuple(i*255 for i in app_data)
+
+            dpg.configure_item(self.color,default_value=_newColor)
+            dpg.configure_item(self.fns.color,default_value=_newColor)
+            dpg.configure_item(self.dns.color,default_value=_newColor)
+            dpg.configure_item(self.schemaLoader.colEditor.color,default_value=_newColor)
+
+            self.schema.color = _newColor
+
         with dpg.window(popup=True):
             dpg.add_color_picker(
                 no_small_preview=False,
                 no_side_preview = True,
-                callback=self.propColors)
+                callback=propColors)
+        
              
-    def propColors(self,sender,app_data):
-
-        _newColor = tuple(i*255 for i in app_data)
-
-        dpg.configure_item(self.color,default_value=_newColor)
-        dpg.configure_item(self.fns.color,default_value=_newColor)
-        dpg.configure_item(self.dns.color,default_value=_newColor)
-        dpg.configure_item(self.schemaLoader.colEditor.color,default_value=_newColor)
-
-        #self.color = _newColor
-
     def saveSchema(self):
         #+=========================================
         # Base check:
@@ -457,8 +395,6 @@ class TestSchema(DPGStage):  #SchemaRubricZipper
                 readArray,error = csv_to_list(_filepath)
             elif _filepath[-4:] == 'xlsx':
                 readArray,error = excel_to_list(_filepath)
-
-
 
             if readArray:
                 self.populateCols(readArray)

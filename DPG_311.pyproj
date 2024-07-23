@@ -36,15 +36,19 @@
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Redesign\Converter.py">
+    <Compile Include="Redesign\Rubric.py" />
+    <Compile Include="Redesign\Rubric_Editor.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Redesign\Old\Converter.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\DeadlinesDetector.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\DPG_Themes.py" />
-    <Compile Include="Redesign\FilenameConventionExtractor.py" />
-    <Compile Include="Redesign\DirnameConventionExtractor.py">
+    <Compile Include="Redesign\Schema_Extractor_FilenameConvention.py" />
+    <Compile Include="Redesign\Schema_Extractor_DirnameConvention.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\File_Operations.py" />
@@ -59,6 +63,7 @@
     <Compile Include="Redesign\Old\tableTest.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\Schema.py" />
     <Compile Include="Redesign\Schema_Loader.py">
       <SubType>Code</SubType>
     </Compile>
@@ -72,7 +77,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="PDF_Scraper.py" />
-    <Compile Include="Redesign\Column_Editor.py" />
+    <Compile Include="Redesign\Schema_Editor_Columns.py" />
     <Compile Include="Redesign\DefaultPathing.py" />
     <Compile Include="Redesign\Departments.py">
       <SubType>Code</SubType>

@@ -1,6 +1,6 @@
 
 from dearpygui import dearpygui as dpg
-from Column_Editor import SchemaColumnEditor
+from Schema_Editor_Columns import SchemaColumnEditor
 from SQLInterface import SQLLinker
 
 from File_Selector import FileSelector
@@ -8,7 +8,6 @@ from File_Operations import csv_to_list,excel_to_list
 from DPGStage import DPGStage
 
 import asyncio
-
 
 class SchemaLoader(DPGStage):
     default_color: tuple
@@ -18,7 +17,6 @@ class SchemaLoader(DPGStage):
     def main(self,**kwargs):
         self.default_color = kwargs.get("color")
         print(f"{self.default_color=}")
-
 
 class SchemaFromFile(SchemaLoader):
 
