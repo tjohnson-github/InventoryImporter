@@ -210,7 +210,7 @@ class MainPage(DPGStage):
             with dpg.group(horizontal=True):
                 dpg.add_button(label="Delete",callback=self.deleteSchema,user_data=i)
 
-                s.generate_mini(openeditor=self.openEditor)
+                s.generate_mini(openeditor=self.openSchemaEditor)
 
     def deleteSchema(self,sender,app_data,user_data):
 
@@ -224,6 +224,9 @@ class MainPage(DPGStage):
             s = self.schemas.pop(index)
             dpg.delete_item(s._id)
             self.refreshSchemas()
+            
+            os.remove(s.saveName)
+
             back()
 
         with dpg.window(popup=True) as _pop:
@@ -234,7 +237,7 @@ class MainPage(DPGStage):
             dpg.add_button(label="Y",callback = proceed)
             dpg.add_button(label="N",callback = back)
 
-    def openEditor(self,sender,app_data,user_data):
+    def openSchemaEditor(self,sender,app_data,user_data):
        
         _schema = user_data
 

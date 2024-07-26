@@ -36,6 +36,9 @@
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\Color_Manager.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\Rubric.py" />
     <Compile Include="Redesign\Rubric_Editor.py">
       <SubType>Code</SubType>

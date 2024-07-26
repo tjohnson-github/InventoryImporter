@@ -42,7 +42,11 @@ class DirnameExtractor(DPGStage):
         #self.availTags = kwargs.get("tags",["~"])
         self.editor = kwargs.get("editor")
 
-        self.convention = kwargs.get("dirnameConvention",DirnameConvention())
+        self.convention = kwargs.get("dirnameConvention")
+
+        if not self.convention: 
+            self.convention = DirnameConvention()
+
         print (f'{self.convention.tags}')
 
         self.availTags = [self.default_option] + self.convention.tags

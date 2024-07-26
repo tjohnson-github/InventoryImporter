@@ -18,23 +18,19 @@ from Schema_Extractor_FilenameConvention import FilenameConvention,FilenameExtra
 from Schema_Extractor_DirnameConvention import DirnameConvention,DirnameExtractor,setFixer
 
 import time
+from Rubric_Editor import LinkRubricToSchema
 
-
-@dataclass
-class Rubric:
-    name: str
-    description: str
-    color: tuple
-    col_to_tag_correspondence: dict
 
 @dataclass
 class Schema:
+    #saveName: str = field(init= False)
+
     name: str = ''
     desc: str = ''
     color: tuple = (0,0,0,0)
 
-    schema_cols: list[str] = field(default_factory=lambda: [])
-    schema_tags: list[str] = field(default_factory=lambda: [])
+    #schema_cols: list[str] = field(default_factory=lambda: [])
+    #schema_tags: list[str] = field(default_factory=lambda: [])
 
     outputSchemaDict: dict[str:any] =  field(default_factory=lambda: {})
 
@@ -43,6 +39,13 @@ class Schema:
     dirnameConvention: DirnameConvention = field(default_factory=lambda: DirnameConvention())
 
     height = 100
+
+
+    def save(self,path):
+
+        self.saveName = f'{path}\\{self.name}.schema'
+
+        set(self.saveName,self)
 
     def generate_mini(self,openeditor: callable):
         with dpg.child_window(height=self.height) as self._id:
@@ -71,6 +74,15 @@ class Schema:
                         user_data=self)
                 
                 with dpg.group():
-                    dpg.add_text("Rubrics")
-                    dpg.add_listbox(items=[])
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("Rubrics")
+                        dpg.add_spacer(width=40)
+                        dpg.add_button(label="Link Source Rubric",callback=self.openRubricLinker)
+
+                    #for key,val in self.rubrics.items()
+                    z= dpg.add_button()
+                    self.rubric_viz = dpg.add_listbox(items=[z,z,z])
                     
+
+    def openRubricLinker(self):
+        LinkRubricToSchema(schema=self)
