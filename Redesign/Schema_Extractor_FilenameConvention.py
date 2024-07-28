@@ -4,6 +4,8 @@ from DPGStage import DPGStage
 import dearpygui.dearpygui as dpg
 from dataclasses import dataclass,field,asdict
 
+import copy
+
 def setFixer(iterable):
     return list(set(iterable))
 
@@ -51,7 +53,7 @@ class FilenameExtractorManager(DPGStage):
     def main(self,**kwargs):
 
         self.editor = kwargs.get("editor")
-        self.conventions = kwargs.get("filenameConventions")
+        self.conventions = copy.deepcopy(kwargs.get("filenameConventions"))
 
     def generate_id(self,**kwargs):
         
@@ -86,6 +88,8 @@ class FilenameExtractorManager(DPGStage):
                             _new = dpg.add_tab_button(label='+',callback=self.addNew)
                             self.extractorTabs.append(_new)
 
+        # ============
+        # DEPENDING ON WHETHER NEW OR LOADED WITH (fncs=[]); HIDE THE INTERFACE
         if self.conventions == []: 
             self.disabled = True
             dpg.configure_item(self.doNOtUse,default_value=self.disabled)
@@ -110,6 +114,12 @@ class FilenameExtractorManager(DPGStage):
 
     def deleteExtractor(self,extractor):
 
+        _id = self.extractors.index(extractor)
+        print(f'\t{_id=}')
+        print(f'{len(self.conventions)=}')
+        print(f'{len(self.extractors)=}')
+        print(f'{len(self.extractorTabs)=}')
+
         try:
             _id = self.extractors.index(extractor)
 
@@ -132,6 +142,12 @@ class FilenameExtractorManager(DPGStage):
             print(f"{e}")
             #print (self.extractors)
 
+        print("----------")
+        print(f'{len(self.conventions)=}')
+        print(f'{len(self.extractors)=}')
+        print(f'{len(self.extractorTabs)=}')
+        print("===========================================")
+
     def displayExtractors(self):
         pass
 
@@ -139,7 +155,8 @@ class FilenameExtractorManager(DPGStage):
     def addNew(self):
 
         # Reset all ----------------------------
-        #print(self.extractorTabs)
+
+        print(self.extractorTabs)
 
         for tab in self.extractorTabs:
             dpg.delete_item(tab)
@@ -204,6 +221,8 @@ class FilenameExtractorManager(DPGStage):
 
         for extractor in self.extractors:
             _fnsConventions.append(extractor.attemptToSave())
+
+        print(f'{len(_fnsConventions)} Filename Conventions saved!')
 
         return _fnsConventions
 
@@ -453,14 +472,14 @@ class FilenameExtractor(DPGStage):
 
     def updateTagList(self,items):
 
-        print(f"GETTING ITEMS FOR FILENAME:: {items}")
+        #print(f"GETTING ITEMS FOR FILENAME:: {items}")
         dpg.configure_item(self._tagNote1,show=False)
         dpg.configure_item(self._tagNote2,show=False)
 
         # get unique elements
         # add the placeholder
         _newTags = [self.default_option]+[x.rstrip() for x in items]
-        print(f'{self.availTags=}')
+        #print(f'{self.availTags=}')
 
         #if len(_newTags)!=len(self.availTags):
 

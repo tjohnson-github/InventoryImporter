@@ -2,7 +2,7 @@
 from dearpygui import dearpygui as dpg
 from Schema_Extractor_FilenameConvention import FilenameExtractor,FilenameExtractorManager
 from Schema_Extractor_DirnameConvention import DirnameExtractor
-
+import random
 from DPGStage import DPGStage
 from dataclasses import dataclass, field
 import asyncio
@@ -65,7 +65,9 @@ class SchemaColumnEditor(DPGStage):
 
         # Turn the complex dict obj into ez lists, which then save over the dict object in save
         self.schemaColNames = self.schema.outputSchemaDict.get("Column Name",[f'Test Name {x}' for x in range(1,6)])
-        self.tags    = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i in range(1,6)])
+        self.tags           = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i in range(1,6)])
+        self.necessaryBox   = self.schema.outputSchemaDict.get("Necessary?",[False for i in range(1,6)])
+
         self.numColumns     = len(self.schemaColNames)
 
         self.filenameExtractorManager = kwargs.get("filenameExtractorManager")
@@ -199,6 +201,29 @@ class SchemaColumnEditor(DPGStage):
 
         parent=self.columns[columnIndex]
 
+        if row.name == "Column Name":
+            _default_value = self.schemaColNames[columnIndex]
+            _callback = None
+            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
+
+        elif row.name =="Tag":
+            try:
+                _default_value = self.tags[columnIndex]
+            except:
+                _default_value=""
+            _callback = row.callback
+            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
+        elif row.name=="Necessary?":
+            with dpg.group(horizontal=True,parent=parent):
+                dpg.add_spacer(width=40)
+                _default_value= self.necessaryBox[columnIndex]#self.schema.outputSchemaDict.get("Necessary?")[columnIndex]
+                _ = dpg.add_checkbox(default_value=_default_value)
+        elif row.name=="Operations":
+           with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
+               pass
+
+        return _
+
         if row.type==str:
             if row.name == "Column Name":
                 _default_value = self.schemaColNames[columnIndex]
@@ -297,6 +322,7 @@ class SchemaColumnEditor(DPGStage):
         self.columns.insert(index_to_add_before,_newCol)
         self.schemaColNames.insert(index_to_add_before,f'New_@_{index_to_add_before}')
         self.tags.insert(index_to_add_before,f'New_@_{index_to_add_before}')
+        self.necessaryBox.insert(index_to_add_before,False)
 
         self.numColumns+=1
 
@@ -338,18 +364,20 @@ class SchemaColumnEditor(DPGStage):
 
     def delete_column(self,sender,app_data,user_data):
 
-        print(f'{sender=}')
-        print(f'{app_data=}')
-        print(f'{user_data=}')
+        #print(f'{sender=}')
+        #print(f'{app_data=}')
+        #print(f'{user_data=}')
 
         try:
             self.schemaColNames.remove(self.schemaColNames[user_data])
+            self.tags.remove(self.tags[user_data])
+            self.necessaryBox.remove(self.necessaryBox[user_data])
         except Exception as e:
             print("greater than schema index:",e)
 
 
-        print (f'{self.columnAdd=}')
-        print (f'{self.columnTooltips=}')
+        #print (f'{self.columnAdd=}')
+        #print (f'{self.columnTooltips=}')
 
         # Move all things down
         for column in self.columns[user_data:]:
@@ -393,23 +421,11 @@ class SchemaColumnEditor(DPGStage):
             _newColIndex =self.columns.index(_newCol)
 
             self.schemaColNames.append(f'New_@_{_newColIndex}')
+            self.tags.append(f'New_@_{_newColIndex}')
+            self.necessaryBox.append(False)
+
             self.numColumns+=1
-            #dpg.configure_item(self.columnIndexSetter,default_value=self.numColumns-1,max_value=self.numColumns-1)
-
             self.oneColumn(_newColIndex)
-
-            '''with dpg.group(horizontal=True,parent=_newCol):
-                _bf = dpg.add_button(arrow=True,direction=0,callback=self.addColumn,user_data=_newColIndex)
-                with dpg.tooltip(_bf): dpg.add_text(f"Add new column before Index {_newColIndex}.")
-                self.columnAdd.append(_bf)
-                _= dpg.add_text(f"Index {_newColIndex}")
-                self.columnHeaders.append(_)
-                _x= dpg.add_button(label='X',callback=self.delete_column,user_data=_newColIndex)
-                self.columnRemove.append(_x)
-
-                for row in self.rows:
-                    _newItem = self.generateInputByType(row=row,columnIndex=_newColIndex)
-                    row.items.append(_newItem)'''
 
             if self.numColumns>=1:
                 dpg.configure_item(self.columnRemove[0],show=True)
@@ -418,6 +434,8 @@ class SchemaColumnEditor(DPGStage):
 
             try:
                 self.schemaColNames.remove(self.schemaColNames[columnId])
+                self.tags.remove(self.tags[columnId])
+                self.necessaryBox.remove(self.necessaryBox[columnId])
             except:
                 print("greater than schema index")
 

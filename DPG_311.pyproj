@@ -70,6 +70,9 @@
     <Compile Include="Redesign\Schema_Loader.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\scraper.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Reference\disabled_theme.py">
       <SubType>Code</SubType>
     </Compile>

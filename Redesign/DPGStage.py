@@ -45,6 +45,55 @@ class DPGStage:
     def delete(self,**kwargs):
         dpg.delete_item(self._id)
 
+class ObjTabPattern(DPGStage):
+
+    items: list[any]
+
+    def main(self,**kwargs):
+
+        self.itemDict = kwargs.get("itemsDict",{})
+        self.addNewCallback = kwargs.get("addNewCallback",None)
+        self.label = f' {kwargs.get("label","")}'
+
+        #self.itemList = kwargs.get("items",[])
+        self.itemsKeysSorted = list(self.itemDict.keys())
+        self.itemsKeysSorted.sort()
+
+    def generate_id(self,**kwargs):
+
+        self.tab_dict = {}
+
+        with dpg.tab_bar() as self._id:
+
+            self.visualizeTabs()
+    
+    def clearTabs(self):
+
+        for tab in list(self.tab_dict.values()):
+            dpg.delete_item(tab)
+
+        dpg.delete_item(self.new)
+
+    def visualizeTabs(self):
+      
+        for i,objKey in enumerate(self.itemsKeysSorted):
+
+            with dpg.tab(label=f"{objKey}") as _tab:
+
+                self.itemDict[objKey].generate_mini()
+
+            self.tab_dict.update({objKey:_tab})
+
+        self.new = dpg.add_tab_button(label=f'+{self.label}',callback=self.addNewWrapper)
+        print(self.new)
+
+    def addNewWrapper(self,sender,app_data,user_data):
+        self.addNewCallback(after = self.afterAddNew)
+
+    def afterAddNew(self):
+        self.clearTabs()
+        dpg.push_container_stack(self._id)
+        self.visualizeTabs()
 
 def debugDPG(func): 
 

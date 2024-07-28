@@ -6,7 +6,7 @@ import pyodbc
 
 import CustomPickler
 
-from DPGStage import DPGStage
+from DPGStage import DPGStage,ObjTabPattern
 from DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 from typing import Optional
@@ -18,7 +18,7 @@ from Schema_Extractor_FilenameConvention import FilenameConvention,FilenameExtra
 from Schema_Extractor_DirnameConvention import DirnameConvention,DirnameExtractor,setFixer
 
 import time
-from Rubric_Editor import LinkRubricToSchema
+from Rubric_Editor import RubricEditor
 
 
 @dataclass
@@ -44,8 +44,24 @@ class Schema:
     def save(self,path):
 
         self.saveName = f'{path}\\{self.name}.schema'
-
         set(self.saveName,self)
+
+    @classmethod
+    def generate_key(cls):
+        pass
+        with dpg.child_window(height=int(cls.height/4)) as _key_id:
+            
+            with dpg.group(horizontal=True):
+
+                dpg.add_color_button(label=f"Rubric Color",default_value=(0,0,0,0),height=dpg.get_item_height(_key_id)-16,width=50)
+
+                with dpg.group():
+
+                    dpg.add_input_text(
+                        #label="Name",
+                        default_value="Rubric Name",
+                        enabled=False,
+                        width=200)
 
     def generate_mini(self,openeditor: callable):
         with dpg.child_window(height=self.height) as self._id:
@@ -73,16 +89,20 @@ class Schema:
                         callback=openeditor,
                         user_data=self)
                 
-                with dpg.group():
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("Rubrics")
-                        dpg.add_spacer(width=40)
-                        dpg.add_button(label="Link Source Rubric",callback=self.openRubricLinker)
+                #=================================================
+                _items = list(self.rubrics.keys())
+                _items.sort()
 
-                    #for key,val in self.rubrics.items()
-                    z= dpg.add_button()
-                    self.rubric_viz = dpg.add_listbox(items=[z,z,z])
-                    
+                dpg.add_text("R\nU\nB\nR\nI\nC")
+                ObjTabPattern(itemsDict=self.rubrics,addNewCallback=self.openRubricLinker,label="Link New Source Rubric")
 
-    def openRubricLinker(self):
-        LinkRubricToSchema(schema=self)
+
+    def listboxTest(self,sender,app_data,user_data):
+        print(sender,app_data,user_data)
+
+    def openRubricLinker(self,after:callable = None):
+        # After is a function requested by the OBjTabPattern to be performed after the editor is closed/saved.
+        RubricEditor(schema=self,onCloseAfter=after)
+
+
+    

@@ -3,13 +3,15 @@ from DPGStage import DPGStage
 from dearpygui import dearpygui as dpg
 from File_Operations import csv_to_list,excel_to_list,mkdirWrapper
 from File_Selector import FileSelector
-
+from Rubric import Rubric
 #from Schema import Schema
 
 from Color_Manager import randomColor
 
+default_settings_path = "Redesign\\Settings"
+default_schema_path = "Redesign\\Schemas"
 
-class LinkRubricToSchema(DPGStage):  #SchemaRubricZipper
+class RubricEditor(DPGStage):  #SchemaRubricZipper
  
     label="Test Adding a Rubric"
 
@@ -39,6 +41,7 @@ class LinkRubricToSchema(DPGStage):  #SchemaRubricZipper
 
         _necessary = self.schema.outputSchemaDict["Necessary?"]
         print (zip(_uncleanedTags,_necessary))
+        self.necessaryTagsReminder = zip(_uncleanedTags,_necessary)
 
     def generate_id(self,**kwargs):
 
@@ -106,7 +109,10 @@ class LinkRubricToSchema(DPGStage):  #SchemaRubricZipper
 
         #===============================================
         dpg.add_separator()
-
+        dpg.add_text("Necessary Fields")
+        dpg.add_text(list(self.necessaryTagsReminder))
+        #===============================================
+        dpg.add_separator()
         #dpg.add_combo(items=self.tags)
         self.suggest = dpg.add_checkbox(label="Suggest Tags based on Input?",default_value=True)
         dpg.add_separator
@@ -136,14 +142,17 @@ class LinkRubricToSchema(DPGStage):  #SchemaRubricZipper
 
         print(_col_to_tag_correspondence)
 
+        #=========================================
         _rubric = Rubric(
             name        =   dpg.get_value(self.nameInput),
             description =   dpg.get_value(self.desc),
             color       =   dpg.get_value(self.color),
             col_to_tag_correspondence = _col_to_tag_correspondence
             )
-
+        #=========================================
         self.schema.rubrics.update({_rubric.name:_rubric})
+        self.schema.save(default_schema_path)
+        print("Rubric Saved!!!")
 
     def loadFile(self):
 

@@ -1,4 +1,7 @@
 
+from dataclasses import dataclass
+from dearpygui import dearpygui as dpg
+
 @dataclass
 class Rubric:
     name: str
@@ -8,10 +11,10 @@ class Rubric:
 
     height = 50
 
-    def generate_mini(self,openeditor: callable):
-        with dpg.child_window(height=self.height) as self._id:
+    def generate_mini(self,openeditor: callable=None):
+        #with dpg.child_window(height=self.height) as self._id:
 
-            with dpg.group(horizontal=True):
+            with dpg.group(horizontal=True) as self._id:
 
                 dpg.add_color_button(label=f"{self.name}'s Color",default_value=self.color,height=self.height-16,width=50)
 
@@ -25,7 +28,7 @@ class Rubric:
 
                     dpg.add_input_text(
                         label="Description",
-                        default_value=self.desc,
+                        default_value=self.description,
                         enabled=False,
                         width=200)
 
@@ -33,6 +36,3 @@ class Rubric:
                         label="Edit",
                         callback=openeditor,
                         user_data=self)
-
-    def openRubricLinker(self):
-        LinkRubricToSchema(schema=self)

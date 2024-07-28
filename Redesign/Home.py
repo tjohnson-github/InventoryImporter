@@ -41,6 +41,7 @@ from File_Operations import csv_to_list,excel_to_list
 from CustomPickler import get,set
 
 from Schema_Editor import SchemaEditor
+from Schema import Schema
 
 from dataclasses import dataclass
 
@@ -174,6 +175,7 @@ class MainPage(DPGStage):
 
             with dpg.collapsing_header(label="Schemas",default_open=True):
                 dpg.add_separator()
+                Schema.generate_key()
                 with dpg.group() as self.schemaViewer:
                     pass
 
@@ -197,8 +199,6 @@ class MainPage(DPGStage):
                 except Exception as e:
                     print(f"Something wrong with file:{f}")
                     print(e)
-
-        print(f"{len(self.schemas)} schema found!")
 
     def refreshSchemas(self):
 

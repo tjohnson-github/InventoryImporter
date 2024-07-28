@@ -32,6 +32,7 @@ class DirnameExtractor(DPGStage):
     #name_slices = ["Source ID","Operation Type","Example"]
 
     disabled:bool
+    absent: bool = False
 
     label = "Directory Naming Convention Extraction"
     scans = "directories"
@@ -45,6 +46,7 @@ class DirnameExtractor(DPGStage):
         self.convention = kwargs.get("dirnameConvention")
 
         if not self.convention: 
+            self.absent = True
             self.convention = DirnameConvention()
 
         print (f'{self.convention.tags}')
@@ -101,6 +103,11 @@ class DirnameExtractor(DPGStage):
                             dpg.add_text("Example            :")
                             self.exampleVis = dpg.add_input_text(enabled=False)
                             self.setExample()
+        
+        if self.absent:
+
+            dpg.configure_item(self.doNOtUse,default_value=True)
+            self.hide(sender=self.doNOtUse,app_data=dpg.get_value(self.doNOtUse))
 
     def hide(self,sender,app_data):
 
@@ -269,7 +276,7 @@ class DirnameExtractor(DPGStage):
     def updateTagList(self,items):
 
         dpg.configure_item(self._tagNote1,show=False)
-        print(f"GETTING ITEMS FOR DIRNAME:: {items}")
+        #print(f"GETTING ITEMS FOR DIRNAME:: {items}")
         # get unique elements
         #minItems = list(set(items))
         # add the placeholder
@@ -329,6 +336,11 @@ class DirnameExtractor(DPGStage):
             return _new
 
        
-        _ = save()
+        if dpg.get_value(self.doNOtUse):
+            print("No DIRNAME CONVENTIONS used")
+            _ = None
+        else:
+            print("Saving DIRNAME")
+            _ = save()
         
         return _

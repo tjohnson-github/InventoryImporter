@@ -21,12 +21,13 @@ from Schema_Extractor_DirnameConvention import DirnameConvention,DirnameExtracto
 import time
 import Schema_Loader
 
-from Rubric_Editor import LinkRubricToSchema
+from Rubric_Editor import RubricEditor
 
 from Schema import Schema
 
 default_settings_path = "Redesign\\Settings"
 default_schema_path = "Redesign\\Schemas"
+
 
 class SchemaEditor(DPGStage):
 
@@ -52,7 +53,7 @@ class SchemaEditor(DPGStage):
         self.mainpage = kwargs.get("mainpage")
         self.schema = kwargs.get("schema",Schema())
 
-        print(f'{i}:\t{field.name}\t{getattr(self.schema,field.name)}\n' for i,field in enumerate(fields(self.schema)))
+        #print(f'{i}:\t{field.name}\t{getattr(self.schema,field.name)}\n' for i,field in enumerate(fields(self.schema)))
 
     def generate_id(self,**kwargs):
         with dpg.window(label=self.label,width=self.width,height=self.height) as self._id:
@@ -151,10 +152,10 @@ class SchemaEditor(DPGStage):
             return
         #+=========================================
         # GATHER DIRNAME CONVENTIONS
-        self.dirnameConvention=None
-        if not dpg.get_value(self.dns.doNOtUse):
-            _dncs = self.dns.attemptToSave()
-            self.dirnameConvention = _dncs
+        #self.dirnameConvention=None
+        #if not dpg.get_value(self.dns.doNOtUse):
+        _dncs = self.dns.attemptToSave()
+        self.dirnameConvention = _dncs
 
         #+=========================================
         # GATHER FILENAME CONVENTIONS
@@ -200,12 +201,6 @@ class SchemaEditor(DPGStage):
              rubrics            =   {}
         )
 
-
-        '''_rDict = asdict(_r)
-        for key,val in _rDict.items():
-            print(f'{key}\t:\t{val}')'''
-
-
         #+=============================================================
         # Save
         mkdirWrapper(default_schema_path)
@@ -219,8 +214,13 @@ class SchemaEditor(DPGStage):
 
         try: # to replace the old one if it exists
             _old_schema = self.mainpage.schemas[self.mainpage.schemas.index(self.schema)]
-            os.remove(_old_schema.saveName)
+            
+            if _old_schema.saveName != _r.saveName:
+                os.remove(_old_schema.saveName)
+                print(f"{_old_schema.saveName} Removed!")
+
             self.mainpage.schemas[self.mainpage.schemas.index(self.schema)] = _r
+            print(f"{_r.saveName} Added!")
 
         except Exception as e:
             print(e)
@@ -241,36 +241,37 @@ class SchemaEditor(DPGStage):
         #self.schema = self.saveSchema()
         self.saveSchema()
         # NOW you need to EDIT AND SAVE RUBRICS
-        self.testSchema = LinkRubricToSchema(schema=self.schema)
+        self.testSchema = RubricEditor(schema=self.schema)
         
 
     def chooserCallback(self,sender,app_data,user_data):
+
+        def filterChoice(sender,app_data,user_data):
+
+            try:
+                self.deletePopup(sender,app_data,user_data)
+            except:
+                # does not yet exist
+                pass
+
+            dpg.delete_item(self.schemaGroup,children_only=True)
+            dpg.push_container_stack(self.schemaGroup)
+
+            self.schemaLoader = self.items[user_data](filenameExtractor = self.fns,dirnameExtractor = self.dns,color=dpg.get_value(self.color))
+
+            self.chosen = True
 
         if self.chosen:
             with dpg.window(popup=True,width=300,height=50) as self.confirmationPopup:
                 dpg.add_text("Are you sure? This will reset your current schema.")
                 with dpg.group(horizontal=True):
-                    dpg.add_button(label="Yes",callback=self.filterChoice,user_data=app_data)
+                    dpg.add_button(label="Yes",callback=filterChoice,user_data=app_data)
                     dpg.add_spacer(width=30)
                     dpg.add_button(label="No",callback=self.deletePopup)
         else:
-            self.filterChoice(sender,app_data,user_data=app_data)
+            filterChoice(sender,app_data,user_data=app_data)
 
     def deletePopup(self,sender,app_data,user_data):
         dpg.delete_item(self.confirmationPopup)
 
-    def filterChoice(self,sender,app_data,user_data):
-
-        print(user_data)
-        try:
-            self.deletePopup(sender,app_data,user_data)
-        except:
-            # does not yet exist
-            pass
-
-        dpg.delete_item(self.schemaGroup,children_only=True)
-        dpg.push_container_stack(self.schemaGroup)
-
-        self.schemaLoader = self.items[user_data](filenameExtractor = self.fns,dirnameExtractor = self.dns,color=dpg.get_value(self.color))
-
-        self.chosen = True
+    
