@@ -175,7 +175,10 @@ class MainPage(DPGStage):
 
             with dpg.collapsing_header(label="Schemas",default_open=True):
                 dpg.add_separator()
-                Schema.generate_key()
+                with dpg.group(horizontal=True):
+                    _ = dpg.add_button(label="Scan\nAll",width=30)
+                    with dpg.tooltip(_): dpg.add_text("Scan all input folders and generate outputs for each schema and rubric below")
+                    Schema.generate_key()
                 with dpg.group() as self.schemaViewer:
                     pass
 
@@ -188,7 +191,7 @@ class MainPage(DPGStage):
 
         for filename in os.listdir(default_schema_path):
             f = os.path.join(default_schema_path, filename)
-            # checking if it is a file
+
             if os.path.isfile(f):
 
                 try:
@@ -203,14 +206,15 @@ class MainPage(DPGStage):
     def refreshSchemas(self):
 
         dpg.delete_item(self.schemaViewer,children_only=True)
-
         dpg.push_container_stack(self.schemaViewer)
 
         for i,s in enumerate(self.schemas):
             with dpg.group(horizontal=True):
-                dpg.add_button(label="Delete",callback=self.deleteSchema,user_data=i)
 
-                s.generate_mini(openeditor=self.openSchemaEditor)
+                dpg.add_button(label="S\nC\nA\nN",user_data=i,height=Schema.height,width=30)
+                s.generate_mini(openeditor=self.openSchemaEditor,deleteSchema=self.deleteSchema,index=i)
+                
+
 
     def deleteSchema(self,sender,app_data,user_data):
 
@@ -230,12 +234,19 @@ class MainPage(DPGStage):
             back()
 
         with dpg.window(popup=True) as _pop:
-            with dpg.group(horizontal=True):
+            with dpg.group():
                 dpg.add_text(f"Are you sure you wish you delete ")
-                dpg.add_input_text(default_value=f"{self.schemas[index].name}",enabled=False)
-                dpg.add_text(f"?")
-            dpg.add_button(label="Y",callback = proceed)
-            dpg.add_button(label="N",callback = back)
+                
+                with dpg.group(horizontal=True):
+                    dpg.add_input_text(default_value=f"{self.schemas[index].name}",enabled=False)
+                    dpg.add_text(f"?")
+            
+                dpg.add_separator()
+
+                with dpg.group(horizontal=True):
+                    dpg.add_spacer(width=40)
+                    dpg.add_button(label="Yes",callback = proceed)
+                    dpg.add_button(label="No",callback = back)
 
     def openSchemaEditor(self,sender,app_data,user_data):
        

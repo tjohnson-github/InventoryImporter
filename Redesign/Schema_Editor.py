@@ -53,8 +53,6 @@ class SchemaEditor(DPGStage):
         self.mainpage = kwargs.get("mainpage")
         self.schema = kwargs.get("schema",Schema())
 
-        #print(f'{i}:\t{field.name}\t{getattr(self.schema,field.name)}\n' for i,field in enumerate(fields(self.schema)))
-
     def generate_id(self,**kwargs):
         with dpg.window(label=self.label,width=self.width,height=self.height) as self._id:
 
@@ -89,7 +87,7 @@ class SchemaEditor(DPGStage):
                                 dpg.add_button(
                                     label="Load a file right now to begin adding input->output schema correspondence rubric",
                                     width=300,
-                                    callback=self.goToTestSchema)
+                                    callback=self.openRubricEditor)
 
                         with dpg.group(horizontal=True):
                             dpg.add_text("*",color=(255,0,0))
@@ -204,11 +202,7 @@ class SchemaEditor(DPGStage):
         #+=============================================================
         # Save
         mkdirWrapper(default_schema_path)
-
         _r.save(path=default_schema_path)
-
-
-
         #+=============================================================
         # Refresh mainpage
 
@@ -226,23 +220,15 @@ class SchemaEditor(DPGStage):
             print(e)
             self.mainpage.schemas.append(_r) 
 
-
-
         self.mainpage.refreshSchemas()
-
         self.schema = _r
         #+=============================================================
         # Close this window
         dpg.delete_item(self._id)
 
-    def goToTestSchema(self):
-        # okay here it is
-        # give ability to make multiple compatible conventions?
-        #self.schema = self.saveSchema()
+    def openRubricEditor(self):
         self.saveSchema()
-        # NOW you need to EDIT AND SAVE RUBRICS
         self.testSchema = RubricEditor(schema=self.schema)
-        
 
     def chooserCallback(self,sender,app_data,user_data):
 
