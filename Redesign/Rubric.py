@@ -25,10 +25,13 @@ class Rubric:
 #        - 
 #        - 
 
+
+
+
+
 class RubricDisplayForSchema(DPGStage):
 
     height = 50
-
 
     def main(self,**kwargs):
 
@@ -60,9 +63,28 @@ class RubricDisplayForSchema(DPGStage):
                 callback=openEditor,
                 user_data=self.rubric)
 
-            dpg.add_spacer(width=10)
+            dpg.add_spacer(width=6)
 
             dpg.add_button(
                 label="X",
                 callback=deleteRubric,
                 user_data=self.rubric)
+
+
+from typing import Any
+class StageFilter:
+
+    object: Any
+    filter = {
+        }
+    
+    def __init__(self,object,requested="Normal"):
+
+        self.filter[requested](object)
+
+
+class RubricFilter(StageFilter):
+    filter = {
+        "forSchema": RubricDisplayForSchema,
+
+        }

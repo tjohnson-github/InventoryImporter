@@ -42,7 +42,9 @@ class Schema:
     dirnameConvention: DirnameConvention = field(default_factory=lambda: DirnameConvention())
 
     height = 100
+    width = 730
 
+    #scansFrom: str = 'default'
 
     def save(self,path):
 
@@ -72,7 +74,7 @@ class Schema:
         
         with dpg.group(horizontal=True) as self._id:
 
-            with dpg.child_window(height=self.height,width=700):
+            with dpg.child_window(height=self.height,width=self.width):
 
                 with dpg.group(horizontal=True):
 

@@ -45,7 +45,7 @@ from Schema import Schema
 
 from dataclasses import dataclass
 
-default_settings_path = "Redesign\\Settings"
+default_settings_path = "Redesign\\Settings"  
 default_schema_path = "Redesign\\Schemas"
 
 
@@ -63,7 +63,7 @@ class MainPage(DPGStage):
     tutorials: bool  = False
 
     height: int  = 500
-    width: int   = 800
+    width: int   = 830
 
     settingsName = f'{default_settings_path}\\generalSettings.txt'
 
@@ -211,10 +211,32 @@ class MainPage(DPGStage):
         for i,s in enumerate(self.schemas):
             with dpg.group(horizontal=True):
 
-                dpg.add_button(label="S\nC\nA\nN",user_data=i,height=Schema.height,width=30)
+                dpg.add_button(label="S\nC\nA\nN",user_data=[s],height=Schema.height,width=30,callback=self.beginScan)
                 s.generate_mini(openeditor=self.openSchemaEditor,deleteSchema=self.deleteSchema,index=i)
                 
+    def beginScan(self,sender,app_data,user_data):
+        
+        schemas_selected:list = user_data
 
+        print(f"Scanning: {[x.name for x in schemas_selected]}")
+        print (DefaultPathing.getPaths())
+
+        paths = DefaultPathing.getPaths()
+        print (paths.input)
+
+        # Show errors if default paths do not exist!
+        # make the paths upon start 
+
+        1. generate a list of scanned objects 
+
+        2. check to make sure the file extensions match the schema
+
+        3. for each of them, display similarly to the RUBRIC IMPORTER:
+           the tag/name preview 
+
+        4. if a new file type: make a button that opens the editor
+            AND saves it to schema
+            AND applies the rules immediately to that run through.
 
     def deleteSchema(self,sender,app_data,user_data):
 
@@ -253,6 +275,7 @@ class MainPage(DPGStage):
         _schema = user_data
 
         SchemaEditor(mainpage=self,schema=_schema)
+
 
     def setDirs(self,sender,app_data,user_data):
 

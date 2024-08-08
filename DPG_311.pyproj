@@ -136,6 +136,7 @@
     <InterpreterReference Include="Global|PythonCore|3.11" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Redesign\IO\" />
     <Folder Include="Reference\" />
     <Folder Include="Old\" />
     <Folder Include="Redesign\" />

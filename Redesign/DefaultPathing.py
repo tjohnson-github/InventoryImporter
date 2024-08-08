@@ -22,9 +22,6 @@ class DefaultPaths:
     processed: str
     rubric: str
 
-def test(inputName,saveName):
-    print("HERE WE GOOOO",f'{inputName=}',f'{saveName=}')
-
 
 class DefaultPathing(DPGStage):
 
@@ -32,6 +29,11 @@ class DefaultPathing(DPGStage):
     parent_folder = "ConverterFiles"
     settingsName = f'{default_settings_path}\\defaultPathing.txt'
    
+    @classmethod
+    def getPaths(cls):
+
+        return get(cls.settingsName)
+
     def findDefault(self):
         try:
            _ = get(self.settingsName)
