@@ -25,7 +25,7 @@
 
 import dearpygui.dearpygui as dpg
 dpg.create_context()
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field,asdict
 import pyodbc
 import os
 
@@ -44,9 +44,20 @@ from Schema_Editor import SchemaEditor
 from Schema import Schema
 
 from dataclasses import dataclass
+import fnmatch
+
+from Vendorfile import InputFile
 
 default_settings_path = "Redesign\\Settings"  
 default_schema_path = "Redesign\\Schemas"
+
+
+@dataclass
+class UserDataJSON:
+    secondary_callback: callable
+    on_close: callable
+    after_good: callable
+    after_bad: callable
 
 
 class MainPage(DPGStage):
@@ -173,6 +184,39 @@ class MainPage(DPGStage):
                 dpg.add_text("This allows for both a 1:Many and a Many:1 ")
                 dpg.add_text("*NOTE: While we do filter for NAMING CONVETIONS if given, we do not filter for INPUT HEADERS because this program enables users create NEW correspondence rubrics between INPUT<->OUTPUT schemas on the go.")
 
+            
+            def bringAttentionToDirectories():
+
+                paths = DefaultPathing.getPaths()
+
+                pathingVals = list(asdict(paths).values())
+
+                print([os.path.exists(path) for path in pathingVals])
+                print([os.path.exists(path) for path in pathingVals].count(False)>0)
+
+                def hide_if_dirs():
+                    if [os.path.exists(path) for path in pathingVals].count(False)==0:
+                        dpg.delete_item(self.dirAttention)
+
+                if [os.path.exists(path) for path in pathingVals].count(False)>0:
+                    with dpg.group() as self.dirAttention:
+                        dpg.add_separator()
+                        dpg.add_text("~~~~~ Attention ~~~~~")
+                        dpg.add_text("This program has a particular file system you will need to grow accustomed to.")
+                        dpg.add_text("It requires folders for")
+                        dpg.add_text("pre-processed input files",bullet=True)
+                        dpg.add_text("post-processed files",bullet=True)
+                        dpg.add_text("the desired output files",bullet=True)
+                        dpg.add_text("as well as a staging folder where you can verify things are okay between processing steps.",bullet=True)
+                        dpg.add_separator()
+                        dpg.add_button(label="Take me to the Default Directory Organizer",callback=self.setDirs)
+                        dpg.add_text("\tOR")
+                        dpg.add_button(label="Make the defaults and explore later.",callback=paths.makeDirectories,user_data=hide_if_dirs)
+                        dpg.add_text("This option will be available under 'File>Set Default Directories' at any time.")
+                        dpg.add_separator()
+
+            bringAttentionToDirectories()
+
             with dpg.collapsing_header(label="Schemas",default_open=True):
                 dpg.add_separator()
                 with dpg.group(horizontal=True):
@@ -219,24 +263,63 @@ class MainPage(DPGStage):
         schemas_selected:list = user_data
 
         print(f"Scanning: {[x.name for x in schemas_selected]}")
-        print (DefaultPathing.getPaths())
+        #print (DefaultPathing.getPaths())
 
         paths = DefaultPathing.getPaths()
-        print (paths.input)
+        #print (paths.input)
 
+        if not os.path.exists(paths.input):
+            with dpg.window(popup=True):
+                dpg.add_text(f"'{paths.input}' not found!\nAre you sure your directories exist?")
+                dpg.add_button(label="Go to Defult Directory Manager",callback=self.setDirs)
+            return
         # Show errors if default paths do not exist!
         # make the paths upon start 
 
-        1. generate a list of scanned objects 
+        '''
+            1. generate a list of scanned objects 
 
-        2. check to make sure the file extensions match the schema
+            2. check to make sure the file extensions match the schema
 
-        3. for each of them, display similarly to the RUBRIC IMPORTER:
-           the tag/name preview 
+            3. for each of them, display similarly to the RUBRIC IMPORTER:
+               the tag/name preview 
 
-        4. if a new file type: make a button that opens the editor
-            AND saves it to schema
-            AND applies the rules immediately to that run through.
+            4. if a new file type: make a button that opens the editor
+                AND saves it to schema
+                AND applies the rules immediately to that run through.
+        '''
+
+        inputFileObjs = []
+
+        def getFiles():
+
+            _ = []
+
+            excel_files_to_process  =   fnmatch.filter(os.listdir(paths.input), '*.xlsx')
+            csv_files_to_process    =   fnmatch.filter(os.listdir(paths.input), '*.csv')
+            #pdf_files_to_process    =   fnmatch.filter(os.listdir(pathingDict['input_filepath']), '*.pdf') if automatePDF else []
+            #====================================================
+            #print ("=========================================")
+            #====================================================
+            for file in excel_files_to_process:
+                _.append(InputFile(f'{paths.input}\\{file}'))
+
+            #for file in csv_files_to_process:
+            #    vendorfileObjList.append(vendorfile(pathingDict["input_filepath"]+file))
+            #for file in pdf_files_to_process:
+            #    print (f'Cannot convert {file} to CSV in the same step as processing CSVs.\tPDFs too often require manual validation.')
+            #====================================================
+
+            return _
+
+        inputFileObjs = getFiles()
+        print(inputFileObjs)
+
+        for inputfileObj in inputFileObjs:
+            print (inputfileObj.name)
+            print (inputfileObj.extension)
+            inputfileObj.displayContents()
+
 
     def deleteSchema(self,sender,app_data,user_data):
 

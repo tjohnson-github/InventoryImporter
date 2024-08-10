@@ -17,17 +17,14 @@ def mkdirWrapper(path):
 #           EXCEL / CSV <--> LIST CONVERSIONS
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     
+# Replace the following with raised exceptions!
+
 def csv_to_list(csv_file,delimiter = ','):
 	#-------------------------------------------
     if os.path.exists(csv_file)==False:     
-        error = f"File Path does not exist for item: {str(csv_file)}"
-        return False,error
+        raise Exception(f"File Path does not exist for item: {str(csv_file)}")
     elif csv_file.endswith(".csv")==False:
-        error = f"{str(csv_file)} is not correct file type for this operation; .csv only please."
-        return False,error
-    #else:
-    #    error = f"Unknown error while attempting to read {csv_file}."
-    #    return False,error
+        raise Exception(f"{str(csv_file)} is not correct file type for this operation; .csv only please.")
 	#-------------------------------------------
     readArray=[]
     with open(csv_file,newline='') as csvfile:
@@ -46,23 +43,15 @@ def csv_to_list(csv_file,delimiter = ','):
             if (temp_array != [None for i in range(0,len(temp_array))]) and (temp_array != ['' for i in range(0,len(temp_array))]):
                 readArray.append(temp_array)
 	#-------------------------------------------
-    print("HEWRE")
-    return readArray,''
+    return readArray
 
 
 def excel_to_list(excel_file):
 	#-------------------------------------------
     if os.path.exists(excel_file)==False:   
-        error = f"File Path does not exist for item: {str(excel_file)}"
-        print (error)
-        return False,error
+        raise Exception(f"File Path does not exist for item: {str(excel_file)}")
     elif not excel_file.endswith('.xlsx'):
-        error = f"{str(excel_file)} is not correct file type for this operation; .xlsx only please."
-        print (error)
-        return False,error
-    #else:
-    #    error = f"Unknown error while attempting to read {excel_file}."
-    #    return False,error
+        raise Exception(f"{str(excel_file)} is not correct file type for this operation; .xlsx only please.")
 	#-------------------------------------------
     wb = openpyxl.load_workbook(excel_file,data_only=True)
     ws = wb.active
@@ -102,7 +91,7 @@ def excel_to_list(excel_file):
         if (temp_list != [None for i in range(0,len(temp_list))]) and (temp_list != ['' for i in range(0,len(temp_list))]):
             full_list.append(temp_list)
 	#-------------------------------------------
-    return full_list,''
+    return full_list
 
 
 def list_to_excel(temp_list,filename_to_save):

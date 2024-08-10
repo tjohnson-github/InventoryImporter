@@ -3,8 +3,8 @@
 
 import dearpygui.dearpygui as dpg
 dpg.create_context()
-from dataclasses import dataclass, field
-
+from dataclasses import dataclass, field,fields
+import os
 from DPGStage import DPGStage
 from Directory_Selector import DirectorySelector
 
@@ -22,6 +22,16 @@ class DefaultPaths:
     processed: str
     rubric: str
 
+    def makeDirectories(self,sender,app_data,user_data):
+
+        for field in fields(self):
+
+            _path = getattr(self,field.name)
+
+            if not os.path.exists(_path):
+                os.mkdir(_path)
+
+        user_data()
 
 class DefaultPathing(DPGStage):
 
@@ -144,7 +154,7 @@ class DefaultPathing(DPGStage):
                 dpg.add_button(label="Reset Subdirectories",callback=self.updateAllFields,user_data=dpg.get_value('base_parent_directory'))
                 dpg.add_button(label="Back",callback=self.delete)
                 #-----------------------------------------------
-      
+
 
     def saveDirpaths(self,sender,app_data,user_data):
         print(f'{sender=}')

@@ -73,6 +73,7 @@
     <Compile Include="Redesign\scraper.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\Vendorfile.py" />
     <Compile Include="Reference\disabled_theme.py">
       <SubType>Code</SubType>
     </Compile>
