@@ -36,7 +36,7 @@ class FilenameConvention:
     tags: list[str] = field(default_factory=lambda: ['','',''])  # ^ should    same                ^
 
     delim: str = "_"
-    supported_extensions: list[str] = field(default_factory=lambda: [])
+    supportedExtensions: list[str] = field(default_factory=lambda: [])
 
     def saveToSpreadsheet(self):
         ...
@@ -236,7 +236,7 @@ class FilenameExtractor(DPGStage):
     #delimitor = "_"
     #name_slices = ["Ticket#","Example Name","Example Department"]
 
-    supported_extensions = {"xlsx":True,"csv":True}
+    supportedExtensions = {"xlsx":True,"csv":True}
     disabled:bool
     delimitorVis: list[int]
 
@@ -364,13 +364,13 @@ class FilenameExtractor(DPGStage):
                 self.example+=f'{self.convention.delim}'
             else:
 
-                if list(self.supported_extensions.values()).count(False) == len(self.supported_extensions.items()):
+                if list(self.supportedExtensions.values()).count(False) == len(self.supportedExtensions.items()):
                     self.example+=f'.??? *No extensions selected!*****'
                 else:
-                    for ext,val in self.supported_extensions.items():
+                    for ext,val in self.supportedExtensions.items():
                         if val:
                             self.example+=f'.{ext}'
-                            if ext!=list(self.supported_extensions.items())[-1]:
+                            if ext!=list(self.supportedExtensions.items())[-1]:
                                 self.example+=f' \\ '
 
         dpg.configure_item(self.exampleVis,default_value=self.example)
@@ -422,14 +422,14 @@ class FilenameExtractor(DPGStage):
         
         def setVal(sender,app_data,user_data):
 
-            print(self.supported_extensions)
-            self.supported_extensions[dpg.get_item_label(sender)]=app_data
-            print(self.supported_extensions)
+            print(self.supportedExtensions)
+            self.supportedExtensions[dpg.get_item_label(sender)]=app_data
+            print(self.supportedExtensions)
             self.setExample()
             dpg.configure_item(self.exampleVis,default_value=self.example)
 
         with dpg.window(popup=True):
-            for ext,val in self.supported_extensions.items():
+            for ext,val in self.supportedExtensions.items():
                 dpg.add_checkbox(label=ext,default_value=val,callback=setVal)
 
     def updateDels(self,sender,app_data,user_data):
@@ -523,7 +523,7 @@ class FilenameExtractor(DPGStage):
 
             _supp = []
 
-            for key,val in self.supported_extensions.items():
+            for key,val in self.supportedExtensions.items():
                 if val: _supp.append(key)
 
             _tags = dpg.get_values(self.tagVis)
@@ -537,12 +537,12 @@ class FilenameExtractor(DPGStage):
                 slices  =   dpg.get_values(self.nameSliceVis),
                 tags    =   _tags,
                 delim   =   dpg.get_value(self.delimInput),
-                supported_extensions=_supp
+                supportedExtensions=_supp
                 )
 
             return _new
 
-        if list(self.supported_extensions.values()).count(False)==len(self.supported_extensions.items()):
+        if list(self.supportedExtensions.values()).count(False)==len(self.supportedExtensions.items()):
             with dpg.window(popup=True):
                 dpg.add_text("No extensions selected in the filename convention editor. Please check at least one")
                 _=None

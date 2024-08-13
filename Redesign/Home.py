@@ -220,14 +220,15 @@ class MainPage(DPGStage):
             with dpg.collapsing_header(label="Schemas",default_open=True):
                 dpg.add_separator()
                 with dpg.group(horizontal=True):
-                    _ = dpg.add_button(label="Scan\nAll",width=30)
-                    with dpg.tooltip(_): dpg.add_text("Scan all input folders and generate outputs for each schema and rubric below")
+                    _scanAll = dpg.add_button(label="Scan\nAll",width=30,callback=self.beginScan)
+                    with dpg.tooltip(_scanAll): dpg.add_text("Scan all input folders and generate outputs for each schema and rubric below")
                     Schema.generate_key()
                 with dpg.group() as self.schemaViewer:
                     pass
 
         self.loadSchemas()
         self.refreshSchemas()
+        dpg.set_item_user_data(_scanAll,self.schemas)
 
     def loadSchemas(self):
 
@@ -252,17 +253,24 @@ class MainPage(DPGStage):
         dpg.delete_item(self.schemaViewer,children_only=True)
         dpg.push_container_stack(self.schemaViewer)
 
+
+
         for i,s in enumerate(self.schemas):
-            with dpg.group(horizontal=True):
+            with dpg.group(horizontal=True) as _:
 
                 dpg.add_button(label="S\nC\nA\nN",user_data=[s],height=Schema.height,width=30,callback=self.beginScan)
                 s.generate_mini(openeditor=self.openSchemaEditor,deleteSchema=self.deleteSchema,index=i)
-                
+            dpg.push_container_stack(self.schemaViewer)
+
+
     def beginScan(self,sender,app_data,user_data):
         
         schemas_selected:list = user_data
 
+
+        print("============================")
         print(f"Scanning: {[x.name for x in schemas_selected]}")
+        print("============================")
         #print (DefaultPathing.getPaths())
 
         paths = DefaultPathing.getPaths()
@@ -277,8 +285,6 @@ class MainPage(DPGStage):
         # make the paths upon start 
 
         '''
-            1. generate a list of scanned objects 
-
             2. check to make sure the file extensions match the schema
 
             3. for each of them, display similarly to the RUBRIC IMPORTER:
@@ -291,35 +297,55 @@ class MainPage(DPGStage):
 
         inputFileObjs = []
 
-        def getFiles():
+        def getFiles(allowedExtensions=["xlsx","csv"]):
 
-            _ = []
+            # generates a list of scanned files as vendorfile.py objects to be attached per schema
+            # check to make sure the file extensions match the schema
 
-            excel_files_to_process  =   fnmatch.filter(os.listdir(paths.input), '*.xlsx')
-            csv_files_to_process    =   fnmatch.filter(os.listdir(paths.input), '*.csv')
+            _files = []
+
+            for extension in allowedExtensions:
+                _to_process = fnmatch.filter(os.listdir(paths.input), f'*.{extension}')
+                
+                for file in _to_process:
+                    _files.append(InputFile(f'{paths.input}\\{file}'))
+
+            #====================================================
             #pdf_files_to_process    =   fnmatch.filter(os.listdir(pathingDict['input_filepath']), '*.pdf') if automatePDF else []
-            #====================================================
-            #print ("=========================================")
-            #====================================================
-            for file in excel_files_to_process:
-                _.append(InputFile(f'{paths.input}\\{file}'))
-
-            #for file in csv_files_to_process:
-            #    vendorfileObjList.append(vendorfile(pathingDict["input_filepath"]+file))
+   
             #for file in pdf_files_to_process:
             #    print (f'Cannot convert {file} to CSV in the same step as processing CSVs.\tPDFs too often require manual validation.')
             #====================================================
+            return _files
 
-            return _
 
-        inputFileObjs = getFiles()
-        print(inputFileObjs)
+        #====================================================
+        to_edit={}
+        #====================================================
+        for schema in schemas_selected:
+            print(f"Schema:\t{schema.name}")
 
-        for inputfileObj in inputFileObjs:
-            print (inputfileObj.name)
-            print (inputfileObj.extension)
-            inputfileObj.displayContents()
+            if not schema.filenameConventions:
+                print("No filename conventions found; attaching all files to this schema's editing process")
+                to_edit.update({schema.name:getFiles()})
+            else:
 
+                # maybe it is silly to have more than 1 filename convention per schema....
+                to_edit.update({schema.name:getFiles(allowedExtensions=schema.filenameConventions[0].supportedExtensions)})
+
+                for fnc in schema.filenameConventions:
+                    print (f"{fnc.name}")
+                    print(f'{fnc.supportedExtensions}')
+        #====================================================
+
+        #====================================================
+        # Now generate the window!!!
+
+        from Converter_SchemaFiddler_Window import FiddlerWindow
+
+        FiddlerWindow(schemas=schemas_selected,to_edit=to_edit)
+
+ 
 
     def deleteSchema(self,sender,app_data,user_data):
 
@@ -358,7 +384,6 @@ class MainPage(DPGStage):
         _schema = user_data
 
         SchemaEditor(mainpage=self,schema=_schema)
-
 
     def setDirs(self,sender,app_data,user_data):
 
