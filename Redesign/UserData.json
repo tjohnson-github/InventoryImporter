@@ -1,0 +1,9 @@
+{
+  "Tax Code": {
+    "Taxable": "TX",
+    "Delivery": "DEL",
+    "Nontaxed": "NT",
+    "Edible": "DE"
+  }
+}
+

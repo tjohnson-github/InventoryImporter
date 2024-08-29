@@ -36,6 +36,9 @@
     <Compile Include="module1.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\JSONtoDataclass.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\Color_Manager.py">
       <SubType>Code</SubType>
     </Compile>
@@ -150,6 +153,7 @@
   <ItemGroup>
     <Content Include="Readme.md" />
     <Content Include="Redesign\Settings\defaultSQLCnxStrs.txt" />
+    <Content Include="Redesign\UserData.json" />
     <Content Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

@@ -34,6 +34,8 @@ class RubricEditor(DPGStage):
 
         self.rubric = kwargs.get("rubric",Rubric())
 
+        self.fromScanner = kwargs.get("fromScanner",False)
+
         #=====================================================================
         # Look into how to make supported types separate from FilenameConventions
         self.allSupportedinputTypes = []
@@ -111,8 +113,10 @@ class RubricEditor(DPGStage):
             self.suggest = dpg.add_checkbox(label="Suggest Tags based on Input?",default_value=True)
             #===============================================
             dpg.add_separator
-            dpg.add_button(label="Load File",callback=self.loadFile) 
-            dpg.add_button(label="Build Input File Schema")
+
+            if not fromScanner:
+                dpg.add_button(label="Load File",callback=self.loadFile) 
+                dpg.add_button(label="Build Input File Schema")
             #===============================================
             dpg.add_separator()
         
