@@ -2,24 +2,47 @@
 from DPGStage import DPGStage
 
 from dearpygui import dearpygui as dpg
+from Rubric_Editor import RubricEditor
+
+from dataclasses import dataclass,field
+
 
 
 class FiddlerCell(DPGStage):
 
     height=400
+    miniheight = 36
+
+    @dataclass
+    class cellData:
+        correct: bool = False
 
     def main(self,**kwargs):
         
         self.inputFile = kwargs.get("inputfileObj")
         self.schemas = kwargs.get("schemas")
 
-    def generate_id(self,**kwargs):
-        
-        with dpg.child_window(height=self.height) as self._id:
+        #-----------------data
+        self.cd = self.cellData()
 
+    #============================================================================
+    # when re-generating... can you ensure that all currently-chosen options do not get re-written?
+    def regenerate(self,sender):
+
+        dpg.delete_item(self._id,children_only=True)
+        dpg.push_container_stack(self._id)
+        self.populate_container()
+
+    def establish_container_id(self,**kwargs):
+        pass
+
+    def populate_container(self,**kwargs):
+        
             with dpg.group(horizontal=True):
 
-                _ = dpg.add_checkbox(callback=self.resize)
+                dpg.add_button(label="Refresh",callback=self.regenerate)
+
+                _ = dpg.add_checkbox(callback=self.resize,default_value=self.cd.correct)
                 with dpg.tooltip(_): dpg.add_text("Information correct?")
 
                 dpg.add_spacer(width=30)
@@ -57,7 +80,27 @@ class FiddlerCell(DPGStage):
                     
                     if self.inputFile.header not in [rubric.editorNames for rubric in list(schema.rubrics.values())]:
                         dpg.add_text("NO MATCH!!!")
-                        dpg.add_button(label="Add input as rubric!")
+                        dpg.add_button(label="Add input as rubric!",callback=self.openPrepopulatedRubricEditor,user_data=schema)
+
+                    else:
+
+                        matchingRubricIndex = [rubric.editorNames for rubric in list(schema.rubrics.values())].index(self.inputFile.header)
+
+                        # ENSURE THAT THE INDEX IS THE SAME EACH TIME, PERHAPS BY SORTING?
+                        #for i in range(0,15):
+                        ##    a = list(schema.rubrics.values())
+                        #    print (a)
+
+                        print (f'Index of {matchingRubricIndex=}')
+
+                        matchingRubric = list(schema.rubrics.values())[matchingRubricIndex]
+
+                        print(matchingRubric)
+
+                        print(schema.rubrics[matchingRubric.name])
+                        
+                        self.showRubric(matchingRubric)
+
 
                 '''for schema in self.schemas:
                     for rubric_name in list(schema.rubrics.keys()):
@@ -77,23 +120,7 @@ class FiddlerCell(DPGStage):
 
                         rubric = schema.rubrics[rubric_name]
 
-                        dpg.add_text(f"Rubric Name:\t{rubric.name}")
-
-                        with dpg.group(horizontal=True):
-                            dpg.add_text("Name    :")
-                            
-                            for column_name in rubric.editorNames:
-                                dpg.add_input_text(default_value=column_name,width=100,enabled=False)
-                                dpg.add_spacer(width=10)
-                                dpg.add_text("|")
-
-                        with dpg.group(horizontal=True):
-                            dpg.add_text("Tag     :")
-                            
-                            for column_name in rubric.editorNames:
-                                dpg.add_input_text(default_value=rubric.col_to_tag_correspondence[column_name],width=100,enabled=False)
-                                dpg.add_spacer(width=10)
-                                dpg.add_text("|")
+                        self.showRubric(rubric)
             #==================================================================
             with dpg.collapsing_header(label="OUTPUT"):
                 
@@ -122,20 +149,10 @@ class FiddlerCell(DPGStage):
                         for column in schema.outputSchemaDict["Tag"]:
 
                             dpg.add_input_text(default_value=column,width=100,enabled=False)
-                            dpg.add_spacer(width=10)
+                            dpg.add_spacer(width=10+dpg.get_item_width(_)+27)
                             dpg.add_text("|")
 
-                    '''with dpg.group(horizontal=True):
-
-                        dpg.add_text("Required:")
-
-
-                        for column in schema.outputSchemaDict["Necessary?"]:
-
-                            dpg.add_input_text(default_value=column,width=100,enabled=False)
-                            dpg.add_spacer(width=10)
-                            dpg.add_text("|")'''
-
+   
             #EditorRow(name = = "Column Name",
             #EditorRow(name = "Tag",
             #EditorRow(name = "Necessary?",
@@ -145,12 +162,53 @@ class FiddlerCell(DPGStage):
 
                 dpg.add_separator()
 
+    def generate_id(self,**kwargs):
+        
+        with dpg.child_window(height=self.height) as self._id:
+
+            self.populate_container(**kwargs)
+    #============================================================================
+
+    def showRubric(self,rubric):
+
+        dpg.add_text(f"Rubric Name:\t{rubric.name}")
+
+        with dpg.group(horizontal=True):
+            dpg.add_text("Name    :")
+                            
+            for column_name in rubric.editorNames:
+                dpg.add_input_text(default_value=column_name,width=100,enabled=False)
+                dpg.add_spacer(width=10)
+                dpg.add_text("|")
+
+        with dpg.group(horizontal=True):
+            dpg.add_text("Tag     :")
+                            
+            for column_name in rubric.editorNames:
+                dpg.add_input_text(default_value=rubric.col_to_tag_correspondence[column_name],width=100,enabled=False)
+                dpg.add_spacer(width=10)
+                dpg.add_text("|")
+
     def resize(self,sender,app_data,user_data):
 
+        self.cd.correct = app_data
+
         if app_data:
-            dpg.configure_item(self._id,height=36)
+            dpg.configure_item(
+                self._id,
+                height                  =   self.miniheight,
+                no_scrollbar            =   True,
+                no_scroll_with_mouse    =   True)
         else:
-            dpg.configure_item(self._id,height=self.height)
+            dpg.configure_item(
+                self._id,
+                height                  =   self.height,
+                no_scrollbar            =   False,
+                no_scroll_with_mouse    =   False)
+
+    def openPrepopulatedRubricEditor(self,sender,app_data,user_data):
+        
+        RubricEditor(schema = user_data, fromFiddlerCell = self)#,preScannedFile = self.inputFile)
 
 class FiddlerWindow(DPGStage):
     
@@ -170,16 +228,21 @@ class FiddlerWindow(DPGStage):
             with dpg.child_window(height=30) as key:
                 dpg.add_text("Check boxes")
 
-            for schema in self.schemas:
+            with dpg.tab_bar():
 
-                _to_edit_items = self.to_edit[schema.name]
 
-                for inputfileObj in _to_edit_items:
+                for schema in self.schemas:
 
-                    FiddlerCell(inputfileObj=inputfileObj,schemas=self.schemas)
+                    with dpg.tab(label=schema.name):
 
-                    print (inputfileObj.name)
-                    print (inputfileObj.extension)
-                    inputfileObj.displayContents()
+                        _to_edit_items = self.to_edit[schema.name]
+
+                        for inputfileObj in _to_edit_items:
+
+                            FiddlerCell(inputfileObj=inputfileObj,schemas=self.schemas)
+
+                            print (inputfileObj.name)
+                            print (inputfileObj.extension)
+                            inputfileObj.displayContents()
 
                 

@@ -3,6 +3,7 @@ from DPGStage import DPGStage
 from dearpygui import dearpygui as dpg
 from File_Operations import csv_to_list,excel_to_list,mkdirWrapper
 from File_Selector import FileSelector
+from Vendorfile import InputFile
 
 from typing import Type
 
@@ -34,14 +35,14 @@ class RubricEditor(DPGStage):
 
         self.rubric = kwargs.get("rubric",Rubric())
 
-        self.fromScanner = kwargs.get("fromScanner",False)
+        self.fromFiddlerCell = kwargs.get("fromFiddlerCell",None)
 
         #=====================================================================
         # Look into how to make supported types separate from FilenameConventions
         self.allSupportedinputTypes = []
         if self.schema.filenameConventions:
             for fnc in self.schema.filenameConventions:
-                self.allSupportedinputTypes.extend(fnc.supported_extensions)
+                self.allSupportedinputTypes.extend(fnc.supportedExtensions)
         #=====================================================================
         # TAGS
         _uncleanedTags = self.schema.outputSchemaDict["Tag"]
@@ -112,11 +113,13 @@ class RubricEditor(DPGStage):
             dpg.add_separator()
             self.suggest = dpg.add_checkbox(label="Suggest Tags based on Input?",default_value=True)
             #===============================================
-            dpg.add_separator
+            dpg.add_separator()
 
-            if not fromScanner:
+            if not self.fromFiddlerCell:
                 dpg.add_button(label="Load File",callback=self.loadFile) 
-                dpg.add_button(label="Build Input File Schema")
+                dpg.add_button(label="Build Input File Schema") 
+            else:
+                self.rubric.editorNames = self.fromFiddlerCell.inputFile.header
             #===============================================
             dpg.add_separator()
         
@@ -183,6 +186,10 @@ class RubricEditor(DPGStage):
 
         dpg.delete_item(self._id)
         self.schema.refreshRubrics()
+
+        if self.fromFiddlerCell:
+            
+            self.fromFiddlerCell.regenerate(sender=self._id)
 
     def loadFile(self):
 

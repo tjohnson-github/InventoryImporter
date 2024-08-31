@@ -14,7 +14,8 @@ class Rubric:
     editorNames                 :   list    =   field(default_factory=lambda: [])
     editorTags                  :   list    =   field(default_factory=lambda: [])
 
-
+    #dateAdded : str
+    #dateEdited: str
 
 # The connection between these two classes can be modified such that:
 #   each field can have its own input /display suite
