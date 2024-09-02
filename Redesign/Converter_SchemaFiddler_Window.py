@@ -6,6 +6,7 @@ from Rubric_Editor import RubricEditor
 
 from dataclasses import dataclass,field
 
+from JSONtoDataclass import getManualInputTags
 
 
 class FiddlerCell(DPGStage):
@@ -24,6 +25,8 @@ class FiddlerCell(DPGStage):
 
         #-----------------data
         self.cd = self.cellData()
+
+
 
     #============================================================================
     # when re-generating... can you ensure that all currently-chosen options do not get re-written?
@@ -47,12 +50,8 @@ class FiddlerCell(DPGStage):
 
                 dpg.add_spacer(width=30)
 
-                _ = dpg.add_text(self.inputFile.name)
+                _ = dpg.add_text(self.inputFile.name,color=(60,200,100))#(127, 255, 212)) #(238, 75, 43)
                 with dpg.tooltip(_): dpg.add_text(self.inputFile.fullPath)
-
-            dpg.add_separator()
-
-            dpg.add_text(self.inputFile)
 
             dpg.add_separator()
             #==================================================================
@@ -69,7 +68,9 @@ class FiddlerCell(DPGStage):
 
                 # does it match a rubric?
                 # suggest nearest rubrics
+
             #==================================================================
+            matchingRubric= None
             with dpg.collapsing_header(label="Matching RUBRICS"):
                 for schema in self.schemas:
 
@@ -100,27 +101,47 @@ class FiddlerCell(DPGStage):
                         print(schema.rubrics[matchingRubric.name])
                         
                         self.showRubric(matchingRubric)
-
-
-                '''for schema in self.schemas:
-                    for rubric_name in list(schema.rubrics.keys()):
-                        rubric = schema.rubrics[rubric_name]
-                        
-                        if self.inputFile.header == rubric.editorNames:
-                            dpg.add_text("MATCH!!!")
-                            dpg.add_text(f"{rubric_name=}")
-                        else:
-                            dpg.add_text("NO MATCH!!!")
-                            dpg.add_button(label="Add input as rubric!")'''
-
+            
             #==================================================================
-            with dpg.collapsing_header(label="ALL RUBRICS"):
+            if matchingRubric:
+
+                self.tagCombos = {}
+
+                with dpg.collapsing_header(label="MANUAL INPUT REQUIRED"):
+
+                    with dpg.group(horizontal=True):
+
+                        _manualTags = getManualInputTags()
+
+                        for tag in matchingRubric.editorTags:
+                            
+                            if tag in list(_manualTags.keys()):
+
+                                with dpg.group():
+                                    with dpg.group(horizontal=True):
+                                        dpg.add_text(f'{tag}:')
+                                        _valuePreview = dpg.add_text(color=(160,160,250))
+                                    _tagCombo = dpg.add_combo(
+                                        items=list(_manualTags[tag].keys()),
+                                        width=150,
+                                        default_value="~",
+                                        user_data={"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
+                                        callback=self.updateTagPreview)
+
+                                #self.tagCombos.update({tag:_tagCombo})
+                                self.tagCombos.update({tag:_valuePreview})
+
+
+                    # does it match a rubric?
+                    # suggest nearest rubrics
+            #==================================================================
+            '''with dpg.collapsing_header(label="ALL RUBRICS"):
                 for schema in self.schemas:
                     for rubric_name in list(schema.rubrics.keys()):
 
                         rubric = schema.rubrics[rubric_name]
 
-                        self.showRubric(rubric)
+                        self.showRubric(rubric)'''
             #==================================================================
             with dpg.collapsing_header(label="OUTPUT"):
                 
@@ -169,6 +190,11 @@ class FiddlerCell(DPGStage):
             self.populate_container(**kwargs)
     #============================================================================
 
+    def updateTagPreview(self,sender,app_data,user_data):
+        
+        dpg.configure_item(user_data["previewDestination"],default_value=user_data["tagDict"][app_data])
+        
+
     def showRubric(self,rubric):
 
         dpg.add_text(f"Rubric Name:\t{rubric.name}")
@@ -216,33 +242,45 @@ class FiddlerWindow(DPGStage):
     def main(self,**kwargs):
 
         self.schemas = kwargs.get("schemas")
-        self.to_edit = kwargs.get("to_edit")
+        self.filesToProcess = kwargs.get("filesToProcess")
+
+        self.fiddlerCells = []
 
     def generate_id(self,**kwargs):
 
-        print(self.to_edit)
-
+        print(self.filesToProcess)
 
         with dpg.window(height=600,width=700,no_scrollbar=False):
+
+            dpg.add_button(label="Process",width=150,height=75,callback=self.process)
 
             with dpg.child_window(height=30) as key:
                 dpg.add_text("Check boxes")
 
             with dpg.tab_bar():
 
-
                 for schema in self.schemas:
 
                     with dpg.tab(label=schema.name):
 
-                        _to_edit_items = self.to_edit[schema.name]
+                        _to_edit_items = self.filesToProcess[schema.name]
 
                         for inputfileObj in _to_edit_items:
 
-                            FiddlerCell(inputfileObj=inputfileObj,schemas=self.schemas)
+                            _ = FiddlerCell(inputfileObj=inputfileObj,schemas=self.schemas)
+                            self.fiddlerCells.append(_)
 
-                            print (inputfileObj.name)
-                            print (inputfileObj.extension)
-                            inputfileObj.displayContents()
 
-                
+
+    def process(self):
+
+        print("#==========================\nProcessing::::\n")
+
+        for cell in self.fiddlerCells:
+
+            print(cell.inputFile.name)
+            print(cell.cd)
+
+            if cell.cd.correct:
+                for tag,tagPreview in cell.tagCombos.items():
+                    print(f'{tag}\t:\t{dpg.get_value(tagPreview)}')

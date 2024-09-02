@@ -9,6 +9,85 @@ from DPGStage import DPGStage
 import dearpygui.dearpygui as dpg
 dpg.create_context()
 
+
+default_path = "Redesign\\UserData"
+
+class DataManager(DPGStage):
+
+    label="Custom Data Import Manager"
+    height=600
+    width=600
+
+    def generate_id(self,**kwargs):
+        
+        with dpg.window(label=self.label,height=self.height,width=self.width):
+
+            dpg.add_text(f"Simply add JSON objects to <{default_path}>")
+            dpg.add_text(f"<TAGS.json> will make those values available where that TAG is selected",bullet=True)
+            dpg.add_text(f"<OPERATIONS.json> are mathematical equations and values that, if selected, will be applied before outputting",bullet=True)
+
+            dpg.add_separator()
+            dpg.add_button(label=f"Scan <{default_path}> for JSON objects",callback=self.scan)
+
+            dpg.add_separator()
+            with dpg.tab_bar():
+                with dpg.tab(label="Tags"):
+                   with dpg.child_window() as self.tagWindow:
+                        pass
+                with dpg.tab(label="Operations"):
+                    with dpg.child_window() as self.opsWindow:
+                        pass
+
+    def scan(self):
+
+        '''obj = os.scandir(default_path)
+ 
+        # List all files and directories 
+        # in the specified path
+        #print("Files and Directories in '% s':" % default_path)
+        for entry in obj :
+            #if entry.is_dir() or entry.is_file():
+            #    print(entry.name)
+            print(entry)
+
+            #if entry.name.endswith('.json'):
+
+            if entry.name == 'TAGS.json':
+
+                _ = parseJSON(f'{default_path}\\{entry.name}')
+            
+        '''
+        def previewVal(sender,app_data,user_data):
+            dpg.configure_item(user_data["destination"],default_value=user_data["tagsDict"][app_data])
+
+        #==========================
+        # TAGS
+        _ = parseJSON(f'{default_path}\\TAGS.json')
+
+        dpg.push_container_stack(self.tagWindow)
+
+        for tagName,tags in _.items():
+            print(tagName)
+            
+            with dpg.group(horizontal=True):
+                
+                dpg.add_input_text(default_value=tagName,width=100,enabled=False)
+                
+                dpg.add_spacer(width=30)
+
+                _keysCombo = dpg.add_combo(items=list(tags.keys()),width=100,callback=previewVal)
+
+                dpg.add_spacer(width=30)
+
+                _valPreview = dpg.add_input_text(enabled=False,width=100)
+
+                dpg.set_item_user_data(_keysCombo,{"tagsDict":tags,"destination":_valPreview})
+
+
+def getManualInputTags():
+    _ = parseJSON(f'{default_path}\\TAGS.json')
+    return _ 
+
 def parseJSON(full_filepath: str):
 
 
@@ -22,7 +101,6 @@ def parseJSON(full_filepath: str):
 
 def prepareUserDataDictForTags():
 
-    default_path = "Redesign"
     settingsName = f'{default_path}\\UserData.json'
 
     userdatadict = parseJSON(settingsName)

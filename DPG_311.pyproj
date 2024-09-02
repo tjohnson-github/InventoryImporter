@@ -144,6 +144,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Redesign\IO\" />
+    <Folder Include="Redesign\UserData\" />
     <Folder Include="Reference\" />
     <Folder Include="Old\" />
     <Folder Include="Redesign\" />
@@ -153,7 +154,8 @@
   <ItemGroup>
     <Content Include="Readme.md" />
     <Content Include="Redesign\Settings\defaultSQLCnxStrs.txt" />
-    <Content Include="Redesign\UserData.json" />
+    <Content Include="Redesign\UserData\Manual_Input_Tags.json" />
+    <Content Include="Redesign\UserData\TAGS.json" />
     <Content Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

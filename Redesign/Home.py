@@ -47,6 +47,7 @@ from dataclasses import dataclass
 import fnmatch
 
 from Vendorfile import InputFile
+from JSONtoDataclass import DataManager
 
 default_settings_path = "Redesign\\Settings"  
 default_schema_path = "Redesign\\Schemas"
@@ -122,6 +123,9 @@ class MainPage(DPGStage):
                     with dpg.menu(label="Settings"):
                         dpg.add_menu_item(label="Setting 1", callback=self.print_me, check=True)
                         dpg.add_menu_item(label="Setting 2", callback=self.print_me)
+
+                with dpg.menu(label="Data"): 
+                    dpg.add_menu_item(label="Manage User Data",callback=self.manageData)
 
                 with dpg.menu(label="View"):
                     dpg.add_checkbox(label="Pick Me", callback=self.print_me)
@@ -230,6 +234,10 @@ class MainPage(DPGStage):
         self.refreshSchemas()
         dpg.set_item_user_data(_scanAll,self.schemas)
 
+    def manageData(self,sender):
+
+        DataManager()
+
     def loadSchemas(self):
 
         self.schemas = []
@@ -320,18 +328,18 @@ class MainPage(DPGStage):
 
 
         #====================================================
-        to_edit={}
+        filesToProcess={}
         #====================================================
         for schema in schemas_selected:
             print(f"Schema:\t{schema.name}")
 
             if not schema.filenameConventions:
                 print("No filename conventions found; attaching all files to this schema's editing process")
-                to_edit.update({schema.name:getFiles()})
+                filesToProcess.update({schema.name:getFiles()})
             else:
 
                 # maybe it is silly to have more than 1 filename convention per schema....
-                to_edit.update({schema.name:getFiles(allowedExtensions=schema.filenameConventions[0].supportedExtensions)})
+                filesToProcess.update({schema.name:getFiles(allowedExtensions=schema.filenameConventions[0].supportedExtensions)})
 
                 for fnc in schema.filenameConventions:
                     print (f"{fnc.name}")
@@ -343,7 +351,7 @@ class MainPage(DPGStage):
 
         from Converter_SchemaFiddler_Window import FiddlerWindow
 
-        FiddlerWindow(schemas=schemas_selected,to_edit=to_edit)
+        FiddlerWindow(schemas=schemas_selected,filesToProcess=filesToProcess)
 
  
 

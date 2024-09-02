@@ -4,6 +4,12 @@
     "Delivery": "DEL",
     "Nontaxed": "NT",
     "Edible": "DE"
+  },
+  "Example 1": {
+    "Taxable": "TX",
+    "Delivery": "DEL",
+    "Nontaxed": "NT",
+    "Edible": "DE"
   }
 }
 
