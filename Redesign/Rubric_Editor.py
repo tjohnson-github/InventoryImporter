@@ -201,18 +201,19 @@ class RubricEditor(DPGStage):
             readArray = []
             error = ''
 
-            if _filepath[-3:] == 'csv':
-                readArray,error = csv_to_list(_filepath)
-            elif _filepath[-4:] == 'xlsx':
-                readArray,error = excel_to_list(_filepath)
-
-            if readArray:
-                header = readArray.pop(0)    
-                self.populateCols(header)
-           
-            else:
+            try:
+                if _filepath[-3:] == 'csv':
+                    readArray = csv_to_list(_filepath)
+                elif _filepath[-4:] == 'xlsx':
+                    readArray = excel_to_list(_filepath)
+        
+            except Exception as e:
                 with dpg.window(popup=True):
-                    dpg.add_text(error)
+                    dpg.add_text(e)
+
+            header = readArray.pop(0)    
+            self.populateCols(header)
+   
 
 
         if self.allSupportedinputTypes:

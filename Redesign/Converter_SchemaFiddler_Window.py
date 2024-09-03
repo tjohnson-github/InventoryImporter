@@ -18,6 +18,10 @@ class FiddlerCell(DPGStage):
     class cellData:
         correct: bool = False
 
+        #def setCustomAttr(self,key,value):
+
+        #    setAttr()
+
     def main(self,**kwargs):
         
         self.inputFile = kwargs.get("inputfileObj")
@@ -107,29 +111,47 @@ class FiddlerCell(DPGStage):
 
                 self.tagCombos = {}
 
+                with dpg.collapsing_header(label="Naming Convention Check"):
+                    for schema in self.schemas:
+
+                        dpg.add_text("TODO: This is hard, as incoming names are messy\nneed to find a way to have the system guess\nuse the field guesser i made, too\nmaybe write a correspondence system",color=(255,64,25))
+
+                        if schema.filenameConventions:
+                            for fns in schema.filenameConventions:
+
+                                with dpg.group() as fnsExtractor:
+
+                                    fns.showExtraction(name=self.inputFile.name)
+
                 with dpg.collapsing_header(label="MANUAL INPUT REQUIRED"):
+                    
+                    for schema in self.schemas:
 
-                    with dpg.group(horizontal=True):
+                        with dpg.group(horizontal=True):
 
-                        _manualTags = getManualInputTags()
+                            _manualTags = getManualInputTags()
 
-                        for tag in matchingRubric.editorTags:
+                            #for tag in matchingRubric.editorTags:
+                            for tag in schema.outputSchemaDict["Tag"]:
                             
-                            if tag in list(_manualTags.keys()):
+                                if tag in list(_manualTags.keys()):
 
-                                with dpg.group():
-                                    with dpg.group(horizontal=True):
-                                        dpg.add_text(f'{tag}:')
-                                        _valuePreview = dpg.add_text(color=(160,160,250))
-                                    _tagCombo = dpg.add_combo(
-                                        items=list(_manualTags[tag].keys()),
-                                        width=150,
-                                        default_value="~",
-                                        user_data={"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
-                                        callback=self.updateTagPreview)
+                                    with dpg.group():
+                                        with dpg.group(horizontal=True):
+                                            dpg.add_text(f'{tag}:')
+                                            _valuePreview = dpg.add_text(
+                                                default_value=getattr(self.cd,f'{tag}_preview',''),
+                                                color=(160,160,250))
 
-                                #self.tagCombos.update({tag:_tagCombo})
-                                self.tagCombos.update({tag:_valuePreview})
+                                        _tagCombo = dpg.add_combo(
+                                            items=list(_manualTags[tag].keys()),
+                                            width=150,
+                                            default_value=getattr(self.cd,tag,"~"),
+                                            user_data={"tag":tag,"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
+                                            callback=self.updateTagPreview)
+
+                                    #self.tagCombos.update({tag:_tagCombo})
+                                    self.tagCombos.update({tag:_valuePreview})
 
 
                     # does it match a rubric?
@@ -192,7 +214,13 @@ class FiddlerCell(DPGStage):
 
     def updateTagPreview(self,sender,app_data,user_data):
         
+        setattr(self.cd,user_data["tag"],app_data)
+        setattr(self.cd,f'{user_data["tag"]}_preview',user_data["tagDict"][app_data])
+
+
         dpg.configure_item(user_data["previewDestination"],default_value=user_data["tagDict"][app_data])
+
+        #print(getattr(self.cd,app_data))
         
 
     def showRubric(self,rubric):
@@ -284,3 +312,8 @@ class FiddlerWindow(DPGStage):
             if cell.cd.correct:
                 for tag,tagPreview in cell.tagCombos.items():
                     print(f'{tag}\t:\t{dpg.get_value(tagPreview)}')
+
+                    if not dpg.get_value(tagPreview):# or tagPreview == "":
+                        with dpg.window(popup=True):
+                            dpg.add_text("Error:")
+                            dpg.add_text(f"Manual input for <{tag}> is requested at <{cell.inputFile.name}>",color = (255,64,25))

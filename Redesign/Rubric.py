@@ -27,9 +27,6 @@ class Rubric:
 #        - 
 
 
-
-
-
 class RubricDisplayForSchema(DPGStage):
 
     height = 50

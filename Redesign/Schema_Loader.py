@@ -6,6 +6,7 @@ from SQLInterface import SQLLinker
 from File_Selector import FileSelector
 from File_Operations import csv_to_list,excel_to_list
 from DPGStage import DPGStage
+from Schema import Schema
 
 import asyncio
 
@@ -16,7 +17,9 @@ class SchemaLoader(DPGStage):
 
     def main(self,**kwargs):
         self.default_color = kwargs.get("color")
-        print(f"{self.default_color=}")
+        self.schema = kwargs.get("schema")
+        self.filenameExtractorManager = kwargs.get("filenameExtractorManager")
+        self.dirnameExtractor = kwargs.get("dirnameExtractor")
 
 class SchemaFromFile(SchemaLoader):
 
@@ -40,19 +43,31 @@ class SchemaFromFile(SchemaLoader):
         readArray = []
         error = ''
 
-        if _filepath[-3:] == 'csv':
-            readArray,error = csv_to_list(_filepath)
-        elif _filepath[-4:] == 'xlsx':
-            readArray,error = excel_to_list(_filepath)
-
-        if readArray:
-            for row in readArray: print(row)
-            dpg.push_container_stack(self.tableEditor)
-            self.colEditor = SchemaColumnEditor(schema=readArray[0],color=self.default_color)
-            asyncio.run(self.colEditor.populateTable())
-        else:
+        try:
+            if _filepath[-3:] == 'csv':
+                readArray = csv_to_list(_filepath)
+            elif _filepath[-4:] == 'xlsx':
+                readArray = excel_to_list(_filepath)
+        except Exception as e:
             with dpg.window(popup=True):
-                dpg.add_text(error)
+                dpg.add_text(e)
+
+        #for row in readArray: print(row)
+        dpg.delete_item(self.tableEditor,children_only=True)
+
+        dpg.push_container_stack(self.tableEditor)
+        
+        #_ = Schema()
+        self.schema.outputSchemaDict["Column Name"] = readArray[0]
+
+        self.colEditor = SchemaColumnEditor(
+            schema=self.schema,
+            filenameExtractorManager=self.filenameExtractorManager,
+            dirnameExtractor=self.dirnameExtractor,
+            color=self.default_color)
+
+        asyncio.run(self.colEditor.populateTable())
+
 
 class SchemaFromSQL(SchemaLoader):
 
@@ -66,6 +81,7 @@ class SchemaFromSQL(SchemaLoader):
 
     def displayAllTables(self):
 
+        dpg.delete_item(self.tableEditor,children_only=True)
         dpg.push_container_stack(self.tableEditor)
         dpg.add_separator()
 
@@ -99,7 +115,14 @@ class SchemaFromSQL(SchemaLoader):
  
         dpg.add_text(tableName)
 
-        self.colEditor = SchemaColumnEditor(schema=headers,color=self.default_color)
+        #_ = Schema()
+        self.schema.outputSchemaDict["Column Name"] = headers
+
+        self.colEditor = SchemaColumnEditor(
+            schema=self.schema,
+            filenameExtractorManager=self.filenameExtractorManager,
+            dirnameExtractor=self.dirnameExtractor,
+            color=self.default_color)
         #self.editor = ColumnEditor(schema=headers)
         asyncio.run(self.colEditor.populateTable())
 

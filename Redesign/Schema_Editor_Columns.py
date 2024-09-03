@@ -65,8 +65,8 @@ class SchemaColumnEditor(DPGStage):
 
         # Turn the complex dict obj into ez lists, which then save over the dict object in save
         self.schemaColNames = self.schema.outputSchemaDict.get("Column Name",[f'Test Name {x}' for x in range(1,6)])
-        self.tags           = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i in range(1,6)])
-        self.necessaryBox   = self.schema.outputSchemaDict.get("Necessary?",[False for i in range(1,6)])
+        self.tags           = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i,colName in enumerate(self.schemaColNames,1)])
+        self.necessaryBox   = self.schema.outputSchemaDict.get("Necessary?",[False for i,colName in enumerate(self.schemaColNames,1)])
 
         self.numColumns     = len(self.schemaColNames)
 
@@ -144,7 +144,13 @@ class SchemaColumnEditor(DPGStage):
                                     with dpg.table_row():
                                         with dpg.group(horizontal=True):
                                             _rowLabel = dpg.add_text(row.name)
-                                            if row.name=="Necessary?":
+                                            
+                                            if row.name=="Tag":
+                                                _clear = dpg.add_button(label="x",callback=self.clearTags)
+                                                with dpg.tooltip(_clear):
+                                                    dpg.add_text("Reset all Tag inputs.")
+
+                                            elif row.name=="Necessary?":
                                                 _check = dpg.add_checkbox(default_value=False,callback=self.checkAll)
                                                 with dpg.tooltip(_check):
                                                     dpg.add_text("If more fields than naught are important, check the following box and then start unchecking which ones will not be used.")
@@ -162,6 +168,16 @@ class SchemaColumnEditor(DPGStage):
     #def disableFilename(self,disabledState:bool):
     #    for item in self.rows[3].items:
     #        dpg.configure_item(item,default_value=False)
+
+    def clearTags(self,sender):
+
+        for row in self.rows:
+            if row.name=="Tag":
+                for item in row.items:
+                    dpg.configure_item(item,default_value="")
+
+
+        self.updateTags()
 
    
     # Updates

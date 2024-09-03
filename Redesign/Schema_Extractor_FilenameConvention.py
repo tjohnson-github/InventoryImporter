@@ -41,6 +41,33 @@ class FilenameConvention:
     def saveToSpreadsheet(self):
         ...
 
+    def showExtraction(self,name):
+        
+        print(name)
+
+        _ = name.split(".")
+        _ = _[0].split(self.delim)
+
+        with dpg.group(horizontal=True):
+            for slice in self.slices:
+                dpg.add_input_text(default_value=slice,width=150,enabled=False)
+                dpg.add_spacer(width=10)
+                dpg.add_text("|")
+                dpg.add_spacer(width=10)
+
+        with dpg.group(horizontal=True):
+            for slice in _:
+                dpg.add_input_text(default_value=slice,width=150,enabled=False)
+                dpg.add_spacer(width=10)
+                dpg.add_text("|")
+                dpg.add_spacer(width=10)
+
+        with dpg.group(horizontal=True):
+            for slice in self.tags:
+                dpg.add_input_text(default_value=slice,width=150,enabled=False)
+                dpg.add_spacer(width=10)
+                dpg.add_text("|")
+                dpg.add_spacer(width=10)
 
 class FilenameExtractorManager(DPGStage):
     height=220
@@ -232,7 +259,7 @@ class FilenameExtractor(DPGStage):
     height=190
 
     name: str
-    delimitors = ["_","^"]
+    delimitors = ["_","^","-"]
     #delimitor = "_"
     #name_slices = ["Ticket#","Example Name","Example Department"]
 

@@ -47,7 +47,7 @@ from dataclasses import dataclass
 import fnmatch
 
 from Vendorfile import InputFile
-from JSONtoDataclass import DataManager
+from JSONtoDataclass import DataManager 
 
 default_settings_path = "Redesign\\Settings"  
 default_schema_path = "Redesign\\Schemas"

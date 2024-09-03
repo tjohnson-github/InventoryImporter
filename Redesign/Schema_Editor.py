@@ -37,7 +37,7 @@ class SchemaEditor(DPGStage):
     spacer_width =  25
 
     items = {
-        "Existing":Schema_Loader.SchemaFromBuilder,
+        #"Existing":Schema_Loader.SchemaFromBuilder,
         "Custom":Schema_Loader.SchemaFromBuilder,
         "From SQL":Schema_Loader.SchemaFromSQL,
         "From Spreadsheet File":Schema_Loader.SchemaFromFile
@@ -240,10 +240,18 @@ class SchemaEditor(DPGStage):
                 # does not yet exist
                 pass
 
+            # Reset the outputSchemaDict to ensure the examples can populate
+            setattr(self.schema,"outputSchemaDict",{})
+
+            # Delete the group
             dpg.delete_item(self.schemaGroup,children_only=True)
             dpg.push_container_stack(self.schemaGroup)
 
-            self.schemaLoader = self.items[user_data](filenameExtractor = self.fns,dirnameExtractor = self.dns,color=dpg.get_value(self.color))
+            self.schemaLoader = self.items[user_data](
+                schema=self.schema,
+                filenameExtractorManager = self.fns,
+                dirnameExtractor = self.dns,
+                color=dpg.get_value(self.color))
 
             self.chosen = True
 
