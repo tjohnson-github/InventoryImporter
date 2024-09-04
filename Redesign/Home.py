@@ -258,11 +258,13 @@ class MainPage(DPGStage):
 
     def refreshSchemas(self):
 
+        # Called when there are changes to any schemas, so we need to re-render them all; some with new info, many with the same info
+
+        # Reset parent
         dpg.delete_item(self.schemaViewer,children_only=True)
         dpg.push_container_stack(self.schemaViewer)
 
-
-
+        # Display the mini schemas
         for i,s in enumerate(self.schemas):
             with dpg.group(horizontal=True) as _:
 
@@ -356,6 +358,8 @@ class MainPage(DPGStage):
  
 
     def deleteSchema(self,sender,app_data,user_data):
+
+        # Displays a popup to confirm if you really want to delete the schema @ index <user_data>
 
         index = user_data
 

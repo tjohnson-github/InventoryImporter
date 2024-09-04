@@ -3,13 +3,17 @@ from DPGStage import DPGStage
 
 from dearpygui import dearpygui as dpg
 from Rubric_Editor import RubricEditor
+from Rubric import Rubric
 
 from dataclasses import dataclass,field
 
 from JSONtoDataclass import getManualInputTags
 
+from ColumnZipper import zipFile
 
 class FiddlerCell(DPGStage):
+
+    #matchingRubric: Rubric
 
     height=400
     miniheight = 36
@@ -17,6 +21,7 @@ class FiddlerCell(DPGStage):
     @dataclass
     class cellData:
         correct: bool = False
+        doNotBatch: bool = False
 
         #def setCustomAttr(self,key,value):
 
@@ -56,6 +61,9 @@ class FiddlerCell(DPGStage):
 
                 _ = dpg.add_text(self.inputFile.name,color=(60,200,100))#(127, 255, 212)) #(238, 75, 43)
                 with dpg.tooltip(_): dpg.add_text(self.inputFile.fullPath)
+
+                dpg.add_spacer(width=100)
+                dpg.add_checkbox(label="Do not Batch",default_value=self.cd.doNotBatch)
 
             dpg.add_separator()
             #==================================================================
@@ -105,6 +113,8 @@ class FiddlerCell(DPGStage):
                         print(schema.rubrics[matchingRubric.name])
                         
                         self.showRubric(matchingRubric)
+
+                        setattr(self,"matchingRubric",matchingRubric)
             
             #==================================================================
             if matchingRubric:
@@ -304,16 +314,60 @@ class FiddlerWindow(DPGStage):
 
         print("#==========================\nProcessing::::\n")
 
-        for cell in self.fiddlerCells:
+        def validate_through_cells():
 
-            print(cell.inputFile.name)
-            print(cell.cd)
+            for cell in self.fiddlerCells:
 
-            if cell.cd.correct:
-                for tag,tagPreview in cell.tagCombos.items():
-                    print(f'{tag}\t:\t{dpg.get_value(tagPreview)}')
+                # If it has been selected as complete
+                if cell.cd.correct:
+                    for tag,tagPreview in cell.tagCombos.items():
+                        print(f'{tag}\t:\t{dpg.get_value(tagPreview)}')
 
-                    if not dpg.get_value(tagPreview):# or tagPreview == "":
-                        with dpg.window(popup=True):
-                            dpg.add_text("Error:")
-                            dpg.add_text(f"Manual input for <{tag}> is requested at <{cell.inputFile.name}>",color = (255,64,25))
+                        #------------------------------------------------------------------
+                        # If there is a manual input requested that has not been fulfilled
+                        if not dpg.get_value(tagPreview):
+                            with dpg.window(popup=True):
+                                dpg.add_text("Error:")
+
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text(f"Manual input for <",color = (255,64,25))
+                                    dpg.add_text(f"{tag}")
+                                    dpg.add_text(f"> is requested at <",color = (255,64,25))
+                                    dpg.add_text(f"{cell.inputFile.name}")
+                                    dpg.add_text(f">",color = (255,64,25))
+                                return False
+
+
+                        #------------------------------------------------------------------
+                        # If there is no matching rubric
+
+                        #print(getattr(cell.inputFile,"matchingRubric")
+
+                        if not getattr(cell,"matchingRubric",False):
+                            with dpg.window(popup=True):
+                                dpg.add_text("Error:")
+
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text(f"No rubric found for <",color = (255,64,25))
+                                    dpg.add_text(f"{cell.inputFile.name}")
+                                    dpg.add_text(f"> although its box was checked.",color = (255,64,25))
+                                return False
+
+            return True
+
+        def processCells():
+
+            for schema in self.schemas:
+
+                for cell in self.fiddlerCells:
+
+                    if cell.cd.correct:
+
+                        zipFile(
+                            schema          =   schema,
+                            inputFile       =   cell.inputFile,
+                            matchingRubric  =   cell.matchingRubric)
+
+
+        if validate_through_cells():
+            processCells()

@@ -45,6 +45,9 @@
     <Compile Include="Redesign\Converter_SchemaFiddler_Window.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\ColumnZipper.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\Rubric.py" />
     <Compile Include="Redesign\Rubric_Editor.py">
       <SubType>Code</SubType>
