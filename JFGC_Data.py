@@ -101,7 +101,8 @@ allDepartments: list = [
         #Department(code=48,name="",margin=),
         Department(code=49,name="Pumpkins",margin=66.0)]
     
-
+for x in allDepartments:
+    #print (f'"{x.code}":{x.margin}')
 
 @dataclass
 class JFGC_Data:

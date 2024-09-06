@@ -52,12 +52,17 @@ class FiddlerCell(DPGStage):
         
             with dpg.group(horizontal=True):
 
-                dpg.add_button(label="Refresh",callback=self.regenerate)
+                #dpg.add_button(label="Refresh",callback=self.regenerate)
 
                 _ = dpg.add_checkbox(callback=self.resize,default_value=self.cd.correct)
                 with dpg.tooltip(_): dpg.add_text("Information correct?")
 
-                dpg.add_spacer(width=30)
+                dpg.add_spacer(width=10)
+
+                '''with dpg.child_window(border=False,width=600,height=60):
+
+                    with dpg.collapsing_header(label=self.inputFile.name) as self.collapsing:#,color=(60,200,100)):
+                        pass'''
 
                 _ = dpg.add_text(self.inputFile.name,color=(60,200,100))#(127, 255, 212)) #(238, 75, 43)
                 with dpg.tooltip(_): dpg.add_text(self.inputFile.fullPath)
@@ -125,6 +130,7 @@ class FiddlerCell(DPGStage):
                     for schema in self.schemas:
 
                         dpg.add_text("TODO: This is hard, as incoming names are messy\nneed to find a way to have the system guess\nuse the field guesser i made, too\nmaybe write a correspondence system",color=(255,64,25))
+                        dpg.add_text("Do I need to import the custom obj builder from tracker?",bullet=True,color=(255,64,25))
 
                         if schema.filenameConventions:
                             for fns in schema.filenameConventions:
@@ -217,7 +223,7 @@ class FiddlerCell(DPGStage):
 
     def generate_id(self,**kwargs):
         
-        with dpg.child_window(height=self.height) as self._id:
+        with dpg.child_window(height=self.height,horizontal_scrollbar=True) as self._id:
 
             self.populate_container(**kwargs)
     #============================================================================
@@ -246,7 +252,7 @@ class FiddlerCell(DPGStage):
                 dpg.add_text("|")
 
         with dpg.group(horizontal=True):
-            dpg.add_text("Tag     :")
+            dpg.add_text("Tag     :",color=(37, 150, 190))
                             
             for column_name in rubric.editorNames:
                 dpg.add_input_text(default_value=rubric.col_to_tag_correspondence[column_name],width=100,enabled=False)

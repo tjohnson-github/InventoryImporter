@@ -7,6 +7,8 @@ from DPGStage import DPGStage
 from dataclasses import dataclass, field
 import asyncio
 
+from Builtin_Equations import builtinFunctions
+
 # THings we can do:
 '''
 
@@ -235,12 +237,59 @@ class SchemaColumnEditor(DPGStage):
                 _default_value= self.necessaryBox[columnIndex]#self.schema.outputSchemaDict.get("Necessary?")[columnIndex]
                 _ = dpg.add_checkbox(default_value=_default_value)
         elif row.name=="Operations":
-           with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
-               pass
+
+            with dpg.group(parent=parent) as _:
+                _expandOps = dpg.add_button(label="+",width=self.tableColumnDefaultWidth)
+
+                #with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
+                with dpg.child_window(height=90,parent=parent,show=False) as _opEditor:
+
+                    _opCombo = dpg.add_combo(items=[x for x in list(builtinFunctions.keys())])
+
+                    dpg.add_text("Using the fields as derived from the following tag")
+                    dpg.add_combo(label='Tag')
+                    #dpg.add_combo(label=Tag)
+
+                    dpg.add_text("Source Column's Tag")
+                    dpg.add_combo()
+
+                    dpg.add_text(f"{dpg.get_value(_opCombo)} value derived from")
+                    dpg.add_combo()
+
+
+            def showOps(sender):
+
+                if dpg.get_item_label(sender)=="+":
+                    dpg.configure_item(sender,label="-",width=self.tableColumnDefaultWidth*3)
+                    dpg.configure_item(parent,width=self.tableColumnDefaultWidth*3)
+                    dpg.configure_item(_opEditor,show=True)
+
+                    with dpg.window(height=300,width=300) as _opEditor2:
+
+                        _opCombo = dpg.add_combo(items=[x for x in list(builtinFunctions.keys())])
+
+                        dpg.add_text("Using the fields as derived from the following tag")
+                        dpg.add_combo(label='Tag')
+                        #dpg.add_combo(label=Tag)
+
+                        dpg.add_text("Source Column's Tag")
+                        dpg.add_combo()
+
+                        dpg.add_text(f"{dpg.get_value(_opCombo)} value derived from")
+                        dpg.add_combo()
+
+
+                else:
+                    dpg.configure_item(sender,label="+",width=self.tableColumnDefaultWidth)
+                    dpg.configure_item(parent,width=self.tableColumnDefaultWidth)
+                    dpg.configure_item(_opEditor,show=False)
+
+            dpg.set_item_callback(_expandOps,showOps)
+
 
         return _
 
-        if row.type==str:
+        '''if row.type==str:
             if row.name == "Column Name":
                 _default_value = self.schemaColNames[columnIndex]
                 _callback = None
@@ -265,7 +314,7 @@ class SchemaColumnEditor(DPGStage):
            with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
                pass
 
-        return _   
+        return _ '''  
     
 
     def oneColumn(self,columnIndex,**kwargs):
