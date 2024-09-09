@@ -2,12 +2,14 @@
 from dearpygui import dearpygui as dpg
 from Schema_Extractor_FilenameConvention import FilenameExtractor,FilenameExtractorManager
 from Schema_Extractor_DirnameConvention import DirnameExtractor
+from Operations import OperationEditor
+
 import random
 from DPGStage import DPGStage
 from dataclasses import dataclass, field
 import asyncio
 
-from Builtin_Equations import builtinFunctions
+
 
 # THings we can do:
 '''
@@ -45,6 +47,7 @@ class EditorRow(DPGStage):
     items       :   list[str] = field(init=False)
     callback    :   callable = None
 
+
 class SchemaColumnEditor(DPGStage):
        
     height: int  = 400
@@ -69,6 +72,10 @@ class SchemaColumnEditor(DPGStage):
         self.schemaColNames = self.schema.outputSchemaDict.get("Column Name",[f'Test Name {x}' for x in range(1,6)])
         self.tags           = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i,colName in enumerate(self.schemaColNames,1)])
         self.necessaryBox   = self.schema.outputSchemaDict.get("Necessary?",[False for i,colName in enumerate(self.schemaColNames,1)])
+        self.operations     = self.schema.outputSchemaDict.get("Operations",[[] for i,colName in enumerate(self.schemaColNames,1)])
+        self.opDisplay     = [None for i,colName in enumerate(self.schemaColNames,1)]
+
+        print(self.operations)
 
         self.numColumns     = len(self.schemaColNames)
 
@@ -212,83 +219,8 @@ class SchemaColumnEditor(DPGStage):
 
 
     # Iterators
-    def generateInputByFieldName(self,row: EditorRow,columnIndex):
-        pass
-
     def generateInputByType(self,row: EditorRow,columnIndex):
-
-        parent=self.columns[columnIndex]
-
-        if row.name == "Column Name":
-            _default_value = self.schemaColNames[columnIndex]
-            _callback = None
-            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
-
-        elif row.name =="Tag":
-            try:
-                _default_value = self.tags[columnIndex]
-            except:
-                _default_value=""
-            _callback = row.callback
-            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
-        elif row.name=="Necessary?":
-            with dpg.group(horizontal=True,parent=parent):
-                dpg.add_spacer(width=40)
-                _default_value= self.necessaryBox[columnIndex]#self.schema.outputSchemaDict.get("Necessary?")[columnIndex]
-                _ = dpg.add_checkbox(default_value=_default_value)
-        elif row.name=="Operations":
-
-            with dpg.group(parent=parent) as _:
-                _expandOps = dpg.add_button(label="+",width=self.tableColumnDefaultWidth)
-
-                #with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
-                with dpg.child_window(height=90,parent=parent,show=False) as _opEditor:
-
-                    _opCombo = dpg.add_combo(items=[x for x in list(builtinFunctions.keys())])
-
-                    dpg.add_text("Using the fields as derived from the following tag")
-                    dpg.add_combo(label='Tag')
-                    #dpg.add_combo(label=Tag)
-
-                    dpg.add_text("Source Column's Tag")
-                    dpg.add_combo()
-
-                    dpg.add_text(f"{dpg.get_value(_opCombo)} value derived from")
-                    dpg.add_combo()
-
-
-            def showOps(sender):
-
-                if dpg.get_item_label(sender)=="+":
-                    dpg.configure_item(sender,label="-",width=self.tableColumnDefaultWidth*3)
-                    dpg.configure_item(parent,width=self.tableColumnDefaultWidth*3)
-                    dpg.configure_item(_opEditor,show=True)
-
-                    with dpg.window(height=300,width=300) as _opEditor2:
-
-                        _opCombo = dpg.add_combo(items=[x for x in list(builtinFunctions.keys())])
-
-                        dpg.add_text("Using the fields as derived from the following tag")
-                        dpg.add_combo(label='Tag')
-                        #dpg.add_combo(label=Tag)
-
-                        dpg.add_text("Source Column's Tag")
-                        dpg.add_combo()
-
-                        dpg.add_text(f"{dpg.get_value(_opCombo)} value derived from")
-                        dpg.add_combo()
-
-
-                else:
-                    dpg.configure_item(sender,label="+",width=self.tableColumnDefaultWidth)
-                    dpg.configure_item(parent,width=self.tableColumnDefaultWidth)
-                    dpg.configure_item(_opEditor,show=False)
-
-            dpg.set_item_callback(_expandOps,showOps)
-
-
-        return _
-
+        pass
         '''if row.type==str:
             if row.name == "Column Name":
                 _default_value = self.schemaColNames[columnIndex]
@@ -316,6 +248,76 @@ class SchemaColumnEditor(DPGStage):
 
         return _ '''  
     
+    def openOperationEditor(self,sender,app_data,user_data):
+        
+        columnIndex = user_data["columnIndex"]
+        op = user_data.get("operation",None)
+
+
+        if op:
+            OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex,operation=op)
+        else:
+            OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex)
+
+    def generateInputByFieldName(self,row: EditorRow,columnIndex):
+
+        parent=self.columns[columnIndex]
+
+        #======================================================
+        if row.name == "Column Name":
+
+            _default_value = self.schemaColNames[columnIndex]
+            _callback = None
+            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
+        #======================================================
+        elif row.name =="Tag":
+            try:
+                _default_value = self.tags[columnIndex]
+            except:
+                _default_value=""
+            _callback = row.callback
+            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
+        #======================================================
+        elif row.name=="Necessary?":
+            with dpg.group(horizontal=True,parent=parent):
+                dpg.add_spacer(width=40)
+                _default_value= self.necessaryBox[columnIndex]#self.schema.outputSchemaDict.get("Necessary?")[columnIndex]
+                _ = dpg.add_checkbox(default_value=_default_value)
+        #======================================================
+        elif row.name=="Operations":
+
+            with dpg.group(parent=parent) as _:
+                _expandOps = dpg.add_button(label="+",width=self.tableColumnDefaultWidth,callback = self.openOperationEditor,user_data={"columnIndex":columnIndex})
+
+                with dpg.group() as _opDisplay:
+                    self.populateOps(columnIndex)
+
+                self.opDisplay[columnIndex] = _opDisplay
+            
+        return _
+
+    def populateOps(self,columnIndex):
+        for i,op in enumerate(self.operations[columnIndex]):
+            with dpg.group(horizontal=True):
+
+                dpg.add_text(f"{i+1}",bullet=True)
+                dpg.add_button(label="Edit",callback=self.openOperationEditor,user_data={"columnIndex":columnIndex,"operation":op})
+                _x = dpg.add_button(label="X",callback=self.deleteOp,user_data={"columnIndex":columnIndex,"opIndex":i})
+
+    def deleteOp(self,sender,app_data,user_data):
+        columnIndex = user_data["columnIndex"]
+        opIndex     = user_data["opIndex"]
+
+        print(self.operations)
+        print(user_data)
+
+        # add confirmation
+
+        del self.operations[columnIndex][opIndex]
+
+        dpg.delete_item(self.opDisplay[columnIndex],children_only=True)
+        dpg.push_container_stack(self.opDisplay[columnIndex])
+        self.populateOps(columnIndex=columnIndex)
 
     def oneColumn(self,columnIndex,**kwargs):
 
@@ -340,7 +342,7 @@ class SchemaColumnEditor(DPGStage):
         dpg.add_separator(parent=parent)
             
         for row in self.rows:
-            _newItem = self.generateInputByType(row=row,columnIndex=columnIndex)
+            _newItem = self.generateInputByFieldName(row=row,columnIndex=columnIndex)
             row.items.insert(insertion_index,_newItem)
 
 

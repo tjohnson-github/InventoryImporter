@@ -28,11 +28,14 @@ def percentgeCalculator(item_cost,percent):
         #======================================================
         return item_Price
 
+def multiplier(value1, value2):
+    return value1*value2
 
 
 builtinFunctions = {
-    "Margin"        :   {'fn':markupCalculator,'tooltip':"Margin is equal to"},
-    "Percentage"    :   {'fn':percentgeCalculator,'tooltip':"Percentage is equal to"},
+    "Margin"        :   {'fn':markupCalculator,'tooltip':"Calculates a markup for a given input value by the given margin."},
+    "Percentage"    :   {'fn':percentgeCalculator,'tooltip':"Increases or decreases input value by the given percentage."},
+    "Multiplier"    :   {'fn':multiplier,'tooltip':"Multiplies two values together."},
 }
 
 

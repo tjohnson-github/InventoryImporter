@@ -183,6 +183,8 @@ class SchemaEditor(DPGStage):
                 _schema_tags = [x.rstrip() for x in _items]
             elif editorRow.name == "Column Name":
                 _schema_cols = [x.rstrip() for x in _items]
+            elif editorRow.name == "Operations":
+                _items = [x for x in self.schemaLoader.colEditor.operations]
             #+--------------------------------------------------------
             schema_dict.update({editorRow.name:_items})
 

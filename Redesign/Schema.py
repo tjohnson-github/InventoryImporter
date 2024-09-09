@@ -24,6 +24,9 @@ from Rubric import RubricDisplayForSchema
 default_settings_path = "Redesign\\Settings"
 default_schema_path = "Redesign\\Schemas"
 
+from Operations import Operation
+
+
 @dataclass
 class Schema:
     #saveName: str = field(init= False)
@@ -35,7 +38,21 @@ class Schema:
     #schema_cols: list[str] = field(default_factory=lambda: [])
     #schema_tags: list[str] = field(default_factory=lambda: [])
 
+    @dataclass
+    class EditorInputs:
+        colNames    : list[str]     = field(default_factory=lambda: [])
+        tags        : list[str]     = field(default_factory=lambda: [])
+        necessary   : list[bool]    = field(default_factory=lambda: []) 
+        operations  : list[Operation] = field(default_factory=lambda: [])  
+
     outputSchemaDict: dict[str:any] =  field(default_factory=lambda: {})
+    # 
+    #"Column Name"
+    #"Tag"
+    #"Necessary?"
+    #"Operations"
+    
+             
 
     rubrics: dict[str:dict] = field(default_factory=lambda: {}) # Name_of_RUBRIC
     filenameConventions: list[FilenameConvention] = field(default_factory=lambda: [])

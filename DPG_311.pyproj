@@ -51,6 +51,9 @@
     <Compile Include="Redesign\Builtin_Equations.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\Operations.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\Rubric.py" />
     <Compile Include="Redesign\Rubric_Editor.py">
       <SubType>Code</SubType>

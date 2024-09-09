@@ -186,7 +186,10 @@ class FilenameExtractorManager(DPGStage):
         print(self.extractorTabs)
 
         for tab in self.extractorTabs:
-            dpg.delete_item(tab)
+            try:
+                dpg.delete_item(tab)
+            except Exception as e:
+                print(f'Error deleting tab:\t{e}')
 
         self.extractorTabs = []
         self.extractors = []
