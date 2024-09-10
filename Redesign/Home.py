@@ -399,7 +399,7 @@ class MainPage(DPGStage):
 
     def setDirs(self,sender,app_data,user_data):
 
-        DefaultPathing()
+        DefaultPathing(mainPage = self)
 
     def newBuild(self,sender,app_data,user_data):
 

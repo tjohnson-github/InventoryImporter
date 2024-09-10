@@ -198,7 +198,7 @@ class SchemaEditor(DPGStage):
              dirnameConvention  =   self.dirnameConvention,
 
              outputSchemaDict   =   schema_dict,
-             rubrics            =   {}
+             rubrics            =   self.schema.rubrics
         )
 
         #+=============================================================

@@ -3,6 +3,8 @@
 from DPGStage import DPGStage
 import dearpygui.dearpygui as dpg
 from dataclasses import dataclass,field,asdict
+from DefaultPathing import DefaultPathing,DefaultPaths
+from Directory_Selector import DirectorySelector
 
 def setFixer(iterable):
     return list(set(iterable))
@@ -10,10 +12,13 @@ def setFixer(iterable):
 @dataclass
 class DirnameConvention:
 
+    path: str = field(default_factory=lambda: DefaultPathing.getPaths().input) 
     slices: list[str] = field(default_factory=lambda: ["Source ID","Operation Type","Example"]) # v        be      dimensionality v
     tags: list[str] = field(default_factory=lambda: ['','',''])   # ^ should    same                ^
 
     delim: str = "_"
+
+
 
     def saveToSpreadsheet(self):
         ...
@@ -36,6 +41,8 @@ class DirnameExtractor(DPGStage):
 
     label = "Directory Naming Convention Extraction"
     scans = "directories"
+
+    pathIsDefault = True
 
     def main(self,**kwargs):
 
@@ -72,6 +79,22 @@ class DirnameExtractor(DPGStage):
 
                     with dpg.child_window(border=False,height=160,horizontal_scrollbar=True) as self.tobeHidden:
 
+                        dpg.add_separator()
+                        with dpg.group(horizontal=True):
+
+                            #paths = DefaultPathing.getPaths()
+                            _default_path = getattr(self.convention,"path")#,DefaultPathing.getPaths().input)
+
+                            self.pathInput = dpg.add_input_text(default_value = _default_path,enabled=False,width=550)
+                            dpg.add_button(label="Specify New Path",callback=self.newPath)
+                            dpg.add_spacer(width=50)
+                            def reset():
+                                dpg.configure_item(self.pathInput,default_value=DefaultPathing.getPaths().input)
+                                self.pathIsDefault=True
+                            dpg.add_button(label="-Reset-",callback=reset)
+                        dpg.add_text("Reminder: You can specify a unique filepath without specifying convention tags. Just ignore the following:",bullet=True)
+
+                        dpg.add_separator()
                         #with dpg.group() as :
                         self._tagNote1 = dpg.add_text("\tNote: All slices and tags seen below are example placeholders")
                         dpg.add_separator()
@@ -116,6 +139,23 @@ class DirnameExtractor(DPGStage):
         dpg.configure_item(self.tobeHidden,show=not app_data)
         dpg.configure_item(self.color,height = self.height-30 if not app_data else 30)
         dpg.configure_item(self._id,height = self.height if not app_data else 35)
+
+    def newPath(self):
+
+        def updatePath(sender,app_data,user_data):
+
+            _chosen = user_data
+
+            if _chosen !=DefaultPathing.getPaths().input:
+                self.pathIsDefault = False
+            else:
+                # IDK why someone would re-select the default, but here's the contingency lol.
+                self.pathIsDefault = True
+
+            dpg.configure_item(self.pathInput,default_value=_chosen)
+
+        DirectorySelector(nextStage = updatePath, label="Choose new file for this Directory Convention")
+
 
     # dpg field changes            
     def populateFields(self):
@@ -326,6 +366,7 @@ class DirnameExtractor(DPGStage):
                     _tags[i] = ""
 
             _new = DirnameConvention(
+                path    =   dpg.get_value(self.pathInput),
                 slices  =   dpg.get_values(self.nameSliceVis),
                 tags    =   _tags,
                 delim   =   dpg.get_value(self.delimInput),

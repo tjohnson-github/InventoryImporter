@@ -101,6 +101,7 @@ class FilenameExtractorManager(DPGStage):
 
                     with dpg.child_window(border=False,height=190,horizontal_scrollbar=True) as self.tobeHidden:
                         
+                        # TRY AND MAKE SINGLETON
                         with dpg.tab_bar() as self.tabBar:
 
                             for i,fnc in enumerate(self.conventions):

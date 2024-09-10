@@ -61,6 +61,10 @@ class DefaultPathing(DPGStage):
 
         return _
 
+    def main(self,**kwargs):
+
+        self.mainPage = kwargs.get("mainPage")
+
     def generate_id(self,**kwargs):
 
         default = self.findDefault()
@@ -171,8 +175,21 @@ class DefaultPathing(DPGStage):
 
         set(self.settingsName,_pathingObj)
 
+
         with dpg.window(popup=True):
             dpg.add_text("Directory paths saved successfully!")
+            
+            # ENSURES the DIRNAME <defaults> ARE ALSO UPDATED
+            for schema in self.mainPage.schemas:
+
+                if schema.dirnameConvention:
+
+                    if schema.dirnameConvention.pathIsDefault:
+                        dpg.add_separator()
+                        dpg.add_text(f"{schema.name}'s default directory has been updated.")
+
+
+
 
     def updateBaseDialogue(self,sender,app_data,user_data):
         DirectorySelector(nextStage = self.updateAllFields)

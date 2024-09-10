@@ -35,11 +35,15 @@ def multiplier(value1, value2):
 builtinFunctions = {
     "Margin"        :   {'fn':markupCalculator,'tooltip':"Calculates a markup for a given input value by the given margin."},
     "Percentage"    :   {'fn':percentgeCalculator,'tooltip':"Increases or decreases input value by the given percentage."},
-    "Multiplier"    :   {'fn':multiplier,'tooltip':"Multiplies two values together."},
+    "Multiplier"    :   {'fn':multiplier,'tooltip':"Multiplies two values together."}, # for example: quantity in pack
 }
 
 
-print(markupCalculator(5,0))
-print(markupCalculator(5,99))
+def main():
 
-print(percentgeCalculator(5,200))
+    print(markupCalculator(5,0))
+    print(markupCalculator(5,99))
+    print(percentgeCalculator(5,200))
+
+if __name__=="__main__":
+    main()

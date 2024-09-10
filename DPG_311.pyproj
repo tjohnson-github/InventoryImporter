@@ -45,7 +45,7 @@
     <Compile Include="Redesign\Converter_SchemaFiddler_Window.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Redesign\ColumnZipper.py">
+    <Compile Include="Redesign\Converter_ColumnZipper.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\Builtin_Equations.py">

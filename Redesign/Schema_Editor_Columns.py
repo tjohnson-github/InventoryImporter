@@ -9,7 +9,13 @@ from DPGStage import DPGStage
 from dataclasses import dataclass, field
 import asyncio
 
+def getMinimalTags(tags: list):
 
+    _allTags = [x.rstrip() for x in tags if x !="" and x.count(" ")!=len(x)]
+    _allTags.sort()
+    minItems = list(set(_allTags))
+
+    return minItems
 
 # THings we can do:
 '''
@@ -197,12 +203,13 @@ class SchemaColumnEditor(DPGStage):
         for row in self.rows:
             if row.name=="Tag":
 
-                _allTags = [x.rstrip() for x in dpg.get_values(row.items) if x !="" and x.count(" ")!=len(x)]
-                _allTags.sort()
-                minItems = list(set(_allTags))
+                _minItems = getMinimalTags(dpg.get_values(row.items))
+                #_allTags = [x.rstrip() for x in dpg.get_values(row.items) if x !="" and x.count(" ")!=len(x)]
+                #_allTags.sort()
+                #minItems = list(set(_allTags))
 
-                self.filenameExtractorManager.updateTagList(minItems)
-                self.dirnameExtractor.updateTagList(minItems)
+                self.filenameExtractorManager.updateTagList(_minItems)
+                self.dirnameExtractor.updateTagList(_minItems)
 
 
     def checkAll(self,sender,app_data,user_data):

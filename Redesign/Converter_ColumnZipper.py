@@ -16,7 +16,7 @@ def reverseDict(ini_dict):
 
     return inv_dict
 
-def zipFile(schema,inputFile,matchingRubric):
+def zipFile(schema,inputFile,matchingRubric,includeHeader=False):
     
     # This moves the columns from the input file's columns to the output schema's columns
     #   using the tags as the correspondence system
@@ -27,7 +27,11 @@ def zipFile(schema,inputFile,matchingRubric):
 
     output_header = schema.outputSchemaDict["Column Name"]
     output_tags   = schema.outputSchemaDict["Tag"]
-    output_rows = [output_header]
+
+    if includeHeader:
+        output_rows = [output_header]
+    else: 
+        output_rows = []
 
     # save
     print("---------------------- Beginning Zip")
@@ -86,3 +90,4 @@ def zipFile(schema,inputFile,matchingRubric):
     for row in output_rows:
         print(row)
     
+    return output_rows

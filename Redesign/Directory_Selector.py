@@ -28,6 +28,9 @@ class DirectorySelector(DPGStage):
     inputType: str = "dir"
     nextStage: callable = test
 
+    # TO use this function; look @ self.nextStage: this is where you're going to be receiving the file name.
+    #   It will be <user_data>
+
     def generate_id(self,**kwargs):
 
         self.nextStage = kwargs.get("nextStage")
