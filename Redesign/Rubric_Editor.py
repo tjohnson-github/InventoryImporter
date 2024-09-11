@@ -5,6 +5,7 @@ from File_Operations import csv_to_list,excel_to_list,mkdirWrapper
 from File_Selector import FileSelector
 from Vendorfile import InputFile
 
+from Operations import Operation, OperationEditor
 from Schema_Editor_Columns import getMinimalTags
 
 from typing import Type
@@ -42,7 +43,8 @@ class RubricEditor(DPGStage):
 
         self.names = []
         self.items = []
-
+        self.overrides = []
+        self.overrideValues = []
 
         self.dncOverride = None
         self.fncOverride = None
@@ -68,8 +70,8 @@ class RubricEditor(DPGStage):
         self.tags = copy.deepcopy(self.all_tags)
         self.tags.insert(0,self.null_item)
 
-        self.overrideDirnameConventionTags(sender=None,app_data=False)
-        self.overrideFilenameConventionTags(sender=None,app_data=False)
+        self.overrideDirnameConventionTags(sender=None,app_data=self.rubric.dncOverride)
+        self.overrideFilenameConventionTags(sender=None,app_data=self.rubric.fncOverride)
 
         # Necessary
         _necessary = self.schema.outputSchemaDict["Necessary?"]
@@ -77,7 +79,161 @@ class RubricEditor(DPGStage):
         self.necessaryTagsReminder = zip(_uncleanedTags,_necessary)
         #=====================================================================
 
+    def generate_id(self,**kwargs):
 
+        with dpg.window(height=self.height,width=self.width,label=self.label) as self._id:
+             #"Column Name",
+             #"Tag",
+             #"Necessary?",
+             #"Derived from Filename?",
+             #"Operations",
+             #def generateCells(self):
+        
+            with dpg.group(horizontal=True):
+                dpg.add_text("Adding an Input File to the Rubric: ")
+                dpg.add_input_text(default_value=self.schema.name,enabled=False)
+            dpg.add_separator
+
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    with dpg.group(horizontal=True):
+                        self.nameInput = dpg.add_input_text(label="Name of Rubric",default_value=self.rubric.name,width=150)
+                        dpg.add_text("*",color=(255,0,0))
+                    self.desc = dpg.add_input_text(label="Description",width=150,height=80,multiline=True,default_value=self.rubric.description)
+                    with dpg.group(horizontal=True):
+                        _c = dpg.add_color_button(width=50,default_value=self.schema.color,enabled=False)
+                        with dpg.tooltip(_c): dpg.add_text(f"{self.schema.name}'s Color")
+                        self.color = dpg.add_color_button(width=92,default_value=self.rubric.color,callback=self.changeColor)
+                        with dpg.tooltip(self.color): dpg.add_text(f"This Rubric's Color")
+                        dpg.add_text("Color")
+                with dpg.group():
+                    dpg.add_button(label="Save",callback=self.addRubricToSchema)
+                #self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
+            dpg.add_separator()
+            #===============================================
+            # Display DirnameConvention here
+            #   does the imported file come from this dirname? y/n
+            if self.schema.dirnameConvention:
+                dpg.add_text("DirnameConvention Found!")
+                self.dncOverride = dpg.add_checkbox(label="Allow rubric to override Dirname Convention-sourced tags?",default_value=self.rubric.dncOverride,callback=self.overrideDirnameConventionTags)
+                if self.rubric.dncOverride:
+                    self.overrideDirnameConventionTags(sender=None,app_data=self.rubric.dncOverride)
+            else:
+                dpg.add_text("No Dirname Convention used in this Schema")
+
+            #===============================================
+            dpg.add_separator()
+            # Display Filenme Convention:
+            #   based on filename: show its breakdown into the tag list:
+            if self.schema.filenameConventions:
+                dpg.add_text(f"{len(self.schema.filenameConventions)} Filename Conventions Found!")
+                self.fncOverride = dpg.add_checkbox(label="Allow rubric to override Filename Convention-sourced tags?",default_value=self.rubric.fncOverride,callback=self.overrideFilenameConventionTags)
+                if self.rubric.fncOverride:
+                    self.overrideFilenameConventionTags(sender=None,app_data=self.rubric.fncOverride)
+            else:
+                dpg.add_text("No Filename Conventions used in this Schema")
+
+            #===============================================
+            dpg.add_separator()
+            dpg.add_text("Necessary Fields")
+            dpg.add_text(list(self.necessaryTagsReminder))
+            #===============================================
+            dpg.add_separator()
+            self.suggest = dpg.add_checkbox(label="Suggest Tags based on Input?",default_value=True)
+            #===============================================
+            dpg.add_separator()
+
+            if not self.fromFiddlerCell:
+                dpg.add_button(label="Load File",callback=self.loadFile) 
+                dpg.add_button(label="Build Input File Schema") 
+            else:
+                self.rubric.editorNames = self.fromFiddlerCell.inputFile.header
+            #===============================================
+            dpg.add_separator()
+        
+            with dpg.child_window(border=False,horizontal_scrollbar=True) as self.rubricEditor:
+                pass
+                try:
+                    if self.rubric.editorNames:
+                        self.populateCols(header=self.rubric.editorNames)
+                except Exception as e:
+                    print("Probably loading new")
+                    print(e)
+
+    def populateCols(self,header):
+
+        dpg.push_container_stack(self.rubricEditor)
+
+        with dpg.group(horizontal=True) as headerGroup:
+            with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=150,height=25) as self.widthFixer:
+                dpg.add_text("Imported File Header:")
+            dpg.add_spacer(width=20)
+            dpg.add_text("|")
+
+        with dpg.group(horizontal=True) as TagGroup:
+            with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=150,height=25):
+                dpg.add_text("Available Tags ::::::")
+            dpg.add_spacer(width=20)
+            dpg.add_text("|")
+        
+        dpg.add_separator()
+        with dpg.group(horizontal=True) as self.overrideGroup:
+            pass
+
+        for colName in header:
+
+            component_width=8*len(f"{colName}")
+            if component_width < 50: component_width+=40
+            
+            _name = dpg.add_input_text(default_value=f"{colName}", readonly=True,parent=headerGroup,width=component_width)
+            self.names.append(_name)
+
+            with dpg.group(horizontal=True,parent=headerGroup):
+                dpg.add_spacer(width=20)
+                dpg.add_text("|")
+                dpg.add_spacer(width=20)
+            #===================================================================
+            default_tag = self.tags[0]
+
+            if self.suggest:
+                if colName in self.tags:
+                    default_tag = self.tags[self.tags.index(colName)]
+                else:
+                    pass
+                    # do other suggest mechanics here
+    
+            _combo = dpg.add_combo(items=self.tags,default_value = default_tag,parent=TagGroup,width=component_width,callback=self.displayDerivedOps)
+            self.items.append(_combo)
+
+            try:
+                print(f'{self.rubric.col_to_tag_correspondence=}')
+                print(f'{colName=}')
+                print(f'{self.rubric.col_to_tag_correspondence[colName]=}')
+                dpg.configure_item(_combo,default_value=self.rubric.col_to_tag_correspondence[colName])
+            except Exception as e:
+                print("Prob loading new")
+                print(e)
+
+            with dpg.group(horizontal=True,parent=TagGroup):
+                dpg.add_spacer(width=20)
+                dpg.add_text("|")
+                dpg.add_spacer(width=20)
+            #===================================================================
+            
+        self.displayDerivedOps()
+        
+        dpg.push_container_stack(self.rubricEditor)
+        dpg.add_separator()
+        dpg.add_text("Calculate Output Schema tags as derived from two or more input Rubric columns")
+        with dpg.group() as self.rubricOpGroup:
+
+            with dpg.group(horizontal=True):
+                _ro = dpg.add_combo(items=self.tags,default_value=self.tags[0],width=dpg.get_item_width(self.widthFixer),callback=self.craftRubricOp,user_data=header)
+            self.rubricOps.append(_ro)
+
+        dpg.add_button(label="+",width=dpg.get_item_width(self.widthFixer),callback=self.addOp,user_data=header)
+    
+                    
     def overrideDirnameConventionTags(self,sender,app_data,user_data=True):
         # This function removes the tags sourced by the FILENAME convention from the available tags.
         # Can be rerun with app_data as TRUE to override, whereby the rubric's tags will override the CONVENTION's tags
@@ -137,6 +293,11 @@ class RubricEditor(DPGStage):
                     dpg.add_text("Tags changed at rubric index(es):",color=(255,0,0))
                     for i in _rubricIndexes:
                         dpg.add_text(f'{i+1}',bullet=True)
+
+        try:
+            self.displayDerivedOps()
+        except:
+            pass
 
     def overrideFilenameConventionTags(self,sender,app_data,user_data=True):
         # This function removes the tags sourced by the FILENAME convention from the available tags.
@@ -200,85 +361,13 @@ class RubricEditor(DPGStage):
                     for i in _rubricIndexes:
                         dpg.add_text(f'{i+1}',bullet=True)
 
+        try:
+            self.displayDerivedOps()
+        except:
+            pass
 
 
-
-    def generate_id(self,**kwargs):
-
-        with dpg.window(height=self.height,width=self.width,label=self.label) as self._id:
-             #"Column Name",
-             #"Tag",
-             #"Necessary?",
-             #"Derived from Filename?",
-             #"Operations",
-             #def generateCells(self):
-        
-            with dpg.group(horizontal=True):
-                dpg.add_text("Adding an Input File to the Rubric: ")
-                dpg.add_input_text(default_value=self.schema.name,enabled=False)
-            dpg.add_separator
-
-            with dpg.group(horizontal=True):
-                with dpg.group():
-                    with dpg.group(horizontal=True):
-                        self.nameInput = dpg.add_input_text(label="Name of Rubric",default_value=self.rubric.name,width=150)
-                        dpg.add_text("*",color=(255,0,0))
-                    self.desc = dpg.add_input_text(label="Description",width=150,height=80,multiline=True,default_value=self.rubric.description)
-                    with dpg.group(horizontal=True):
-                        _c = dpg.add_color_button(width=50,default_value=self.schema.color,enabled=False)
-                        with dpg.tooltip(_c): dpg.add_text(f"{self.schema.name}'s Color")
-                        self.color = dpg.add_color_button(width=92,default_value=self.rubric.color,callback=self.changeColor)
-                        with dpg.tooltip(self.color): dpg.add_text(f"This Rubric's Color")
-                        dpg.add_text("Color")
-                with dpg.group():
-                    dpg.add_button(label="Save",callback=self.addRubricToSchema)
-                #self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
-            dpg.add_separator()
-            #===============================================
-            # Display DirnameConvention here
-            #   does the imported file come from this dirname? y/n
-            if self.schema.dirnameConvention:
-                dpg.add_text("DirnameConvention Found!")
-                self.dncOverride = dpg.add_checkbox(label="Allow rubric to override Dirname Convention-sourced tags?",default_value=False,callback=self.overrideDirnameConventionTags)
-            else:
-                dpg.add_text("No Dirname Convention used in this Schema")
-
-            #===============================================
-            dpg.add_separator()
-            # Display Filenme Convention:
-            #   based on filename: show its breakdown into the tag list:
-            if self.schema.filenameConventions:
-                dpg.add_text(f"{len(self.schema.filenameConventions)} Filename Conventions Found!")
-                self.fncOverride = dpg.add_checkbox(label="Allow rubric to override Filename Convention-sourced tags?",default_value=False,callback=self.overrideFilenameConventionTags)
-            else:
-                dpg.add_text("No Filename Conventions used in this Schema")
-
-            #===============================================
-            dpg.add_separator()
-            dpg.add_text("Necessary Fields")
-            dpg.add_text(list(self.necessaryTagsReminder))
-            #===============================================
-            dpg.add_separator()
-            self.suggest = dpg.add_checkbox(label="Suggest Tags based on Input?",default_value=True)
-            #===============================================
-            dpg.add_separator()
-
-            if not self.fromFiddlerCell:
-                dpg.add_button(label="Load File",callback=self.loadFile) 
-                dpg.add_button(label="Build Input File Schema") 
-            else:
-                self.rubric.editorNames = self.fromFiddlerCell.inputFile.header
-            #===============================================
-            dpg.add_separator()
-        
-            with dpg.child_window(border=False,horizontal_scrollbar=True) as self.rubricEditor:
-                pass
-                try:
-                    if self.rubric.editorNames:
-                        self.populateCols(header=self.rubric.editorNames)
-                except Exception as e:
-                    print("Probably loading new")
-                    print(e)
+    
 
     def changeColor(self,sender,app_data):
         
@@ -295,49 +384,6 @@ class RubricEditor(DPGStage):
 
     
 
-    def addRubricToSchema(self):
-
-        #=========================================
-        # Format and create correspondence dict for use in IMPORTER I/O column zipper
-
-        _names = dpg.get_values(self.names)
-        _items = dpg.get_values(self.items)
- 
-        for x in _items:
-            if x==self.null_item: x = "" 
-
-        _col_to_tag_correspondence = dict(zip(_names,_items))
-
-        #=========================================
-        # Update all fields.... in the future this would be automated with use of 
-        #   unique I/O correspondence dict
-
-        if self.rubric.name != dpg.get_value(self.nameInput):
-            try:
-                del self.schema.rubrics[self.rubric.name]
-            except Exception as e:
-                print ("Probably new")
-                print(e)
-
-        self.rubric.name = dpg.get_value(self.nameInput)
-        self.rubric.description = dpg.get_value(self.desc)
-        self.rubric.color = dpg.get_value(self.color)
-        self.rubric.col_to_tag_correspondence = _col_to_tag_correspondence
-        self.rubric.editorNames = _names
-        self.rubric.editorTags = _items
- 
-        #=========================================
-
-        self.schema.rubrics.update({self.rubric.name:self.rubric})
-        self.schema.save(default_schema_path)
-        print("Rubric Saved!!!")
-
-        dpg.delete_item(self._id)
-        self.schema.refreshRubrics()
-
-        if self.fromFiddlerCell:
-            
-            self.fromFiddlerCell.regenerate(sender=self._id)
 
     def loadFile(self):
 
@@ -377,74 +423,104 @@ class RubricEditor(DPGStage):
                 label="Load Spreadsheet file to begin column correspondence with desired output schema",
                 nextStage=manipulateFile)
 
-  
-    def populateCols(self,header):
+    def setGetOverrideVals(self):
 
-        dpg.push_container_stack(self.rubricEditor)
+        self.overrideValues = []
 
-        with dpg.group(horizontal=True) as headerGroup:
-            with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=150,height=25) as self.widthFixer:
-                dpg.add_text("Imported File Header:")
-            dpg.add_spacer(width=20)
-            dpg.add_text("|")
+        for box in self.overrides:
 
-        with dpg.group(horizontal=True) as TagGroup:
-            with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=150,height=25):
-                dpg.add_text("Available Tags ::::::")
-            dpg.add_spacer(width=20)
-            dpg.add_text("|")
+            # will be either a DPG ITEM or NONE
 
+            if box:
+                self.overrideValues.append(dpg.get_value(box))
+            else:
+                self.overrideValues.append(None)
 
+        return self.overrideValues
 
-        for colName in header:
-
-            component_width=8*len(f"{colName}")
-            if component_width < 50: component_width+=40
+    def displayDerivedOps(self):
+        #----------------------------
+        def peek(sender,app_data,user_data):
             
-            _name = dpg.add_input_text(default_value=f"{colName}", readonly=True,parent=headerGroup,width=component_width)
-            self.names.append(_name)
+            _opName = app_data
+            _ops = user_data
 
-            with dpg.group(horizontal=True,parent=headerGroup):
-                dpg.add_spacer(width=20)
-                dpg.add_text("|")
-                dpg.add_spacer(width=20)
+            for op in _ops: 
+                if op.name==_opName:
+                    OperationEditor(operation=op,enabled=False)
+                    #_operation = self.schema.outputSchemaDict["Operations"][]
+            
+            #
+        #----------------------------
+        # See if the values already exist
+        self.setGetOverrideVals()
+        #----------------------------
+        # Reset group
+        dpg.delete_item(self.overrideGroup,children_only=True)
+        dpg.push_container_stack(self.overrideGroup)
+        #----------------------------
+        # generate row info
+        with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=dpg.get_item_width(self.widthFixer),height=25):
+            dpg.add_text("Derived Value Override")
+        dpg.add_spacer(width=20)
+        dpg.add_text("|")
 
-            default_tag = self.tags[0]
+        #----------------------------
+        # populate override boxes if the tags are seen
+        for i,tagCombo in enumerate(self.items):
 
-            if self.suggest:
-                if colName in self.tags:
-                    default_tag = self.tags[self.tags.index(colName)]
+
+            print("<><><><><><><><><><><><>")
+            _tag = dpg.get_value(tagCombo)
+            print(f'{_tag=}')
+
+            _indexes_where_there_are_operations = []
+
+            # This to make sure if one has operation, we get both
+            for ii,tag in enumerate(self.schema.outputSchemaDict["Tag"]):
+                if tag==_tag:
+
+                    if self.schema.outputSchemaDict["Operations"][ii]:
+                        _indexes_where_there_are_operations.append(ii)
+
+            with dpg.child_window(width=dpg.get_item_width(tagCombo)+20,height=25,border=False):
+
+                print(f'{self.schema.outputSchemaDict["Operations"]=}')
+
+                print(f'{_indexes_where_there_are_operations=}')
+
+                if _indexes_where_there_are_operations:
+                    _ops = self.schema.outputSchemaDict["Operations"][_indexes_where_there_are_operations[0]]
+
+                    with dpg.group(horizontal=True):
+                        _opPeeker = dpg.add_combo(items=[op.name for op in _ops],default_value="~",callback=peek,width=40,user_data=_ops)
+                        with dpg.tooltip(_opPeeker): dpg.add_text("Peek")
+
+                        try:
+                            _default = self.overrideValues[i]
+                            if _default == None: 
+                                # AKA if there's no value here before, but there is one now; override is TRUE by default
+                                _default = True
+                        except:
+                            _default = True
+
+                        _overrideBox = dpg.add_checkbox(default_value=_default)
+                        with dpg.tooltip(_overrideBox):
+                            dpg.add_text("If checked, this will override the calculations used to\ngenerate the values in the output schema.")
+                            dpg.add_separator()
+                            dpg.add_text("If checked, the values in this column will be used first.",bullet=True)
+                            dpg.add_text("If un-checked, the values in this column will be used second.",bullet=True)
+                            dpg.add_text("If no values are found, it will be left blank OR with an error\nif the box is checked 'Necessary'.",bullet=True)
+                        self.overrides.append(_overrideBox)
                 else:
-                    pass
-                    # do other suggest mechanics here
+                    self.overrides.append(None) # needed to keep indexes the same
+            
+            dpg.add_spacer(width=0)
+            dpg.add_text("|")
+            dpg.add_spacer(width=20)
+
+
     
-            _combo = dpg.add_combo(items=self.tags,default_value = default_tag,parent=TagGroup,width=component_width)
-            self.items.append(_combo)
-
-            try:
-                print(f'{self.rubric.col_to_tag_correspondence=}')
-                print(f'{colName=}')
-                print(f'{self.rubric.col_to_tag_correspondence[colName]=}')
-                dpg.configure_item(_combo,default_value=self.rubric.col_to_tag_correspondence[colName])
-            except Exception as e:
-                print("Prob loading new")
-                print(e)
-
-            with dpg.group(horizontal=True,parent=TagGroup):
-                dpg.add_spacer(width=20)
-                dpg.add_text("|")
-                dpg.add_spacer(width=20)
-
-        dpg.add_separator()
-        dpg.add_text("Calculate Output Schema tags as derived from two or more input Rubric columns")
-        with dpg.group() as self.rubricOpGroup:
-
-            with dpg.group(horizontal=True):
-                _ro = dpg.add_combo(items=self.tags,default_value=self.tags[0],width=dpg.get_item_width(self.widthFixer),callback=self.craftRubricOp,user_data=header)
-            self.rubricOps.append(_ro)
-
-        dpg.add_button(label="+",width=dpg.get_item_width(self.widthFixer),callback=self.addOp,user_data=header)
-
     def addOp(self,sender,app_data,user_data):
 
         header = user_data
@@ -504,3 +580,51 @@ class RubricEditor(DPGStage):
             dpg.add_spacer(width=20)
             dpg.add_text("|")
             dpg.add_spacer(width=20)
+
+
+
+    def addRubricToSchema(self):
+
+        #=========================================
+        # Format and create correspondence dict for use in IMPORTER I/O column zipper
+
+        _names = dpg.get_values(self.names)
+        _items = dpg.get_values(self.items)
+ 
+        for x in _items:
+            if x==self.null_item: x = "" 
+
+        _col_to_tag_correspondence = dict(zip(_names,_items))
+
+        #=========================================
+        # Update all fields.... in the future this would be automated with use of 
+        #   unique I/O correspondence dict
+
+        if self.rubric.name != dpg.get_value(self.nameInput):
+            try:
+                del self.schema.rubrics[self.rubric.name]
+            except Exception as e:
+                print ("Probably new")
+                print(e)
+
+        self.rubric.name = dpg.get_value(self.nameInput)
+        self.rubric.description = dpg.get_value(self.desc)
+        self.rubric.color = dpg.get_value(self.color)
+        self.rubric.col_to_tag_correspondence = _col_to_tag_correspondence
+        self.rubric.editorNames = _names
+        self.rubric.editorTags = _items
+        self.rubric.dncOverride = dpg.get_value(self.dncOverride)
+        self.rubric.fncOverride = dpg.get_value(self.fncOverride)
+        self.rubric.tagOverrides = self.setGetOverrideVals()
+        #=========================================
+
+        self.schema.rubrics.update({self.rubric.name:self.rubric})
+        self.schema.save(default_schema_path)
+        print("Rubric Saved!!!")
+
+        dpg.delete_item(self._id)
+        self.schema.refreshRubrics()
+
+        if self.fromFiddlerCell:
+            
+            self.fromFiddlerCell.regenerate(sender=self._id)

@@ -4,6 +4,7 @@ from Schema_Extractor_FilenameConvention import FilenameExtractor,FilenameExtrac
 from Schema_Extractor_DirnameConvention import DirnameExtractor
 from Operations import OperationEditor
 
+import copy
 import random
 from DPGStage import DPGStage
 from dataclasses import dataclass, field
@@ -78,10 +79,12 @@ class SchemaColumnEditor(DPGStage):
         self.schemaColNames = self.schema.outputSchemaDict.get("Column Name",[f'Test Name {x}' for x in range(1,6)])
         self.tags           = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i,colName in enumerate(self.schemaColNames,1)])
         self.necessaryBox   = self.schema.outputSchemaDict.get("Necessary?",[False for i,colName in enumerate(self.schemaColNames,1)])
-        self.operations     = self.schema.outputSchemaDict.get("Operations",[[] for i,colName in enumerate(self.schemaColNames,1)])
-        self.opDisplay     = [None for i,colName in enumerate(self.schemaColNames,1)]
+        self.manualCheckBox   = self.schema.outputSchemaDict.get("Manual Check?",[False for i,colName in enumerate(self.schemaColNames,1)])
 
-        print(self.operations)
+        self.operations     = copy.deepcopy(self.schema.outputSchemaDict.get("Operations",[[] for i,colName in enumerate(self.schemaColNames,1)]))
+        self.opDisplay     = [None for i,colName in enumerate(self.operations,1)]
+
+        print(f'{self.operations=}')
 
         self.numColumns     = len(self.schemaColNames)
 
@@ -98,6 +101,9 @@ class SchemaColumnEditor(DPGStage):
                 type = str,                
                 tooltip = "The shorthand name of what kinds of values this column contains.\nFor example:\n\t- UPC\n\t- Quantity\n\t- Description",
                 callback = self.updateTags), 
+            EditorRow(name = "Manual Check?",
+                type = bool,
+                tooltip = "If checked, the user will be required to validate the input during processing.\nUse this is the column is prone to formatting errors.\nKeep in mind that this will happen automatically for TAGs specified in Manual_Input_Tags.JSON"),
             EditorRow(name = "Necessary?",
                 type = bool,
                 tooltip = "If checked, new input schemas will be required to provide a column whose tag matches the rubric schema tag\neven if other operations will be done to the input column's values."),
@@ -151,6 +157,7 @@ class SchemaColumnEditor(DPGStage):
 
                         # Row Names Key
                         with dpg.child_window(width=120,border=False):
+                            dpg.add_separator()
                             with dpg.table(header_row=True):
 
                                 rowLabels = dpg.add_table_column(label=f'Index',width_fixed=True,width=self.tableColumnDefaultWidth)
@@ -158,6 +165,7 @@ class SchemaColumnEditor(DPGStage):
 
                                     with dpg.table_row():
                                         with dpg.group(horizontal=True):
+                                            #if i==0: dpg.add_separator()
                                             _rowLabel = dpg.add_text(row.name)
                                             
                                             if row.name=="Tag":
@@ -223,37 +231,7 @@ class SchemaColumnEditor(DPGStage):
         #for i,item in enumerate(self.rows[3].items):
         #    if dpg.get_value(self.rows[1].items[i])==tagName:
         #        dpg.configure_item(item,default_value=True)
-
-
-    # Iterators
-    def generateInputByType(self,row: EditorRow,columnIndex):
-        pass
-        '''if row.type==str:
-            if row.name == "Column Name":
-                _default_value = self.schemaColNames[columnIndex]
-                _callback = None
-            elif row.name =="Tag": 
-                try:
-                    _default_value = self.tags[columnIndex]
-                except:
-                    _default_value=""
-                _callback = row.callback
-            else: 
-                _default_value = ""
-                _callback = row.callback
-
-            _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
-        
-        elif row.type==bool:
-            with dpg.group(horizontal=True,parent=parent):
-                dpg.add_spacer(width=40)
-                _enabled= False if row.name == "Derived from Filename?" else True
-                _ = dpg.add_checkbox(enabled=_enabled)
-        elif row.type==list:
-           with dpg.child_window(width=self.tableColumnDefaultWidth-16,height=50,parent=parent) as _:
-               pass
-
-        return _ '''  
+    
     
     def openOperationEditor(self,sender,app_data,user_data):
         
@@ -285,6 +263,12 @@ class SchemaColumnEditor(DPGStage):
             _callback = row.callback
             _ = dpg.add_input_text(width=self.tableColumnDefaultWidth,default_value=_default_value,parent=parent,callback=_callback)
         #======================================================
+        elif row.name=="Manual Check?":
+            with dpg.group(horizontal=True,parent=parent):
+                dpg.add_spacer(width=40)
+                _default_value= self.manualCheckBox[columnIndex]#self.schema.outputSchemaDict.get("Necessary?")[columnIndex]
+                _ = dpg.add_checkbox(default_value=_default_value)
+        #======================================================
         elif row.name=="Necessary?":
             with dpg.group(horizontal=True,parent=parent):
                 dpg.add_spacer(width=40)
@@ -304,6 +288,9 @@ class SchemaColumnEditor(DPGStage):
         return _
 
     def populateOps(self,columnIndex):
+
+        # WHY IS THIS NOT POPULATING CORRECTLY ON RE-OPEN?
+
         for i,op in enumerate(self.operations[columnIndex]):
             with dpg.group(horizontal=True):
 
@@ -315,14 +302,25 @@ class SchemaColumnEditor(DPGStage):
         columnIndex = user_data["columnIndex"]
         opIndex     = user_data["opIndex"]
 
-        print(self.operations)
-        print(user_data)
+        print(f'{self.operations=}')
+        print(f'{user_data=}')
 
         # add confirmation
 
+        #self.operations[columnIndex][opIndex] = []
+        
+        #self.operations[columnIndex].remove(self.operations[columnIndex][opIndex])
+        
+        #print(f'{self.operations=}')
+        #print(f'{user_data=}')
+
+        #dpg.delete_item(self.opDisplay[columnIndex])
+        #dpg
         del self.operations[columnIndex][opIndex]
 
         dpg.delete_item(self.opDisplay[columnIndex],children_only=True)
+        #print("deleted")
+        #self.opDisplay[columnIndex]=None
         dpg.push_container_stack(self.opDisplay[columnIndex])
         self.populateOps(columnIndex=columnIndex)
 
@@ -396,7 +394,10 @@ class SchemaColumnEditor(DPGStage):
         self.columns.insert(index_to_add_before,_newCol)
         self.schemaColNames.insert(index_to_add_before,f'New_@_{index_to_add_before}')
         self.tags.insert(index_to_add_before,f'New_@_{index_to_add_before}')
+        self.manualCheckBox.insert(index_to_add_before,False)
         self.necessaryBox.insert(index_to_add_before,False)
+        self.operations.insert(index_to_add_before,[])
+        self.opDisplay.insert(index_to_add_before,None)
 
         self.numColumns+=1
 
@@ -445,7 +446,11 @@ class SchemaColumnEditor(DPGStage):
         try:
             self.schemaColNames.remove(self.schemaColNames[user_data])
             self.tags.remove(self.tags[user_data])
+            self.manualCheckBox.remove(self.manualCheckBox[user_data])
             self.necessaryBox.remove(self.necessaryBox[user_data])
+            self.operations.remove(self.operations[user_data])
+            self.opDisplay .remove(self.opDisplay[user_data])
+
         except Exception as e:
             print("greater than schema index:",e)
 
@@ -496,7 +501,11 @@ class SchemaColumnEditor(DPGStage):
 
             self.schemaColNames.append(f'New_@_{_newColIndex}')
             self.tags.append(f'New_@_{_newColIndex}')
+            self.manualCheckBox.append(False)
             self.necessaryBox.append(False)
+            self.operations.append([])
+            self.opDisplay.append(None)
+
 
             self.numColumns+=1
             self.oneColumn(_newColIndex)
@@ -509,7 +518,10 @@ class SchemaColumnEditor(DPGStage):
             try:
                 self.schemaColNames.remove(self.schemaColNames[columnId])
                 self.tags.remove(self.tags[columnId])
+                self.manualCheckBox.remove(self.manualCheckBox[columnId])
                 self.necessaryBox.remove(self.necessaryBox[columnId])
+                self.operations.remove(self.operations[columnId])
+                self.opDisplay .remove(self.opDisplay[columnId])
             except:
                 print("greater than schema index")
 

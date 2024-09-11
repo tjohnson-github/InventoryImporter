@@ -5,7 +5,7 @@ from DPGStage import DPGStage
 from dearpygui import dearpygui as dpg
 
 from dataclasses import dataclass,field
-from Builtin_Equations import builtinFunctions
+from Operations_Builtin import builtinFunctions
 
 class OperationStep:
     sourceTag: str
@@ -28,34 +28,38 @@ class OperationEditor(DPGStage):
 
     def generate_id(self,**kwargs):
 
-        with dpg.window(height=350,width=500) as self._id:
+        enabled=kwargs.get("enabled",True)
 
-            self._name = dpg.add_input_text(default_value=self.operation.name,label="Short reminder of what this operation does")
-            dpg.add_button(label="Save",callback=self.saveOp)
+        with dpg.window(height=350,width=500,label="Operation Details to determine Derived Values for Ouput Schema") as self._id:
+
+            self._name = dpg.add_input_text(default_value=self.operation.name,label="Short reminder of what this operation does",enabled=enabled)
+            
+            if enabled:
+                dpg.add_button(label="Save",callback=self.saveOp)
 
             dpg.add_separator()
 
-            _opCombo = dpg.add_combo(default_value="~",items=[x for x in list(builtinFunctions.keys())],label="Builtin Functions")
+            _opCombo = dpg.add_combo(default_value="~",items=[x for x in list(builtinFunctions.keys())],label="Builtin Functions",enabled=enabled)
 
             with dpg.group(horizontal=True):
                 dpg.add_text("This column's values will be the",bullet=True)
-                dpg.add_combo(items=["Input","Output"],width=75)
+                dpg.add_combo(items=["Input","Output"],width=75,enabled=enabled)
                 dpg.add_text("of the equation.")
 
             dpg.add_text("Using this column's values as the initial values of the equation,")
 
 
             dpg.add_text("Using the fields as derived from the following tag")
-            dpg.add_combo(label='Tag')
+            dpg.add_combo(label='Tag',enabled=enabled)
             #dpg.add_combo(label=Tag)
 
             dpg.add_text("Source Column's Tag")
-            dpg.add_combo()
+            dpg.add_combo(enabled=enabled)
 
             dpg.add_text(f"{dpg.get_value(_opCombo)} value derived from")
                         
             with dpg.group(horizontal=True):
-                dpg.add_combo(label="Tag")
+                dpg.add_combo(label="Tag",enabled=enabled)
 
     def regenOps(self,sender,parent):
         pass

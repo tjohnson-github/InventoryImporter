@@ -48,7 +48,7 @@
     <Compile Include="Redesign\Converter_ColumnZipper.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Redesign\Builtin_Equations.py">
+    <Compile Include="Redesign\Operations_Builtin.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\Operations.py">

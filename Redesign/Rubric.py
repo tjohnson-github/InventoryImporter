@@ -14,6 +14,8 @@ class Rubric:
     editorNames                 :   list    =   field(default_factory=lambda: [])
     editorTags                  :   list    =   field(default_factory=lambda: [])
 
+    fncOverride                 :   bool    =   field(default=False)
+    dncOverride                 :   bool    =   field(default=False)
     #dateAdded : str
     #dateEdited: str
 

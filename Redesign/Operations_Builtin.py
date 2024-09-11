@@ -31,11 +31,26 @@ def percentgeCalculator(item_cost,percent):
 def multiplier(value1, value2):
     return value1*value2
 
+def staticValue(value1):
+    return value1
 
 builtinFunctions = {
-    "Margin"        :   {'fn':markupCalculator,'tooltip':"Calculates a markup for a given input value by the given margin."},
-    "Percentage"    :   {'fn':percentgeCalculator,'tooltip':"Increases or decreases input value by the given percentage."},
-    "Multiplier"    :   {'fn':multiplier,'tooltip':"Multiplies two values together."}, # for example: quantity in pack
+    "Margin"        :   {
+        'fn':markupCalculator,
+        "inputs":{
+            0:"Input Value",
+            1:"Markup"},
+        'tooltip':"Calculates a markup for a given input value by the given margin.\nRequires numerical input."
+        },
+    "Percentage"    :   {
+        'fn':percentgeCalculator,
+        'tooltip':"Increases or decreases input value by the given percentage.\nRequires numerical input."},
+    "Multiplier"    :   {
+        'fn':multiplier,
+        'tooltip':"Multiplies two values together.\nRequires numerical input."}, # for example: quantity in pack
+    "Static Value"  :   {
+        'fn':staticValue,
+        'tooltip':"Will populate every row with the given value"}, # for example: quantity in pack
 }
 
 

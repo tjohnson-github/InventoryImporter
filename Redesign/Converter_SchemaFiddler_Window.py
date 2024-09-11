@@ -149,6 +149,12 @@ class FiddlerCell(DPGStage):
                         with dpg.group(horizontal=True):
 
                             _manualTags = getManualInputTags()
+                            # v v v v v v v v v v v v v v v v v v v v v
+                            # this isnt even true: a manual input tag should be one that's either from the manual
+                            # OR ones that 
+                            # i think it should JUST be ones that are manually input required
+                            # maybe "Manual input check requested"
+
 
                             #for tag in matchingRubric.editorTags:
                             for tag in schema.outputSchemaDict["Tag"]:

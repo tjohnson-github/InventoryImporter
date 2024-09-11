@@ -395,7 +395,9 @@ class MainPage(DPGStage):
        
         _schema = user_data
 
-        SchemaEditor(mainpage=self,schema=_schema)
+        # delete previous schemas????
+
+        self.sss = SchemaEditor(mainpage=self,schema=_schema)
 
     def setDirs(self,sender,app_data,user_data):
 
