@@ -14,10 +14,12 @@ class OperationStep:
 class Operation:
     #steps: list[OperationStep]
     name: str = ''
+    
 
 class OperationEditor(DPGStage):
 
-
+    #TO DO:
+    # somehow delete the last one if its still open!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     def main(self,**kwargs):
         
@@ -25,6 +27,8 @@ class OperationEditor(DPGStage):
         self.columnIndex = kwargs.get("columnIndex")
 
         self.operation = kwargs.get("operation",Operation())
+
+        self.editingExisting = kwargs.get("editingExisting",False)
 
     def generate_id(self,**kwargs):
 
@@ -70,9 +74,18 @@ class OperationEditor(DPGStage):
         setattr(self.operation,"name",dpg.get_value(self._name))
 
         # etc
+        for op in self.schemaColumnEditor.operations[self.columnIndex]:
+            if self.operation.name == op.name and self.operation != op:
+                with dpg.window(popup=True):
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("There already exists an operation with the name <",color=(255,0,0))
+                        dpg.add_text(f'{op.name}')
+                        dpg.add_text(">.",color=(255,0,0))
+                return 
 
 
-        self.schemaColumnEditor.operations[self.columnIndex].append(self.operation)
+        if self.operation != op: # if they're different
+            self.schemaColumnEditor.operations[self.columnIndex].append(self.operation)
 
         dpg.delete_item(self.schemaColumnEditor.opDisplay[self.columnIndex],children_only=True)
         dpg.push_container_stack(self.schemaColumnEditor.opDisplay[self.columnIndex])

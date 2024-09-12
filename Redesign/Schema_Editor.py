@@ -8,7 +8,7 @@ import os
 import CustomPickler
 
 from DPGStage import DPGStage
-from DefaultPathing import DefaultPathing,DefaultPaths
+from Settings_DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 from typing import Optional
 from File_Selector import FileSelector
@@ -45,6 +45,8 @@ class SchemaEditor(DPGStage):
     chosen = False
 
     scannableLocations = ["INPUT","STAGED"]
+    savableLocations = ["OUTPUT"]
+
 
     schemaLoader: Schema_Loader.SchemaLoader
 
@@ -52,6 +54,30 @@ class SchemaEditor(DPGStage):
 
         self.mainpage = kwargs.get("mainpage")
         self.schema = kwargs.get("schema",Schema())
+
+    def addFormats(self,sender):
+
+        def setFormat(sender,app_data,user_data):
+
+            format = user_data
+
+            self.schema.supported_formats[format] = app_data
+
+        with dpg.window(height=200,width=200,label="Select Save Formats",popup=True):
+
+            dpg.add_text("For each format selected, an output file will be saved of that extension.")
+
+            for format,value in self.schema.supported_formats.items():
+                
+                dpg.add_checkbox(label=format,default_value=value,callback=setFormat,user_data=format)
+                dpg.add_separator()
+
+
+                if format == "gsheet":
+                    with dpg.group(horizontal=True):
+                        dpg.add_text("NOTE: gsheets can only be saved if you")
+                        dpg.add_button(label="Link a Google Service Account")
+
 
     def generate_id(self,**kwargs):
         with dpg.window(label=self.label,width=self.width,height=self.height) as self._id:
@@ -70,6 +96,8 @@ class SchemaEditor(DPGStage):
                             self.color = dpg.add_color_button(width=300,callback=self.changeColor,default_value=self.schema.color)
                             dpg.add_text("Color")
                         self.scansFrom = dpg.add_combo(label="Scans From",items = self.scannableLocations,default_value=self.scannableLocations[0],width=300)
+                        self.savesTo = dpg.add_combo(label="Saves To",items = self.savableLocations,default_value=self.savableLocations[0],width=300)
+                        self.selectFormats = dpg.add_button(label="Select Formats",callback=self.addFormats)
 
                     #with dpg.collapsing_header(default_open=False,label="Tutorial"):
                     with dpg.group():
@@ -159,7 +187,7 @@ class SchemaEditor(DPGStage):
         # GATHER FILENAME CONVENTIONS
         self.filenameConventions=[]
         if not dpg.get_value(self.fns.doNOtUse):
-            _fncs = self.fns.attemptToSave()
+            _fncs = self.fns.attemptToSaveAll()
             if not _fncs:
                 pass
 
@@ -198,7 +226,8 @@ class SchemaEditor(DPGStage):
              dirnameConvention  =   self.dirnameConvention,
 
              outputSchemaDict   =   schema_dict,
-             rubrics            =   self.schema.rubrics
+             rubrics            =   self.schema.rubrics,
+             supported_formats =    self.schema.supported_formats
         )
 
         #+=============================================================

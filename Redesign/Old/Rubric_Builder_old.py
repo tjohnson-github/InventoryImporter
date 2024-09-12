@@ -9,7 +9,7 @@ import CustomPickler
 
 from SQLInterface import SQLLinker
 from DPGStage import DPGStage
-from DefaultPathing import DefaultPathing,DefaultPaths
+from Settings_DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 
 default_path = "Redesign//Settings//"

@@ -7,7 +7,7 @@ import pyodbc
 import CustomPickler
 
 from DPGStage import DPGStage,ObjTabPattern
-from DefaultPathing import DefaultPathing,DefaultPaths
+from Settings_DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 from typing import Optional
 from File_Selector import FileSelector
@@ -57,6 +57,7 @@ class Schema:
     rubrics: dict[str:dict] = field(default_factory=lambda: {}) # Name_of_RUBRIC
     filenameConventions: list[FilenameConvention] = field(default_factory=lambda: [])
     dirnameConvention: DirnameConvention = field(default_factory=lambda: DirnameConvention())
+    supported_formats: dict[str:bool] = field(default_factory=lambda: {'xlsx':True,'csv':False,'gsheet':False})
 
     height = 100
     width = 730

@@ -238,9 +238,11 @@ class SchemaColumnEditor(DPGStage):
         columnIndex = user_data["columnIndex"]
         op = user_data.get("operation",None)
 
+        # What is best way to prevent people from opening up tabs of things that already exist?
+        # 1. make a dict of {object.name : dpgwindow} and delete the old window if it exists before opening the new one?
 
-        if op:
-            OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex,operation=op)
+        if op: # if it already exists
+            OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex,operation=op,editingExisting=True)
         else:
             OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex)
 

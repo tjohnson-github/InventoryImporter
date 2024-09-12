@@ -33,7 +33,7 @@ import CustomPickler
 
 from SQLInterface import SQLLinker
 from DPGStage import DPGStage
-from DefaultPathing import DefaultPathing,DefaultPaths
+from Settings_DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 
 from File_Selector import FileSelector
@@ -48,6 +48,8 @@ import fnmatch
 
 from Vendorfile import InputFile
 from JSONtoDataclass import DataManager 
+
+from Settings_General import SettingsManager, Settings
 
 default_settings_path = "Redesign\\Settings"  
 default_schema_path = "Redesign\\Schemas"
@@ -71,39 +73,41 @@ class MainPage(DPGStage):
     # LATER, UPON LOAD, WHEN VERIFYING A TABLE WITH THAT SCHEMA, CAN SUGGEST OR EVEN AUTO-RUN FORMATTER
     #   BUT THIS NEEDS TO ASK IF 
 
-
-    tutorials: bool  = False
-
     height: int  = 500
     width: int   = 830
 
     settingsName = f'{default_settings_path}\\generalSettings.txt'
 
-    # ======================================
-    # SEVERAL WAYS TO DO THIS
-    # a
-    settings: dict = {"tutorials":False}
-    # b
-    tutorials = False
-    # see MAIN()
-
-    @dataclass
+    '''@dataclass
     class Settings:
         tutorials: bool = False
+        setDefaultFirst: bool = False'''
 
     def main(self,**kwargs):
     
-        self.settings_dc_instance = MainPage.Settings()
+        self.settings_dc_instance = SettingsManager.getSettings()# Settings() # default on arrival
 
-        def loadSettings():
+        '''def loadSettings():
             try:
-                settingsDict = get(self.settingsName)
-                for key,val in settingsDict.items():
-                    self.settings[key]=val
-            except Exception as e:
-               print ("Probably doesnt exist yet:\t",e)
 
-        loadSettings()
+                for field in SettingsManager.getSettings():
+
+                #settingsDict = get(self.settingsName)
+
+                #print(settingsDict)
+
+                #for key,val in settingsDict.items():
+                    #self.settings[key]=val
+                #    setattr(self.settings_dc_instance,key,val)
+            except Exception as e:
+               print ("Probably doesnt exist yet:\t",e)'''
+
+        #loadSettings()
+
+    '''@classmethod
+    def getSettings(cls):
+
+        return get(cls.settingsName)'''
 
     def print_me(sender):
         print(f"Menu Item: {sender}")
@@ -133,10 +137,10 @@ class MainPage(DPGStage):
                     dpg.add_color_picker(label="Color Me", callback=self.print_me)
 
                 with dpg.menu(label="Help"):
-                    _tut = dpg.add_checkbox(label="Tutorials",default_value = self.settings["tutorials"],callback=self.updateSettings)
+                    _tut = dpg.add_checkbox(label="Tutorials",default_value = getattr(self.settings_dc_instance,"tutorials",True),callback=self.updateSettings,user_data="tutorials")
                     
-                    self.alt_settings: dict    = {_tut:self.tutorials}
-                    self.dc_settings: dict    = {_tut:self.settings_dc_instance.tutorials}
+                    #self.alt_settings: dict    = {_tut:self.tutorials}
+                    #self.dc_settings: dict    = {_tut:self.settings_dc_instance.tutorials}
 
             dpg.add_text("Welcome to our Many:One EZ Spreadsheet Converter")
             with dpg.collapsing_header(label="How to Use",default_open=False):
@@ -195,13 +199,11 @@ class MainPage(DPGStage):
 
                 pathingVals = list(asdict(paths).values())
 
-                print([os.path.exists(path) for path in pathingVals])
-                print([os.path.exists(path) for path in pathingVals].count(False)>0)
-
                 def hide_if_dirs():
                     if [os.path.exists(path) for path in pathingVals].count(False)==0:
                         dpg.delete_item(self.dirAttention)
 
+                # If they do not exist: 
                 if [os.path.exists(path) for path in pathingVals].count(False)>0:
                     with dpg.group() as self.dirAttention:
                         dpg.add_separator()
@@ -236,7 +238,7 @@ class MainPage(DPGStage):
 
     def manageData(self,sender):
 
-        DataManager()
+        DataManager(mainpage=self)
 
     def loadSchemas(self):
 
@@ -330,22 +332,23 @@ class MainPage(DPGStage):
 
 
         #====================================================
-        filesToProcess={}
+        filesToProcessDict={}
         #====================================================
         for schema in schemas_selected:
-            print(f"Schema:\t{schema.name}")
+            #print(f"Schema:\t{schema.name}")
 
             if not schema.filenameConventions:
                 print("No filename conventions found; attaching all files to this schema's editing process")
-                filesToProcess.update({schema.name:getFiles()})
+                filesToProcessDict.update({schema.name:getFiles()})
             else:
 
                 # maybe it is silly to have more than 1 filename convention per schema....
-                filesToProcess.update({schema.name:getFiles(allowedExtensions=schema.filenameConventions[0].supportedExtensions)})
+                filesToProcessDict.update({schema.name:getFiles(allowedExtensions=schema.filenameConventions[0].supportedExtensions)})
 
                 for fnc in schema.filenameConventions:
-                    print (f"{fnc.name}")
-                    print(f'{fnc.supportedExtensions}')
+                    #print (f"{fnc.name}")
+                    print(f'Filename Convention Found!')
+                    print(f'Supported Input Extensions: {fnc.supportedExtensions}')
         #====================================================
 
         #====================================================
@@ -353,7 +356,7 @@ class MainPage(DPGStage):
 
         from Converter_SchemaFiddler_Window import FiddlerWindow
 
-        FiddlerWindow(schemas=schemas_selected,filesToProcess=filesToProcess)
+        FiddlerWindow(schemas=schemas_selected,filesToProcessDict=filesToProcessDict)
 
  
 
@@ -409,10 +412,12 @@ class MainPage(DPGStage):
 
     def updateSettings(self,sender,app_data,user_data):
         
+        settingName = user_data
+
         # Supposed to be easy way to change values sent in from menu items.
         # I have new functionlity for this in my dataclasses in private git.
 
-        #----------------------------------
+        '''#----------------------------------
         # a
         _label = dpg.get_item_label(sender).lower() # some times the label itself has the secret!
         self.settings[_label] = app_data
@@ -426,14 +431,22 @@ class MainPage(DPGStage):
         # c
         # self.dc_settings: dict    = {_tut:self.settings_dc.tutorials}
         self.dc_settings[sender] = app_data
-        
+        '''
         #----------------------------------
         # d
         # only if the label is equal to the field name!
-        setattr(self.settings_dc_instance,_label,app_data)
+        setattr(self.settings_dc_instance,user_data,app_data)
         #----------------------------------
         # Save as pickle
-        set(self.settingsName,self.settings)
+        
+        try:
+            set(self.settingsName,self.settings_dc_instance)
+            print("saved")
+            with dpg.window(popup=True): dpg.add_text("Settings Updated!")
+        except Exception as e:
+            with dpg.window(popup=True): dpg.add_text(f"Settings Failed to Update!\nError:\t{e}")
+        
+
 
 
 def main():

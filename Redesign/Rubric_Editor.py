@@ -238,6 +238,9 @@ class RubricEditor(DPGStage):
         # This function removes the tags sourced by the FILENAME convention from the available tags.
         # Can be rerun with app_data as TRUE to override, whereby the rubric's tags will override the CONVENTION's tags
 
+        if not self.schema.dirnameConvention: return
+
+
         override = app_data
        
         _removed = []
@@ -304,6 +307,8 @@ class RubricEditor(DPGStage):
         # Can be rerun with app_data as TRUE to override, whereby the rubric's tags will override the CONVENTION's tags
 
         # As we currently expect a list, but want to change to 1, defaulting to [0]
+
+        if not self.schema.filenameConventions[0]: return
 
         override = app_data
        

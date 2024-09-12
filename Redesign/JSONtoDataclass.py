@@ -9,6 +9,7 @@ from DPGStage import DPGStage
 import dearpygui.dearpygui as dpg
 dpg.create_context()
 
+from Settings_General import SettingsManager
 
 default_path = "Redesign\\UserData"
 
@@ -18,6 +19,10 @@ class DataManager(DPGStage):
     height=600
     width=600
 
+    def main(self,**kwargs):
+
+        self.mainpage = kwargs.get("mainpage")
+
     def generate_id(self,**kwargs):
         
         with dpg.window(label=self.label,height=self.height,width=self.width):
@@ -25,6 +30,10 @@ class DataManager(DPGStage):
             dpg.add_text(f"Simply add JSON objects to <{default_path}>")
             dpg.add_text(f"<TAGS.json> will make those values available where that TAG is selected",bullet=True)
             dpg.add_text(f"<OPERATIONS.json> are mathematical equations and values that, if selected, will be applied before outputting",bullet=True)
+
+            dpg.add_separator()
+
+            dpg.add_checkbox(label="Use first entry as default?",default_value=getattr(SettingsManager.getSettings(),"setDefaultFirst",False),callback=self.mainpage.updateSettings,user_data="setDefaultFirst")
 
             dpg.add_separator()
             dpg.add_button(label=f"Scan <{default_path}> for JSON objects",callback=self.scan)
@@ -93,9 +102,9 @@ def parseJSON(full_filepath: str):
 
     with open(full_filepath) as f:
         d = json.load(f)
-        print(d)
-
-        print(type(d))
+        
+        #print(d)
+        #print(type(d))
 
         return d
 
@@ -114,7 +123,7 @@ def setVal(sender,app_data,user_data):
     key = app_data
     val = d[app_data]
 
-    print(f'Value is {val}')
+    #print(f'Value is {val}')
 
 def displayContents(sender,app_data,user_data):
 

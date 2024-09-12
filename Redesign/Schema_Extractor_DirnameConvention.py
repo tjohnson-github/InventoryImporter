@@ -3,7 +3,7 @@
 from DPGStage import DPGStage
 import dearpygui.dearpygui as dpg
 from dataclasses import dataclass,field,asdict
-from DefaultPathing import DefaultPathing,DefaultPaths
+from Settings_DefaultPathing import DefaultPathing,DefaultPaths
 from Directory_Selector import DirectorySelector
 
 def setFixer(iterable):
@@ -378,10 +378,10 @@ class DirnameExtractor(DPGStage):
 
        
         if dpg.get_value(self.doNOtUse):
-            print("No DIRNAME CONVENTIONS used")
+            #print("No DIRNAME CONVENTIONS used")
             _ = None
         else:
-            print("Saving DIRNAME")
+            #print("Saving DIRNAME")
             _ = save()
         
         return _

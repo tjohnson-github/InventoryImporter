@@ -72,8 +72,8 @@ class FilenameConvention:
 class FilenameExtractorManager(DPGStage):
     height=220
 
-    extractors: list = []
-    extractorTabs: list = []
+    extractors: list
+    extractorTabs: list
 
     disabled=False
 
@@ -81,6 +81,8 @@ class FilenameExtractorManager(DPGStage):
 
         self.editor = kwargs.get("editor")
         self.conventions = copy.deepcopy(kwargs.get("filenameConventions"))
+        self.extractors = []
+        self.extractorTabs = []
 
     def generate_id(self,**kwargs):
         
@@ -155,16 +157,18 @@ class FilenameExtractorManager(DPGStage):
             _e = self.extractors.pop(_id)
             _eT = self.extractorTabs.pop(_id)
 
-            print("a")
+            #print("a")
             #dpg.delete_item(_c)
-            print("b")
+            #print("b")
 
             dpg.delete_item(_e)
-            print("c")
+            #print("c")
 
             dpg.delete_item(_eT)
-            print("d")
+            #print("d")
 
+            for i,extractor in enumerate(self.extractors):
+                extractor.index = i
 
         except Exception as e:
             print(f"{e}")
@@ -184,13 +188,15 @@ class FilenameExtractorManager(DPGStage):
 
         # Reset all ----------------------------
 
-        print(self.extractorTabs)
-
-        for tab in self.extractorTabs:
-            try:
-                dpg.delete_item(tab)
-            except Exception as e:
-                print(f'Error deleting tab:\t{e}')
+        #print(self.extractorTabs)
+        try:
+            for tab in self.extractorTabs:
+                try:
+                    dpg.delete_item(tab)
+                except Exception as e:
+                    print(f'Error deleting tab:\t{e}')
+        except:
+            print("Tabs not generated yet")
 
         self.extractorTabs = []
         self.extractors = []
@@ -212,7 +218,7 @@ class FilenameExtractorManager(DPGStage):
             self.extractorTabs.append(_tab)
 
         _new = dpg.add_tab_button(label='+',callback=self.addNew)
-        self.extractorTabs.append(_new)
+        #self.extractorTabs.append(_new)
         
         self.editor.schemaLoader.colEditor.updateTags()
 
@@ -246,7 +252,7 @@ class FilenameExtractorManager(DPGStage):
             print(extractor.convention.slices)
             extractor.updateTagList(items)
 
-    def attemptToSave(self):
+    def attemptToSaveAll(self):
 
         _fnsConventions = []
 

@@ -11,12 +11,19 @@ from JSONtoDataclass import getManualInputTags
 
 from Converter_ColumnZipper import zipFile
 
+import File_Operations
+
+from Vendorfile import InputFile
+
+from Settings_DefaultPathing import DefaultPathing
+from Settings_General import SettingsManager
+
 class FiddlerCell(DPGStage):
 
     #matchingRubric: Rubric
 
     height=400
-    miniheight = 36
+    miniheight = 30
 
     @dataclass
     class cellData:
@@ -37,8 +44,21 @@ class FiddlerCell(DPGStage):
 
     def updateData(self,sender,app_data,user_data):
 
-        setattr(self.cd,app_data)
+        field = user_data
 
+        setattr(self.cd,field,app_data)
+
+        if field=="doNotBatch":
+            dpg.configure_item(self.nonbatchedName_Input,show=app_data)
+
+            if app_data:
+                miniheight = self.miniheight*2
+                if self.cd.correct:
+                    dpg.configure_item(self._id,height=miniheight)
+            else:
+                miniheight = self.miniheight
+                if self.cd.correct:
+                    dpg.configure_item(self._id,height=miniheight)
     #============================================================================
     # when re-generating... can you ensure that all currently-chosen options do not get re-written?
     def regenerate(self,sender):
@@ -52,6 +72,9 @@ class FiddlerCell(DPGStage):
 
     def populate_container(self,**kwargs):
         
+        # do schema here!!!!!!!!!!!!!!!!
+        # for i,schema in enumerate(self.schemas):
+
             with dpg.group(horizontal=True):
 
                 #dpg.add_button(label="Refresh",callback=self.regenerate)
@@ -71,7 +94,10 @@ class FiddlerCell(DPGStage):
                     with dpg.tooltip(_): dpg.add_text(self.inputFile.fullPath)
 
                 #dpg.add_spacer(width=100)
-                dpg.add_checkbox(label="Do not Batch",default_value=self.cd.doNotBatch,callback=self.updateData)
+                dpg.add_checkbox(label="Do not Batch",default_value=self.cd.doNotBatch,callback=self.updateData,user_data="doNotBatch")
+
+            _batchName = self.inputFile.name.split(".")[0]
+            self.nonbatchedName_Input = dpg.add_input_text(default_value=_batchName,label="Non-Batched Name",show=False)
 
             dpg.add_separator()
             #==================================================================
@@ -112,13 +138,13 @@ class FiddlerCell(DPGStage):
                         ##    a = list(schema.rubrics.values())
                         #    print (a)
 
-                        print (f'Index of {matchingRubricIndex=}')
+                        
+                        #print (f'Index of {matchingRubricIndex=}')
 
                         matchingRubric = list(schema.rubrics.values())[matchingRubricIndex]
 
-                        print(matchingRubric)
-
-                        print(schema.rubrics[matchingRubric.name])
+                        #print(f'{matchingRubric=}')
+                        #print(f'{schema.rubrics[matchingRubric.name]=}')
                         
                         self.showRubric(matchingRubric)
 
@@ -144,6 +170,8 @@ class FiddlerCell(DPGStage):
 
                 with dpg.collapsing_header(label="MANUAL INPUT REQUIRED"):
                     
+                    _defaultFirst = getattr(SettingsManager.getSettings(),"setDefaultFirst")
+
                     for schema in self.schemas:
 
                         with dpg.group(horizontal=True):
@@ -174,6 +202,16 @@ class FiddlerCell(DPGStage):
                                             default_value=getattr(self.cd,tag,"~"),
                                             user_data={"tag":tag,"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
                                             callback=self.updateTagPreview)
+
+                                        if _defaultFirst:
+
+                                            dpg.configure_item(_tagCombo,default_value = list(_manualTags[tag].keys())[0])
+
+                                            self.updateTagPreview(
+                                                sender=_tagCombo,
+                                                app_data = list(_manualTags[tag].keys())[0],
+                                                user_data = dpg.get_item_user_data(_tagCombo)
+                                                )
 
                                     #self.tagCombos.update({tag:_tagCombo})
                                     self.tagCombos.update({tag:_valuePreview})
@@ -291,27 +329,33 @@ class FiddlerCell(DPGStage):
 
 class FiddlerWindow(DPGStage):
     
+    filesToProcessDict: dict
     
     def main(self,**kwargs):
 
         self.schemas = kwargs.get("schemas")
-        self.filesToProcess = kwargs.get("filesToProcess")
+        self.filesToProcessDict = kwargs.get("filesToProcessDict")
 
         self.fiddlerCells = [[] for schema in self.schemas]
         self.batchedNames = []
 
-    def suggestName(self):
+    def suggestName(self,schema):
         # Should be able to turn off! (add to settings)
         _name = ""
 
-        for file in self.filesToProcess:
-            _name+=file.name+"_"
+        for file in self.filesToProcessDict[schema.name]:
+
+            #print(file)
+
+            _extensionRemoved = file.name.split('.')[0]
+
+            _name+=_extensionRemoved+"_"
 
         return _name
 
     def generate_id(self,**kwargs):
 
-        print(self.filesToProcess)
+        #print(self.filesToProcess)
 
         with dpg.window(height=600,width=700,no_scrollbar=False):
 
@@ -327,10 +371,16 @@ class FiddlerWindow(DPGStage):
 
                     with dpg.tab(label=schema.name):
 
-                        _batchedName = dpg.add_input_text(default_value = self.suggestName(),width=500)
+                        with dpg.group(horizontal=True):
+                            _batchedName = dpg.add_input_text(default_value = self.suggestName(schema),width=500)
+                            _ = dpg.add_input_text(default_value=".XXX",label="Save Name",enabled=False,width=75)
+                            with dpg.tooltip(_):
+                                for formatName,val in schema.supported_formats.items():
+                                    if val:
+                                        dpg.add_text(f'.{formatName}')
                         self.batchedNames.append(_batchedName)
 
-                        _to_edit_items = self.filesToProcess[schema.name]
+                        _to_edit_items = self.filesToProcessDict[schema.name]
 
                         for inputfileObj in _to_edit_items:
 
@@ -341,89 +391,134 @@ class FiddlerWindow(DPGStage):
 
     def process(self):
 
-        print("#==========================\nProcessing::::\n")
-
-        def validate_through_cells():
-
-            for i,schema in enumerate(self.schemas):
-
-                for cell in self.fiddlerCells[i]:
-
-                    # If it has been selected as complete
-                    if cell.cd.correct:
-                        for tag,tagPreview in cell.tagCombos.items():
-                            print(f'{tag}\t:\t{dpg.get_value(tagPreview)}')
-
-                            #------------------------------------------------------------------
-                            # If there is a manual input requested that has not been fulfilled
-                            if not dpg.get_value(tagPreview):
-                                with dpg.window(popup=True):
-                                    dpg.add_text("Error:")
-
-                                    with dpg.group(horizontal=True):
-                                        dpg.add_text(f"Manual input for <",color = (255,64,25))
-                                        dpg.add_text(f"{tag}")
-                                        dpg.add_text(f"> is requested at <",color = (255,64,25))
-                                        dpg.add_text(f"{cell.inputFile.name}")
-                                        dpg.add_text(f">",color = (255,64,25))
-                                    return False
+        print("#==========================\nSaving Files::::\n")
 
 
-                            #------------------------------------------------------------------
-                            # If there is no matching rubric
 
-                            #print(getattr(cell.inputFile,"matchingRubric")
+        def validate_through_cells(i,schema):
 
-                            if not getattr(cell,"matchingRubric",False):
-                                with dpg.window(popup=True):
-                                    dpg.add_text("Error:")
+            #for i,schema in enumerate(self.schemas):
 
-                                    with dpg.group(horizontal=True):
-                                        dpg.add_text(f"No rubric found for <",color = (255,64,25))
-                                        dpg.add_text(f"{cell.inputFile.name}")
-                                        dpg.add_text(f"> although its box was checked.",color = (255,64,25))
-                                    return False
+            for cell in self.fiddlerCells[i]:
+
+                # If it has been selected as complete
+                if cell.cd.correct:
+                    for tag,tagPreview in cell.tagCombos.items():
+                        print(f'{tag}\t:\t{dpg.get_value(tagPreview)}')
+
+                        #------------------------------------------------------------------
+                        # If there is a manual input requested that has not been fulfilled
+                        if not dpg.get_value(tagPreview):
+                            with dpg.window(popup=True):
+                                dpg.add_text("Error:")
+
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text(f"Manual input for <",color = (255,64,25))
+                                    dpg.add_text(f"{tag}")
+                                    dpg.add_text(f"> is requested at <",color = (255,64,25))
+                                    dpg.add_text(f"{cell.inputFile.name}")
+                                    dpg.add_text(f">",color = (255,64,25))
+                                return False
+
+
+                        #------------------------------------------------------------------
+                        # If there is no matching rubric
+
+                        #print(getattr(cell.inputFile,"matchingRubric")
+
+                        if not getattr(cell,"matchingRubric",False):
+                            with dpg.window(popup=True):
+                                dpg.add_text("Error:")
+
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text(f"No rubric found for <",color = (255,64,25))
+                                    dpg.add_text(f"{cell.inputFile.name}")
+                                    dpg.add_text(f"> although its box was checked.",color = (255,64,25))
+                                return False
 
             return True
 
-        def processCells():
+        def processCells(i,schema):
 
             _files_as_2D_lists = {}
 
-            for i,schema in enumerate(self.schemas):
+            #for i,schema in enumerate(self.schemas):
                 # each schema will have its own output file(s)
                 
-                _batchedRows = [schema.outputSchemaDict["Column Name"]]
+            _batchedRows = [schema.outputSchemaDict["Column Name"]]
 
-                #--------------------------------------------
-                for cell in self.fiddlerCells[i]:
+            #--------------------------------------------
+            for cell in self.fiddlerCells[i]:
 
-                    if cell.cd.correct:
+                if cell.cd.correct:
 
-                        _output_rows = zipFile(
-                            schema          =   schema,
-                            inputFile       =   cell.inputFile,
-                            matchingRubric  =   cell.matchingRubric,
-                            includeHeader   =   cell.cd.doNotBatch)
+                    _output_rows = zipFile(
+                        schema          =   schema,
+                        inputFile       =   cell.inputFile,
+                        matchingRubric  =   cell.matchingRubric,
+                        includeHeader   =   cell.cd.doNotBatch)
 
-                        if cell.cd.doNotBatch:
-                            #_files_as_2D_lists.append(_output_rows)
-                            _files_as_2D_lists.update({cell.inputFile.name:_output_rows})
-                        else:
-                            _batchedRows.append([row for row in _output_rows])
-                #--------------------------------------------
-                _files_as_2D_lists.update({dpg.get_value(self.batchedNames[i]):_batchedRows})
+                    if cell.cd.doNotBatch:
+                        #_files_as_2D_lists.append(_output_rows)
+                        _files_as_2D_lists.update({dpg.get_value(cell.nonbatchedName_Input):_output_rows})
+                    else:
+                        _batchedRows.append([row for row in _output_rows])
+            #--------------------------------------------
+            _files_as_2D_lists.update({dpg.get_value(self.batchedNames[i]):_batchedRows})
 
             return _files_as_2D_lists
 
-        if validate_through_cells():
-            _files = processCells()
+        def saveOutput(i,schema,files: list[list]):
 
-            for fileName in list(_files.keys()):
+            _saveLocation = getattr(schema,"outputOverride",DefaultPathing.getPaths().output)
+            
+            for fileName,rows in files.items():
+
+                print(fileName)
+                print(rows)
+
                 try:
+                    print("------------ SO FAR SO GOOD")
+                    print(f"Attempting to save file <{fileName}> @ <{_saveLocation}>")
+                    print("------------------")
+
+                    for saveFormat,val in schema.supported_formats.items():
+
+                        _saveName = f'{_saveLocation}\\{fileName}.{saveFormat}'
+
+                        #print(val)
+
+
+                        if val:
+
+                            print(f'Saving as:\t{_saveName}')
+
+                            if saveFormat=='.xlsx':
+                                #print(rows)
+
+                                File_Operations.list_to_excel(rows,_saveName)
+
+                            if saveFormat=='.csv':
+                                File_Operations.list_to_csv(rows,_saveName)
+
+                            if saveFormat=='gsheet':
+                                with dpg.window(popup=True):
+                                    dpg.add_text("GSHEET NOT YET IMPLEMENTED")
+
 
                 except Exception as e:
                     print("------------ ERROR")
-                    print(f"Error saving file <{}> @ <{}>")
+                    print(f"Error saving file <{fileName}> @ <{_saveLocation}>")
                     print(f"Error text:\t{e}")
                     print("------------------")
+
+
+        for i,schema in enumerate(self.schemas):
+
+
+            if validate_through_cells(i, schema):
+                _files = processCells(i, schema)
+
+                saveOutput(i, schema, files=_files)
+
+            

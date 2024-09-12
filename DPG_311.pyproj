@@ -48,6 +48,9 @@
     <Compile Include="Redesign\Converter_ColumnZipper.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\Settings_General.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\Operations_Builtin.py">
       <SubType>Code</SubType>
     </Compile>
@@ -88,6 +91,9 @@
     <Compile Include="Redesign\scraper.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Redesign\SETTINGS EXAMPLES.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Redesign\Vendorfile.py" />
     <Compile Include="Reference\disabled_theme.py">
       <SubType>Code</SubType>
@@ -100,7 +106,7 @@
     </Compile>
     <Compile Include="PDF_Scraper.py" />
     <Compile Include="Redesign\Schema_Editor_Columns.py" />
-    <Compile Include="Redesign\DefaultPathing.py" />
+    <Compile Include="Redesign\Settings_DefaultPathing.py" />
     <Compile Include="Redesign\Departments.py">
       <SubType>Code</SubType>
     </Compile>
