@@ -85,7 +85,7 @@ class MainPage(DPGStage):
 
     def main(self,**kwargs):
     
-        self.settings_dc_instance = SettingsManager.getSettings()# Settings() # default on arrival
+        #self.settings_dc_instance = SettingsManager.getSettings()# Settings() # default on arrival
 
         '''def loadSettings():
             try:
@@ -137,7 +137,7 @@ class MainPage(DPGStage):
                     dpg.add_color_picker(label="Color Me", callback=self.print_me)
 
                 with dpg.menu(label="Help"):
-                    _tut = dpg.add_checkbox(label="Tutorials",default_value = getattr(self.settings_dc_instance,"tutorials",True),callback=self.updateSettings,user_data="tutorials")
+                    _tut = dpg.add_checkbox(label="Tutorials",default_value = getattr(SettingsManager.getSettings(),"tutorials",True),callback=SettingsManager.updateSettings,user_data="tutorials")
                     
                     #self.alt_settings: dict    = {_tut:self.tutorials}
                     #self.dc_settings: dict    = {_tut:self.settings_dc_instance.tutorials}
@@ -410,14 +410,14 @@ class MainPage(DPGStage):
 
         SchemaEditor(mainpage=self)
 
-    def updateSettings(self,sender,app_data,user_data):
+    '''def updateSettings(self,sender,app_data,user_data):
         
         settingName = user_data
 
         # Supposed to be easy way to change values sent in from menu items.
         # I have new functionlity for this in my dataclasses in private git.
 
-        '''#----------------------------------
+        #----------------------------------
         # a
         _label = dpg.get_item_label(sender).lower() # some times the label itself has the secret!
         self.settings[_label] = app_data
@@ -431,11 +431,12 @@ class MainPage(DPGStage):
         # c
         # self.dc_settings: dict    = {_tut:self.settings_dc.tutorials}
         self.dc_settings[sender] = app_data
-        '''
+        
         #----------------------------------
         # d
         # only if the label is equal to the field name!
         setattr(self.settings_dc_instance,user_data,app_data)
+        #----------------------------------
         #----------------------------------
         # Save as pickle
         
@@ -444,7 +445,7 @@ class MainPage(DPGStage):
             print("saved")
             with dpg.window(popup=True): dpg.add_text("Settings Updated!")
         except Exception as e:
-            with dpg.window(popup=True): dpg.add_text(f"Settings Failed to Update!\nError:\t{e}")
+            with dpg.window(popup=True): dpg.add_text(f"Settings Failed to Update!\nError:\t{e}")'''
         
 
 

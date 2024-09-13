@@ -33,7 +33,7 @@ class DataManager(DPGStage):
 
             dpg.add_separator()
 
-            dpg.add_checkbox(label="Use first entry as default?",default_value=getattr(SettingsManager.getSettings(),"setDefaultFirst",False),callback=self.mainpage.updateSettings,user_data="setDefaultFirst")
+            dpg.add_checkbox(label="Use first entry as default?",default_value=getattr(SettingsManager.getSettings(),"setDefaultFirst",False),callback=SettingsManager.updateSettings,user_data="setDefaultFirst")
 
             dpg.add_separator()
             dpg.add_button(label=f"Scan <{default_path}> for JSON objects",callback=self.scan)

@@ -446,6 +446,7 @@ class FiddlerWindow(DPGStage):
                 # each schema will have its own output file(s)
                 
             _batchedRows = [schema.outputSchemaDict["Column Name"]]
+            _batchedNonExistent = True
 
             #--------------------------------------------
             for cell in self.fiddlerCells[i]:
@@ -462,10 +463,13 @@ class FiddlerWindow(DPGStage):
                         #_files_as_2D_lists.append(_output_rows)
                         _files_as_2D_lists.update({dpg.get_value(cell.nonbatchedName_Input):_output_rows})
                     else:
-                        _batchedRows.append([row for row in _output_rows])
+                        _batchedRows.append(_output_rows)
+                        if _batchedNonExistent: _batchedNonExistent = False
             #--------------------------------------------
-            _files_as_2D_lists.update({dpg.get_value(self.batchedNames[i]):_batchedRows})
 
+            if not _batchedNonExistent:
+                _files_as_2D_lists.update({dpg.get_value(self.batchedNames[i]):_batchedRows})
+    
             return _files_as_2D_lists
 
         def saveOutput(i,schema,files: list[list]):
@@ -474,8 +478,8 @@ class FiddlerWindow(DPGStage):
             
             for fileName,rows in files.items():
 
-                print(fileName)
-                print(rows)
+                #print(fileName)
+                #print(rows)
 
                 try:
                     print("------------ SO FAR SO GOOD")
@@ -486,19 +490,20 @@ class FiddlerWindow(DPGStage):
 
                         _saveName = f'{_saveLocation}\\{fileName}.{saveFormat}'
 
-                        #print(val)
-
-
                         if val:
 
                             print(f'Saving as:\t{_saveName}')
 
-                            if saveFormat=='.xlsx':
-                                #print(rows)
+                            if saveFormat=='xlsx':
+
+                                print("<><><><><><><><><><><><><><><><><><><><><><>")
+                                for row in rows:
+                                    print(row)
 
                                 File_Operations.list_to_excel(rows,_saveName)
 
-                            if saveFormat=='.csv':
+                            if saveFormat=='csv':
+
                                 File_Operations.list_to_csv(rows,_saveName)
 
                             if saveFormat=='gsheet':

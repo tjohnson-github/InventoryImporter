@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from CustomPickler import get,set
 
+import dearpygui.dearpygui as dpg
 
 default_settings_path = "Redesign\\Settings"
 
@@ -36,7 +37,7 @@ class SettingsManager:
         #----------------------------------
         # Save as pickle
         try:
-            set(self.settingsName,self.settings_dc_instance)
+            set(cls.settingsName,_settings)
             with dpg.window(popup=True): dpg.add_text("Settings Updated!")
         except Exception as e:
             with dpg.window(popup=True): dpg.add_text(f"Settings Failed to Update!\nError:\t{e}")

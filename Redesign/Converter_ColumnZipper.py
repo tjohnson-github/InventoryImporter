@@ -2,21 +2,21 @@
 
 
 
-def reverseDict(ini_dict):
+def reverseDict(ini_dict,annotations=False):
     # initialising dictionary
  
     # print initial dictionary
-    print("initial dictionary : ", str(ini_dict))
+    if annotations: print("initial dictionary : ", str(ini_dict))
  
     # inverse mapping using zip and dict functions
     inv_dict = dict(zip(ini_dict.values(), ini_dict.keys()))
  
     # print final dictionary
-    print("inverse mapped dictionary : ", str(inv_dict))
+    if annotations: print("inverse mapped dictionary : ", str(inv_dict))
 
     return inv_dict
 
-def zipFile(schema,inputFile,matchingRubric,includeHeader=False):
+def zipFile(schema,inputFile,matchingRubric,includeHeader=False,annotations=False):
     
     # This moves the columns from the input file's columns to the output schema's columns
     #   using the tags as the correspondence system
@@ -34,15 +34,16 @@ def zipFile(schema,inputFile,matchingRubric,includeHeader=False):
         output_rows = []
 
     # save
-    print("---------------------- Beginning Zip")
+    if annotations:
+        print("---------------------- Beginning Zip")
 
-    print (f'{schema.outputSchemaDict["Column Name"]}')
-    print (f'{schema.outputSchemaDict["Tag"]}')
+        print (f'{schema.outputSchemaDict["Column Name"]}')
+        print (f'{schema.outputSchemaDict["Tag"]}')
 
     #['ITEM_NO', 'PROF_ALPHA_2',    'DESCR',        'LST_COST', 'PRC_1', 'TAX_CATEG_COD',   'CATEG_COD', 'ACCT_COD',    'ITEM_VEND_NO', 'PROF_COD_4',   'PROF_ALPHA_3', 'PROF_DAT_1',   'QTY']
     #['UPC',     'man#',            'description',  'cost',     'price', 'Tax Code',        'dept',     'dept',         'Vendor Code',  'man#',         'man#',         'date',         'QTY']
 
-    print (f'{matchingRubric.col_to_tag_correspondence=}')
+        print (f'{matchingRubric.col_to_tag_correspondence=}')
 
     #matchingRubric.col_to_tag_correspondence={
         #'UPC': 'UPC', 
@@ -54,8 +55,9 @@ def zipFile(schema,inputFile,matchingRubric,includeHeader=False):
 
     revTags = reverseDict(matchingRubric.col_to_tag_correspondence)
 
-    print("----------------------------------")
-    print (f'{inputFile.header}')
+    if annotations:
+        print("----------------------------------")
+        print (f'{inputFile.header}')
     for row in inputFile.rows:
 
         _row = []
@@ -83,11 +85,11 @@ def zipFile(schema,inputFile,matchingRubric,includeHeader=False):
 
         output_rows.append(_row)
 
-    print("====================")
-    print("====================")
-    print("====================")
+    #print("====================")
+    #print("====================")
+    #print("====================")
 
-    for row in output_rows:
-        print(row)
+    #for row in output_rows:
+    #    print(row)
     
     return output_rows
