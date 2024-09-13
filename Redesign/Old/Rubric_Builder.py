@@ -163,8 +163,8 @@ class RubricBuilderCustom(DPGStage):
     def gatherInfo(self):
 
         _newRubric = Rubric(
-            name=dpg.get_item_value(self.name),
-            subname=dpg.get_item_value(self.subtitleInput),)
+            name=dpg.get_value(self.name),
+            subname=dpg.get_value(self.subtitleInput),)
 
     def generate_id(self,**kwargs):
 
