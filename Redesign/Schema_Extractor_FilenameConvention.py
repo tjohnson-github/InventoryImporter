@@ -69,6 +69,13 @@ class FilenameConvention:
                 dpg.add_text("|")
                 dpg.add_spacer(width=10)
 
+    def getVal(self,name,tag):
+
+        _ = name.split(".")
+        _ = _[0].split(self.delim)
+
+        return _[self.tags.index(tag)]
+
 class FilenameExtractorManager(DPGStage):
     height=220
 

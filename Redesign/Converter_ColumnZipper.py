@@ -1,6 +1,7 @@
 
 
-
+from Operations_Builtin import builtinFunctions
+from Operations import OperationMinimal
 
 def reverseDict(ini_dict,annotations=False):
     # initialising dictionary
@@ -15,6 +16,80 @@ def reverseDict(ini_dict,annotations=False):
     if annotations: print("inverse mapped dictionary : ", str(inv_dict))
 
     return inv_dict
+
+def calculateOperations(operations:list[OperationMinimal], current_row, input_rows_header, starting_val) -> any:
+
+    def gatherKwargs(op):
+
+        _kwargs = {}
+
+        print("================= Beginning OPs")
+
+        for key,val in op.input_desc.items():
+
+            print(key,val)
+
+            if val["choice"]=="Static Value":
+                _kwargs.update({key:val["value"]})
+            elif val["choice"]=="Tag":
+
+                # Instead grab the value at the current row's tag
+                _tagName = val["value"] # this is the name of the input_tag
+
+                # if the operation's _tagName is equal to the current row's _tagName in the input header
+                _valueAtTag = getVal(_tagName,current_row,input_rows_header)
+
+                _kwargs.update({key:_valueAtTag})
+
+                # Does not need to grab the 
+                pass
+
+        return _kwargs
+
+    _val: any
+
+    for op in operations:
+
+        # IF there are multiple operations, 
+        #   1) you can only have 1 static value (and it must be first)
+        #   2) any subsequent operations can be chained
+        #       2a) each link in the chain should default to use the CURRENT TAG's column as source value
+        #   3) If a link later in the chain uses a DIFFERENT TAG as its source, it's effectively overwritten the previous value the chain has been building.
+
+        for fn in builtinFunctions:
+            if op.operationType == fn.name:
+
+                kwargs = gatherKwargs(op)
+
+                print(f'{kwargs=}')
+
+                _val = fn.operationActual(**kwargs)
+                break
+    
+    return _val
+
+#def getVal(current_row, column_index, output_tags,revTags,inputFile):
+def getVal(input_tag,current_row,input_rows_header):
+
+    #=========================================================================
+    # If there is such a tag in the dict, SOURCE IT FIRST... as it may be used in the column
+    if input_tag:
+
+        try:
+            input_column_index = input_rows_header.index(input_tag)
+            input_column_val = current_row[input_column_index]
+            # The value is equal to the input row @ index of the Header's matching TAG
+
+            _val = input_column_val
+
+        except Exception as e:
+            print(f'{e}')
+            print(f'{output_tag=} not in {input_rows_header=}')
+    else:
+        # input tag not in the dictionary
+        _val = ''
+
+    return _val
 
 def zipFile(schema,inputFile,matchingRubric,includeHeader=False,annotations=False):
     
@@ -54,34 +129,55 @@ def zipFile(schema,inputFile,matchingRubric,includeHeader=False,annotations=Fals
         #'Price': 'price'}
 
     revTags = reverseDict(matchingRubric.col_to_tag_correspondence)
+    #revTags.col_to_tag_correspondence={
+        #'UPC': 'UPC', 
+        #'description': 'Description', 
+        #'Cost': 'cost', 
+        #'QTY': 'Quantity', 
+        #'man#': 'Manufacturer #', 
+        #'price': 'Price'}
 
     if annotations:
         print("----------------------------------")
         print (f'{inputFile.header}')
+
+    # Iterate through each ROW in the INPUT FILE
     for row in inputFile.rows:
 
         _row = []
 
+        # Iterate through COLUMN in the OUTPUT HEADER
         for i, output_column in enumerate(output_header):
 
-            # Get the tag from the reversed Dictionary whereby: TAG:INPUT_NAME
             _tag = revTags.get(output_tags[i],None)
 
-            # If there is such a tag in the dict:
-            if _tag:
+            _val = getVal(_tag,row,inputFile.header)
+          
+            #=========================================================================
+            # HERE is the bulk of the program:
+            #   1. need to see if any operations exist, if so, do them.
+            #   2. pull from source tag columsn if necessary
 
-                try:
-                    input_column_index = inputFile.header.index(_tag)
-                    input_column_val = row[input_column_index]
-                    # The value is equal to the input row @ index of the Header's matching TAG
+            if schema.outputSchemaDict["Operations"][i]:
+                # Right now we only focus on one
+                _opVal = calculateOperations(
+                    operations          =   schema.outputSchemaDict["Operations"][i],
+                    current_row         =   row,
+                    input_rows_header   =   inputFile.header,
+                    starting_val        =   _val) 
+                    # is this last one even necessary? if the column has an operation:
+                    #   A) and it uses itself as the main one.. then it'll be grabbed up ahead anyways.
+                    #       IN THIS FRAMEWORK: each column has as an operation the 'grab from another column' 
+                    #   OR
+                    #   B) it uses another row's value as its input...
 
-                    _row.append(input_column_val)
+                if _val!='':
+                    print("----:::: {input_column_val} being overwritten by {_opVal}")
 
-                except Exception as e:
-                    print(f'{e}')
-                    print(f'{revTags[_tag]=} not in {inputFile.header=}')
-            else:
-                _row.append('')
+                _val = _opVal
+
+            #=========================================================================
+            _row.append(_val)
 
         output_rows.append(_row)
 

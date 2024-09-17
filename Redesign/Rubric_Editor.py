@@ -602,6 +602,24 @@ class RubricEditor(DPGStage):
         _col_to_tag_correspondence = dict(zip(_names,_items))
 
         #=========================================
+
+        def peekRubric(sender,app_data,user_data):
+            rubric = user_data["rubric"]
+
+            RubricEditor(schema=self.schema,rubric=rubric)
+
+        for rubricName,rubric in self.schema.rubrics.items():
+            if _names == rubric.editorNames:
+
+                with dpg.window(popup=True):
+                    dpg.add_text("Warning",color=(255,0,0))
+                    dpg.add_separator()
+                    dpg.add_text("A rubric with this input header already exists inside of this schema!")
+                    dpg.add_button(label="Go to this rubric.",callback=peekRubric,user_data={"rubric":rubric})
+            return 
+
+
+        #=========================================
         # Update all fields.... in the future this would be automated with use of 
         #   unique I/O correspondence dict
 

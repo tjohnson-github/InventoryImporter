@@ -7,7 +7,7 @@ from Rubric import Rubric
 
 from dataclasses import dataclass,field
 
-from JSONtoDataclass import getManualInputTags
+from JSONtoDataclass import getManualInputTags,getFormattedTags,getFncTags
 
 from Converter_ColumnZipper import zipFile
 
@@ -177,6 +177,8 @@ class FiddlerCell(DPGStage):
                         with dpg.group(horizontal=True):
 
                             _manualTags = getManualInputTags()
+                            _formatTags = getFormattedTags()
+                            _fncTags    = getFncTags()
                             # v v v v v v v v v v v v v v v v v v v v v
                             # this isnt even true: a manual input tag should be one that's either from the manual
                             # OR ones that 
@@ -185,23 +187,24 @@ class FiddlerCell(DPGStage):
 
 
                             #for tag in matchingRubric.editorTags:
-                            for tag in schema.outputSchemaDict["Tag"]:
+                            for i,tag in enumerate(schema.outputSchemaDict["Tag"]):
                             
                                 if tag in list(_manualTags.keys()):
 
                                     with dpg.group():
                                         with dpg.group(horizontal=True):
+
                                             dpg.add_text(f'{tag}:')
                                             _valuePreview = dpg.add_text(
                                                 default_value=getattr(self.cd,f'{tag}_preview',''),
                                                 color=(160,160,250))
 
                                         _tagCombo = dpg.add_combo(
-                                            items=list(_manualTags[tag].keys()),
-                                            width=150,
-                                            default_value=getattr(self.cd,tag,"~"),
-                                            user_data={"tag":tag,"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
-                                            callback=self.updateTagPreview)
+                                            items           =   list(_manualTags[tag].keys()),
+                                            width           =   150,
+                                            default_value   =   getattr(self.cd,tag,"~"),
+                                            user_data       =   {"tag":tag,"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
+                                            callback        =   self.updateTagPreview)
 
                                         if _defaultFirst:
 
@@ -216,6 +219,58 @@ class FiddlerCell(DPGStage):
                                     #self.tagCombos.update({tag:_tagCombo})
                                     self.tagCombos.update({tag:_valuePreview})
 
+                                    continue
+
+                                #if schema.outputSchemaDict["Manual Check?"][i]: #if there is a check required
+                                #for fns in schema.filenameConventions[0]:
+                                if schema.filenameConventions:
+                                
+                                    fns = schema.filenameConventions[0]
+
+                                    if tag in list(_fncTags.keys()): # HAVE THESE BE FORMATTING KEYS INSTEAD?
+
+                                        if tag in list(self.tagCombos.keys()):
+                                            # this will skip over duplicates... but how to ensure the formatted value for this one ends up there, too?
+                                            continue
+
+                                        with dpg.group():
+                                            with dpg.group(horizontal=True):
+
+                                                dpg.add_text(f'{tag}:')
+                                                _valuePreview = dpg.add_text(
+                                                    default_value=getattr(self.cd,f'{tag}_preview',''),
+                                                    color=(160,160,250))
+
+                                            _tagCombo = dpg.add_combo(
+                                                items           =   list(_fncTags[tag].keys()), # can make thew full thing
+                                                width           =   150,
+                                                default_value   =   getattr(self.cd,tag,"~"),
+                                                user_data       =   {"tag":tag,"tagDict":_fncTags[tag],"previewDestination":_valuePreview},
+                                                callback        =   self.updateTagPreview)
+
+                                                # try to predict default value
+
+                                            _val_from_filename = fns.getVal(name=self.inputFile.name,tag=tag)
+
+                                            dpg.configure_item(_tagCombo,default_value = _val_from_filename)
+
+                                            if fns.getVal(name=self.inputFile.name,tag=tag) in list(_fncTags[tag].keys()):
+                                                app_data = _val_from_filename
+                                            else:
+                                                app_data = "~Not found~"
+
+                                            print(f'{app_data=}')
+
+                                            self.updateTagPreview(
+                                                sender      =   _tagCombo,
+                                                app_data    =   app_data,
+                                                user_data   =   dpg.get_item_user_data(_tagCombo)
+                                                )
+
+
+    
+                                        self.tagCombos.update({tag:_valuePreview})
+                                        continue
 
                     # does it match a rubric?
                     # suggest nearest rubrics
@@ -277,12 +332,19 @@ class FiddlerCell(DPGStage):
 
     def updateTagPreview(self,sender,app_data,user_data):
         
-        setattr(self.cd,user_data["tag"],app_data)
-        setattr(self.cd,f'{user_data["tag"]}_preview',user_data["tagDict"][app_data])
+        try:
+
+            print(f'{user_data["tagDict"]=}')
+            print(f'{app_data=}')
+
+            setattr(self.cd,user_data["tag"],app_data)
+            setattr(self.cd,f'{user_data["tag"]}_preview',user_data["tagDict"][app_data])
 
 
-        dpg.configure_item(user_data["previewDestination"],default_value=user_data["tagDict"][app_data])
+            dpg.configure_item(user_data["previewDestination"],default_value=user_data["tagDict"][app_data])
 
+        except Exception as e:
+             dpg.configure_item(user_data["previewDestination"],default_value="ERR")
         #print(getattr(self.cd,app_data))
         
 

@@ -218,6 +218,7 @@ class SchemaColumnEditor(DPGStage):
 
                 self.filenameExtractorManager.updateTagList(_minItems)
                 self.dirnameExtractor.updateTagList(_minItems)
+                # propogate to operation editors
 
 
     def checkAll(self,sender,app_data,user_data):
@@ -241,10 +242,17 @@ class SchemaColumnEditor(DPGStage):
         # What is best way to prevent people from opening up tabs of things that already exist?
         # 1. make a dict of {object.name : dpgwindow} and delete the old window if it exists before opening the new one?
 
+        for row in self.rows:
+            if row.name=="Tag":
+                _minItems = getMinimalTags(dpg.get_values(row.items))
+
         if op: # if it already exists
-            OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex,operation=op,editingExisting=True)
+            print("----- Operation already exists!@")
+            _ = OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex,operation=op,editingExisting=True,tags=_minItems)
         else:
-            OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex)
+            _ = OperationEditor(schemaColumnEditor = self,columnIndex=columnIndex,tags=_minItems)
+        
+        #self.singularWindows.update({"operation":_)
 
     def generateInputByFieldName(self,row: EditorRow,columnIndex):
 

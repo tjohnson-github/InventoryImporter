@@ -169,8 +169,10 @@
   <ItemGroup>
     <Content Include="Readme.md" />
     <Content Include="Redesign\Settings\defaultSQLCnxStrs.txt" />
+    <Content Include="Redesign\UserData\FilenameConvention_Tags.json" />
     <Content Include="Redesign\UserData\Manual_Input_Tags.json" />
-    <Content Include="Redesign\UserData\TAGS.json" />
+    <Content Include="Redesign\UserData\Format_Tags.json" />
+    <Content Include="Redesign\UserData\Op_Tags.json" />
     <Content Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />

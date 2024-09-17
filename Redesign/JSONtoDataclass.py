@@ -49,8 +49,14 @@ class DataManager(DPGStage):
 
     def scan(self):
 
-        '''obj = os.scandir(default_path)
+        dpg.push_container_stack(self.tagWindow)
+
+        obj = os.scandir(default_path)
  
+        def previewVal(sender,app_data,user_data):
+            dpg.configure_item(user_data["destination"],default_value=user_data["tagsDict"][app_data])
+
+        #===========================================================================
         # List all files and directories 
         # in the specified path
         #print("Files and Directories in '% s':" % default_path)
@@ -59,42 +65,43 @@ class DataManager(DPGStage):
             #    print(entry.name)
             print(entry)
 
-            #if entry.name.endswith('.json'):
-
-            if entry.name == 'TAGS.json':
+            if entry.name.endswith('.json'):
 
                 _ = parseJSON(f'{default_path}\\{entry.name}')
             
-        '''
-        def previewVal(sender,app_data,user_data):
-            dpg.configure_item(user_data["destination"],default_value=user_data["tagsDict"][app_data])
+                #==========================
+                # TAGS
 
-        #==========================
-        # TAGS
-        _ = parseJSON(f'{default_path}\\TAGS.json')
+                dpg.add_text(entry.name)
+                dpg.add_separator()
 
-        dpg.push_container_stack(self.tagWindow)
-
-        for tagName,tags in _.items():
-            print(tagName)
+                for tagName,tags in _.items():
+                    print(tagName)
             
-            with dpg.group(horizontal=True):
+                    with dpg.group(horizontal=True):
                 
-                dpg.add_input_text(default_value=tagName,width=100,enabled=False)
+                        dpg.add_input_text(default_value=tagName,width=100,enabled=False)
                 
-                dpg.add_spacer(width=30)
+                        dpg.add_spacer(width=30)
 
-                _keysCombo = dpg.add_combo(items=list(tags.keys()),width=100,callback=previewVal)
+                        _keysCombo = dpg.add_combo(items=list(tags.keys()),width=100,callback=previewVal)
 
-                dpg.add_spacer(width=30)
+                        dpg.add_spacer(width=30)
 
-                _valPreview = dpg.add_input_text(enabled=False,width=100)
+                        _valPreview = dpg.add_input_text(enabled=False,width=100)
 
-                dpg.set_item_user_data(_keysCombo,{"tagsDict":tags,"destination":_valPreview})
+                        dpg.set_item_user_data(_keysCombo,{"tagsDict":tags,"destination":_valPreview})
 
+def getFncTags():
+    _ = parseJSON(f'{default_path}\\FilenameConvention_Tags.json')
+    return _ 
+
+def getFormattedTags():
+    _ = parseJSON(f'{default_path}\\Format_Tags.json')
+    return _ 
 
 def getManualInputTags():
-    _ = parseJSON(f'{default_path}\\TAGS.json')
+    _ = parseJSON(f'{default_path}\\Manual_Input_Tags.json')
     return _ 
 
 def parseJSON(full_filepath: str):

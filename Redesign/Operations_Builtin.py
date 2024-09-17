@@ -2,6 +2,8 @@
 from DPGStage import DPGStage
 from dearpygui import dearpygui as dpg
 
+
+
 class BuiltinFunction(DPGStage):
 
     name: str
@@ -10,9 +12,21 @@ class BuiltinFunction(DPGStage):
     inputs: dict[str:type]
     input_desc: dict[str:str]
 
-    input_tag_locations = []
+    input_tag_locations: dict = {}
+
+    width=500
 
     # If the selected field is TAG then you know to use one or both values from that row's location of that tag vs. the other value (static or TAG derived the same way)
+
+    def main(self,**kwargs):
+        
+        self.tags = kwargs.get("tags")
+
+        preExisting_input_desc = kwargs.get("input_desc",None)
+
+        if preExisting_input_desc:
+            print(f"preexisting exists:\t{preExisting_input_desc}")
+            self.input_desc = preExisting_input_desc
 
     def operationActual(**kwargs):
         ...
@@ -23,14 +37,14 @@ class BuiltinFunction(DPGStage):
         inputType       = user_data.get("inputType")
         inputDetails    = user_data.get("inputDetails")
 
+        self.input_desc[inputType].update({"choice":app_data})
+
         dpg.delete_item(self.inputComboGroup[i],children_only=True)
 
         self.populateSourceCombo(i,inputType,inputDetails,app_data)
 
     def populateSourceCombo(self,i,inputType,inputDetails,currentSelection):
         
-        #dpg.push_container_stack(self.inputComboGroup[i])
-
         with dpg.group():
             
             if currentSelection=="Static Value":
@@ -38,15 +52,29 @@ class BuiltinFunction(DPGStage):
                 _label = inputDetails.get("label",None)
 
                 if inputDetails["type_if_static"]==float:
-                    dpg.add_input_float(width=200,label=_label,parent=self.inputComboGroup[i])
+
+                    _df = self.input_desc[inputType].get("value",0)
+                    _= dpg.add_input_float(width=200,label=_label,parent=self.inputComboGroup[i],default_value=float(_df))
+
                 elif inputDetails["type_if_static"]==str:
-                    dpg.add_input_text(width=200,label=_label,parent=self.inputComboGroup[i])
+
+                    _df = self.input_desc[inputType].get("value",'')
+                    _= dpg.add_input_text(width=200,label=_label,parent=self.inputComboGroup[i],default_value=str(_df))
+
                 elif inputDetails["type_if_static"]==int:
-                    dpg.add_input_int(width=200,label=_label,parent=self.inputComboGroup[i])
+
+                    _df = self.input_desc[inputType].get("value",0)
+                    _= dpg.add_input_int(width=200,label=_label,parent=self.inputComboGroup[i],default_value=int(_df))
+
 
             elif currentSelection=="Tag":
-                dpg.add_combo(items=[],default_value='~',width=200)
-                dpg.add_text("*Only TAGs that are currently entered in the Schema editor will appear here.")
+                
+                _df = self.input_desc[inputType].get("value",'~')
+
+                _= dpg.add_combo(parent=self.inputComboGroup[i],items=self.tags,default_value=_df,width=200)
+                with dpg.tooltip(_) : dpg.add_text("*Only TAGs that are currently entered in the Schema editor will appear here.\nIF you select this columns own TAG as the source, it will use values found at this TAG's\nlocation in the input rubric.")
+
+        self.input_tag_locations.update({inputType:_})
 
     def generate_id(self,**kwargs):
 
@@ -68,16 +96,20 @@ class BuiltinFunction(DPGStage):
                 dpg.add_separator()
 
                 with dpg.group(horizontal=True):
+
                     with dpg.child_window(width=200,height=30,border=False,no_scrollbar=True,no_scroll_with_mouse=True):
                         dpg.add_text(f"{inputType} Source: ")
-                    _sourceCombo = dpg.add_combo(width=120,items=["Static Value","Tag"],default_value="Static Value",callback=self.displayInputCombo,user_data={"index":i,"inputType":inputType,"inputDetails":inputDetails})
+
+
+                    _sourceDF = self.input_desc[inputType].get("choice","Static Value")
+                    _sourceCombo = dpg.add_combo(width=120,items=["Static Value","Tag"],default_value=_sourceDF,callback=self.displayInputCombo,user_data={"index":i,"inputType":inputType,"inputDetails":inputDetails})
                     self.inputSourceCombos.append(_sourceCombo)
 
                     _inputComboGroup = dpg.add_group(horizontal=True) 
                     self.inputComboGroup.append(_inputComboGroup)
 
 
-                dpg.add_input_text(enabled=False,multiline=True,default_value=inputDetails["desc"],height=40)
+                dpg.add_input_text(enabled=False,multiline=True,default_value=inputDetails["desc"],height=40,width=self.width-90)
 
             for i,(inputType,inputDetails) in enumerate(self.input_desc.items()):
 
@@ -91,12 +123,12 @@ class BuiltinFunction(DPGStage):
 class MarkupCalc(BuiltinFunction):
 
         name = "Markup"
-        tooltip = "Calculates a price markup for a given input cost by the given margin.\n -\tRequires numerical input."
+        tooltip = "Calculates a price markup for a given input cost\nby the given margin.\n -\tRequires numerical input."
 
         input_desc = {
             "Inital Cost":{
-                "desc":"Which ever column tag is selected here will be used as the initial value to be marked up.",
-                "type_if_static": float},
+                "desc":"Which ever column tag is selected here will\nbe used as the initial value to be marked up.",
+                "type_if_static": float}, # choice, #valueLocation
             "Markup":{
                 "desc":"Which ever column tag is selected here",
                 "type_if_static": float}
@@ -134,10 +166,10 @@ class PercentageCalc(BuiltinFunction):
 
         input_desc = {
             "Base":{
-                "desc":"Which ever column tag is selected here will be used as the initial value to be raised or lowered.",
+                "desc":"Which ever column tag is selected here will be\nused as the initial value to be raised or lowered.",
                 "type_if_static": float},
             "Percentage (%)":{
-                "desc":"Which ever column tag is selected here, given in %, will be used to calculate the final amount.",
+                "desc":"Which ever column tag is selected here, given\nin %, will be used to calculate the final amount.",
                 "type_if_static": float,
                 "label":"%"}
         }
@@ -161,13 +193,13 @@ class Multiplier(BuiltinFunction):
 
         input_desc = {
             "Multiplicand":{
-                "desc":"Which ever column tag is selected here will be used as the initial value to be multiplied.",
+                "desc":"Which ever column tag is selected here will be\nused as the initial value to be multiplied.",
                 "type_if_static": float},
             "Multiplier":{
-                "desc":"Which ever column tag is selected here will be multiplied against the multiplicand to create the product.",
+                "desc":"Which ever column tag is selected here will be\nmultiplied against the multiplicand to create the product.",
                 "type_if_static": float},
             "Round to a number of digits?":{
-                "desc":"If you wish to round the product to a certain number of significant digits.",
+                "desc":"If you wish to round the product to a certain\nnumber of significant digits.",
                 "type_if_static": int}
         }
 
@@ -193,7 +225,7 @@ class StaticValue(BuiltinFunction):
 
         input_desc = {
             "Value":{
-                "desc":"Columns TAGs cannot be selected here, as it would imply a variability of values. Instead, you must supply a single value.",
+                "desc":"Columns TAGs cannot be selected here, as it\nwould imply a variability of values.\nInstead, you must supply a single value.",
                 "type_if_static": str},
         }
 
@@ -206,6 +238,8 @@ class StaticValue(BuiltinFunction):
 
 
 builtinFunctions = [StaticValue,MarkupCalc,PercentageCalc,Multiplier]
+
+
 
 '''def multiplier(value1, value2):
     return value1*value2
