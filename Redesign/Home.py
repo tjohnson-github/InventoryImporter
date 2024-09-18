@@ -19,6 +19,13 @@
 # VENDOR CODE:
 # code : name
 
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#9/18
+
+# Make sure columns with the same TAG in the schema use whichever one has an operation?
+# 
+
 
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

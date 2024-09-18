@@ -2,7 +2,7 @@
 from DPGStage import DPGStage
 from dearpygui import dearpygui as dpg
 
-
+from JSONtoDataclass import getUserDataTags
 
 class BuiltinFunction(DPGStage):
 
@@ -16,11 +16,15 @@ class BuiltinFunction(DPGStage):
 
     width=500
 
+    source_options = ["Static Value","Tag","Derived"]
+
     # If the selected field is TAG then you know to use one or both values from that row's location of that tag vs. the other value (static or TAG derived the same way)
 
     def main(self,**kwargs):
         
         self.tags = kwargs.get("tags")
+
+        self.opTags = getUserDataTags("operation")
 
         preExisting_input_desc = kwargs.get("input_desc",None)
 
@@ -74,6 +78,35 @@ class BuiltinFunction(DPGStage):
                 _= dpg.add_combo(parent=self.inputComboGroup[i],items=self.tags,default_value=_df,width=200)
                 with dpg.tooltip(_) : dpg.add_text("*Only TAGs that are currently entered in the Schema editor will appear here.\nIF you select this columns own TAG as the source, it will use values found at this TAG's\nlocation in the input rubric.")
 
+            elif currentSelection=="Derived":
+                
+                def updatePreview(sender,app_data,user_data):
+
+                    target = user_data.get("target")
+
+                    vals = self.opTags[app_data]
+
+                    dpg.configure_item(target,items = [f'{key}: {val}'  for key,val in vals.items()])
+
+                with dpg.group(parent=self.inputComboGroup[i]):
+                    _df = self.input_desc[inputType].get("value",'~')
+                    _= dpg.add_combo(items=self.tags,default_value=_df,width=200,label="Tag")
+
+
+                    _derived_df = self.input_desc[inputType].get("value_filter",'~')
+                    _derived = dpg.add_combo(items=list(self.opTags.keys()),default_value=_derived_df,width=200,label="Value Filter",callback=updatePreview)
+
+                    _derivedPreview = dpg.add_combo(items=[],default_value='~',width=200,label="Preview")
+                    with dpg.tooltip(_derivedPreview) : dpg.add_text("Selection here not used in calculation.")
+
+                    dpg.set_item_user_data(_derived,user_data={"target":_derivedPreview})
+
+                    self.input_tag_locations.update({f'{inputType}_filter':_derived})
+
+
+                with dpg.tooltip(_) : dpg.add_text("*Only TAGs that are currently entered in the Schema editor will appear here.\nIF you select this columns own TAG as the source, it will use values found at this TAG's\nlocation in the input rubric.")
+
+
         self.input_tag_locations.update({inputType:_})
 
     def generate_id(self,**kwargs):
@@ -102,12 +135,11 @@ class BuiltinFunction(DPGStage):
 
 
                     _sourceDF = self.input_desc[inputType].get("choice","Static Value")
-                    _sourceCombo = dpg.add_combo(width=120,items=["Static Value","Tag"],default_value=_sourceDF,callback=self.displayInputCombo,user_data={"index":i,"inputType":inputType,"inputDetails":inputDetails})
+                    _sourceCombo = dpg.add_combo(width=120,items=self.source_options,default_value=_sourceDF,callback=self.displayInputCombo,user_data={"index":i,"inputType":inputType,"inputDetails":inputDetails})
                     self.inputSourceCombos.append(_sourceCombo)
 
                     _inputComboGroup = dpg.add_group(horizontal=True) 
                     self.inputComboGroup.append(_inputComboGroup)
-
 
                 dpg.add_input_text(enabled=False,multiline=True,default_value=inputDetails["desc"],height=40,width=self.width-90)
 
@@ -139,8 +171,8 @@ class MarkupCalc(BuiltinFunction):
 
         def operationActual(**kwargs):
 
-            item_cost   = kwargs.get("item_cost")
-            margin      = kwargs.get("margin")
+            input   = kwargs.get("Inital Cost")
+            margin      = kwargs.get("Markup")
 
 
             if margin >= 100:

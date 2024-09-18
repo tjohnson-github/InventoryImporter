@@ -92,6 +92,22 @@ class DataManager(DPGStage):
 
                         dpg.set_item_user_data(_keysCombo,{"tagsDict":tags,"destination":_valPreview})
 
+
+def getUserDataTags(type: str) -> dict:
+
+    if type=="fnc":
+        return parseJSON(f'{default_path}\\FilenameConvention_Tags.json')
+
+    if type=="formatting":
+        return parseJSON(f'{default_path}\\Format_Tags.json')
+
+    if type=="manual":
+        return parseJSON(f'{default_path}\\Manual_Input_Tags.json')
+
+    if type=="operation":
+        return parseJSON(f'{default_path}\\Op_Tags.json')
+
+
 def getFncTags():
     _ = parseJSON(f'{default_path}\\FilenameConvention_Tags.json')
     return _ 

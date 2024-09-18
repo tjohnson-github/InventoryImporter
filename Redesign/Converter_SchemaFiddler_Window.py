@@ -455,8 +455,6 @@ class FiddlerWindow(DPGStage):
 
         print("#==========================\nSaving Files::::\n")
 
-
-
         def validate_through_cells(i,schema):
 
             #for i,schema in enumerate(self.schemas):
@@ -581,11 +579,21 @@ class FiddlerWindow(DPGStage):
 
 
         for i,schema in enumerate(self.schemas):
+               
+            print (f'{[cell.cd.correct for cell in self.fiddlerCells[i]]=}')
+            print(f'{len(self.fiddlerCells[i])=}')
+
+            if [cell.cd.correct for cell in self.fiddlerCells[i]].count(False) == len(self.fiddlerCells[i]):
+                print("True!")
+                with dpg.window(popup=True):
+                    dpg.add_text("No Files Selected.")
+            
+            else:
 
 
-            if validate_through_cells(i, schema):
-                _files = processCells(i, schema)
+                if validate_through_cells(i, schema):
+                    _files = processCells(i, schema)
 
-                saveOutput(i, schema, files=_files)
+                    saveOutput(i, schema, files=_files)
 
             

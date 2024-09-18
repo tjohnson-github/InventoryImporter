@@ -110,7 +110,17 @@ class OperationEditor(DPGStage):
             print("---<>------")
             print(inputType)
             print(valueLocation)
-            _desc_with_values[inputType].update({"value":dpg.get_value(valueLocation)})
+
+
+            if inputType.endswith("_filter"):
+
+                _type = inputType.split("_")[0]
+
+                _desc_with_values[_type].update({"value_filter":dpg.get_value(valueLocation)})
+            else:
+                _desc_with_values[inputType].update({"value":dpg.get_value(valueLocation)})
+
+
         setattr(self.operation,"input_desc",_desc_with_values)
 
         # etc
