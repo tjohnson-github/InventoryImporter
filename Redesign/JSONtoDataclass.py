@@ -108,18 +108,6 @@ def getUserDataTags(type: str) -> dict:
         return parseJSON(f'{default_path}\\Op_Tags.json')
 
 
-def getFncTags():
-    _ = parseJSON(f'{default_path}\\FilenameConvention_Tags.json')
-    return _ 
-
-def getFormattedTags():
-    _ = parseJSON(f'{default_path}\\Format_Tags.json')
-    return _ 
-
-def getManualInputTags():
-    _ = parseJSON(f'{default_path}\\Manual_Input_Tags.json')
-    return _ 
-
 def parseJSON(full_filepath: str):
 
 

@@ -24,9 +24,18 @@
 #9/18
 
 # Make sure columns with the same TAG in the schema use whichever one has an operation?
-# 
 
 
+# Do some price override tests; have some missing; see which is overridden
+    # missing + override = overridden
+    # present + override = overridden
+    # missing + nonOverride = overridden
+    # present + nonOverride = present
+# Repeat the override button inside of the FIDDLER
+
+# Test the custom equations.
+
+# Add a manual filter checker for messy searches : EVERGREEN xxxyyyzzz
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

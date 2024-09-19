@@ -1,8 +1,10 @@
 
 from DPGStage import DPGStage
 from dearpygui import dearpygui as dpg
+from datetime import date
 
 from JSONtoDataclass import getUserDataTags
+import webbrowser
 
 class BuiltinFunction(DPGStage):
 
@@ -32,7 +34,8 @@ class BuiltinFunction(DPGStage):
             print(f"preexisting exists:\t{preExisting_input_desc}")
             self.input_desc = preExisting_input_desc
 
-    def operationActual(**kwargs):
+    @classmethod
+    def operationActual(cls,**kwargs):
         ...
 
     def displayInputCombo(self,sender,app_data,user_data):
@@ -74,6 +77,8 @@ class BuiltinFunction(DPGStage):
             elif currentSelection=="Tag":
                 
                 _df = self.input_desc[inputType].get("value",'~')
+
+                print(f";;;;;;;\t{self.tags=}")
 
                 _= dpg.add_combo(parent=self.inputComboGroup[i],items=self.tags,default_value=_df,width=200)
                 with dpg.tooltip(_) : dpg.add_text("*Only TAGs that are currently entered in the Schema editor will appear here.\nIF you select this columns own TAG as the source, it will use values found at this TAG's\nlocation in the input rubric.")
@@ -154,122 +159,150 @@ class BuiltinFunction(DPGStage):
 
 class MarkupCalc(BuiltinFunction):
 
-        name = "Markup"
-        tooltip = "Calculates a price markup for a given input cost\nby the given margin.\n -\tRequires numerical input."
+    name = "Markup"
+    tooltip = "Calculates a price markup for a given input cost\nby the given margin.\n -\tRequires numerical input."
 
-        input_desc = {
-            "Inital Cost":{
-                "desc":"Which ever column tag is selected here will\nbe used as the initial value to be marked up.",
-                "type_if_static": float}, # choice, #valueLocation
-            "Markup":{
-                "desc":"Which ever column tag is selected here",
-                "type_if_static": float}
-        }
-
-
+    input_desc = {
+        "Inital Cost":{
+            "desc":"Which ever column tag is selected here will\nbe used as the initial value to be marked up.",
+            "type_if_static": float}, # choice, #valueLocation
+        "Markup":{
+            "desc":"Which ever column tag is selected here",
+            "type_if_static": float}
+    }
 
 
-        def operationActual(**kwargs):
-
-            input   = kwargs.get("Inital Cost")
-            margin      = kwargs.get("Markup")
 
 
-            if margin >= 100:
-                raise Exception("Margins can not exceed 100")
+    @classmethod
+    def operationActual(cls,**kwargs):
+        input   = kwargs.get("Inital Cost")
+        margin      = kwargs.get("Markup")
 
-            #======================================================
-            item_cost   =   float(input)
-            #======================================================
-            item_Price = (item_cost / (100 - margin)) * 100    
 
-            q, r        = divmod((100* item_cost), (100 - margin))
+        if margin >= 100:
+            raise Exception("Margins can not exceed 100")
+
+        #======================================================
+        item_cost   =   float(input)
+        #======================================================
+        item_Price = (item_cost / (100 - margin)) * 100    
+
+        q, r        = divmod((100* item_cost), (100 - margin))
         
-            skip        = q + int(bool(r))
+        skip        = q + int(bool(r))
 
-            if skip!=0 and margin!=0: skip -= 0.01
-            #======================================================
-            return skip
+        if skip!=0 and margin!=0: skip -= 0.01
+        #======================================================
+        return skip
 
 class PercentageCalc(BuiltinFunction):
 
-        name = "Percentage"
-        tooltip = "Increases or decreases input value by the given percentage.\n -\tRequires numerical input."
+    name = "Percentage"
+    tooltip = "Increases or decreases input value by the given percentage.\n -\tRequires numerical input."
 
-        input_desc = {
-            "Base":{
-                "desc":"Which ever column tag is selected here will be\nused as the initial value to be raised or lowered.",
-                "type_if_static": float},
-            "Percentage (%)":{
-                "desc":"Which ever column tag is selected here, given\nin %, will be used to calculate the final amount.",
-                "type_if_static": float,
-                "label":"%"}
-        }
+    input_desc = {
+        "Base":{
+            "desc":"Which ever column tag is selected here will be\nused as the initial value to be raised or lowered.",
+            "type_if_static": float},
+        "Percentage (%)":{
+            "desc":"Which ever column tag is selected here, given\nin %, will be used to calculate the final amount.",
+            "type_if_static": float,
+            "label":"%"}
+    }
 
-        def operationActual(**kwargs):
+    @classmethod
+    def operationActual(cls,**kwargs):
+        Base        = kwargs.get("Base")
+        percent     = kwargs.get("percent")
 
-            Base        = kwargs.get("Base")
-            percent     = kwargs.get("percent")
-
-            #======================================================
-            Base        = float(Base)
-            #======================================================
-            amount      = (Base + (Base/100)*percent)  
-            #======================================================
-            return amount
+        #======================================================
+        Base        = float(Base)
+        #======================================================
+        amount      = (Base + (Base/100)*percent)  
+        #======================================================
+        return amount
 
 class Multiplier(BuiltinFunction):
 
-        name = "Multiplier"
-        tooltip = "Unlike percentage which adds the multiplied product to the original value, this merely calculates the product.\n -\tObviously, you could input the percentage as a fraction here to arrive at the same number, but this is in case you need it."
+    name = "Multiplier"
+    tooltip = "Unlike percentage which adds the multiplied product to the original value, this merely calculates the product.\n -\tObviously, you could input the percentage as a fraction here to arrive at the same number, but this is in case you need it."
 
-        input_desc = {
-            "Multiplicand":{
-                "desc":"Which ever column tag is selected here will be\nused as the initial value to be multiplied.",
-                "type_if_static": float},
-            "Multiplier":{
-                "desc":"Which ever column tag is selected here will be\nmultiplied against the multiplicand to create the product.",
-                "type_if_static": float},
-            "Round to a number of digits?":{
-                "desc":"If you wish to round the product to a certain\nnumber of significant digits.",
-                "type_if_static": int}
-        }
+    input_desc = {
+        "Multiplicand":{
+            "desc":"Which ever column tag is selected here will be\nused as the initial value to be multiplied.",
+            "type_if_static": float},
+        "Multiplier":{
+            "desc":"Which ever column tag is selected here will be\nmultiplied against the multiplicand to create the product.",
+            "type_if_static": float},
+        "Round to a number of digits?":{
+            "desc":"If you wish to round the product to a certain\nnumber of significant digits.",
+            "type_if_static": int}
+    }
 
 
-        # allow to round to certain values
+    # allow to round to certain values
 
-        def operationActual(**kwargs):
+    @classmethod
+    def operationActual(cls,**kwargs):
 
-            Multiplicand   = kwargs.get("Multiplicand")
-            Multiplier     = kwargs.get("Multiplier")
+        Multiplicand   = kwargs.get("Multiplicand")
+        Multiplier     = kwargs.get("Multiplier")
 
-            #======================================================
-            Multiplicand   =   float(Multiplicand)
-            #======================================================
-            product  = (item_cost + (item_cost/100)*percent)  
-            #======================================================
-            return item_Price
+        #======================================================
+        Multiplicand   =   float(Multiplicand)
+        #======================================================
+        product  = (item_cost + (item_cost/100)*percent)  
+        #======================================================
+        return item_Price
 
 class StaticValue(BuiltinFunction):
 
-        name = "Static Value"
-        tooltip = "Use if every row in this column should be the same value, and that value is not expected to come from anywhere else."
+    name = "Static Value"
+    tooltip = "Use if every row in this column should be the same value, and that value is not expected to come from anywhere else."
 
-        input_desc = {
-            "Value":{
-                "desc":"Columns TAGs cannot be selected here, as it\nwould imply a variability of values.\nInstead, you must supply a single value.",
-                "type_if_static": str},
-        }
+    input_desc = {
+        "Value":{
+            "desc":"Columns TAGs cannot be selected here, as it\nwould imply a variability of values.\nInstead, you must supply a single value.",
+            "type_if_static": str},
+    }
 
-        def operationActual(**kwargs):
-
-            Value   = kwargs.get("Value")
+    @classmethod
+    def operationActual(cls,**kwargs):
+        Value   = kwargs.get("Value")
             
-            return Value
+        return Value
 
+class Date(BuiltinFunction):
 
+    name = "Today's Date"
+    tooltip = "Use if every row in this column should be today's date"
 
-builtinFunctions = [StaticValue,MarkupCalc,PercentageCalc,Multiplier]
+    input_desc = {
+        "Format":{
+            "desc":"Using linux's strftime() conventions, output the date.",
+            "type_if_static": str,
+            "value":"%m/%d/%y"},
+    }
+
+    source_options = ["Static Value"]
+
+    @classmethod
+    def operationActual(cls,**kwargs):
+        format = kwargs.get("Format")
+
+        today = date.today()
+        return today.strftime(format)
+    
+    def generate_id(self,**kwargs):
+
+        super(Date,self).generate_id(**kwargs)
+
+        dpg.add_button(label="Formatting Help", callback=lambda:webbrowser.open("https://man7.org/linux/man-pages/man3/strftime.3.html"))
+
+            
+
+builtinFunctions = [StaticValue,MarkupCalc,PercentageCalc,Multiplier,Date]
 
 
 

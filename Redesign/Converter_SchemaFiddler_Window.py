@@ -7,7 +7,7 @@ from Rubric import Rubric
 
 from dataclasses import dataclass,field
 
-from JSONtoDataclass import getManualInputTags,getFormattedTags,getFncTags
+from JSONtoDataclass import getUserDataTags
 
 from Converter_ColumnZipper import zipFile
 
@@ -176,9 +176,12 @@ class FiddlerCell(DPGStage):
 
                         with dpg.group(horizontal=True):
 
-                            _manualTags = getManualInputTags()
-                            _formatTags = getFormattedTags()
-                            _fncTags    = getFncTags()
+                            _manualTags = getUserDataTags('manual')
+                            _formatTags = getUserDataTags('formatting')
+                            _fncTags    = getUserDataTags('fnc')
+
+
+
                             # v v v v v v v v v v v v v v v v v v v v v
                             # this isnt even true: a manual input tag should be one that's either from the manual
                             # OR ones that 
@@ -517,13 +520,16 @@ class FiddlerWindow(DPGStage):
                         schema          =   schema,
                         inputFile       =   cell.inputFile,
                         matchingRubric  =   cell.matchingRubric,
-                        includeHeader   =   cell.cd.doNotBatch)
+                        includeHeader   =   cell.cd.doNotBatch,
+                        manualTagCombos =   cell.tagCombos)
+
+                    print(f'{_output_rows=}')
 
                     if cell.cd.doNotBatch:
                         #_files_as_2D_lists.append(_output_rows)
                         _files_as_2D_lists.update({dpg.get_value(cell.nonbatchedName_Input):_output_rows})
                     else:
-                        _batchedRows.append(_output_rows)
+                        [_batchedRows.append(x) for x in _output_rows]
                         if _batchedNonExistent: _batchedNonExistent = False
             #--------------------------------------------
 

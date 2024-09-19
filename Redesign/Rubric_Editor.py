@@ -9,6 +9,7 @@ from Operations import Operation, OperationEditor
 from Schema_Editor_Columns import getMinimalTags
 
 from typing import Type
+import string
 import copy
 
 from Rubric import Rubric
@@ -50,6 +51,7 @@ class RubricEditor(DPGStage):
         self.fncOverride = None
 
         self.rubricOps = []
+        self.rubricCalcs = []
         self.rubricOpsCombos=[[]]
 
         #=====================================================================
@@ -164,12 +166,16 @@ class RubricEditor(DPGStage):
 
         dpg.push_container_stack(self.rubricEditor)
 
+        #=====================================================
+        # INPUT FILE HEADER
         with dpg.group(horizontal=True) as headerGroup:
             with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=150,height=25) as self.widthFixer:
                 dpg.add_text("Imported File Header:")
             dpg.add_spacer(width=20)
             dpg.add_text("|")
-
+        
+        #=====================================================
+        # TAG SELECTION
         with dpg.group(horizontal=True) as TagGroup:
             with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=150,height=25):
                 dpg.add_text("Available Tags ::::::")
@@ -229,8 +235,10 @@ class RubricEditor(DPGStage):
 
             with dpg.group(horizontal=True):
                 _ro = dpg.add_combo(items=self.tags,default_value=self.tags[0],width=dpg.get_item_width(self.widthFixer),callback=self.craftRubricOp,user_data=header)
-            self.rubricOps.append(_ro)
+            _calc = dpg.add_input_text(width=dpg.get_item_width(self.widthFixer))
 
+            self.rubricOps.append(_ro)
+            self.rubricCalcs.append(_calc)
         dpg.add_button(label="+",width=dpg.get_item_width(self.widthFixer),callback=self.addOp,user_data=header)
     
                     
@@ -452,7 +460,7 @@ class RubricEditor(DPGStage):
 
             for op in _ops: 
                 if op.name==_opName:
-                    OperationEditor(operation=op,enabled=False)
+                    OperationEditor(operation=op,tags=self.schema.outputSchemaDict["Tag"],enabled=False)
                     #_operation = self.schema.outputSchemaDict["Operations"][]
             
             #
@@ -533,7 +541,11 @@ class RubricEditor(DPGStage):
         dpg.push_container_stack(self.rubricOpGroup)
         with dpg.group(horizontal=True):
             _ro = dpg.add_combo(items=self.tags,default_value=self.tags[0],width=dpg.get_item_width(self.widthFixer),callback=self.craftRubricOp,user_data=header)
+            #_calc = dpg.add_combo(items=['*',"-")
+        _calc = dpg.add_input_text(width=dpg.get_item_width(self.widthFixer))
         self.rubricOps.append(_ro)
+        self.rubricCalcs.append(_calc)
+
         self.rubricOpsCombos.append([])
 
     def craftRubricOp(self,sender,app_data,user_data):
@@ -572,15 +584,16 @@ class RubricEditor(DPGStage):
             del _tempRubrics
             return 
 
-        
-
         # If okay:
         dpg.push_container_stack(dpg.get_item_parent(sender))
         dpg.add_spacer(width=20)
         dpg.add_text("|")
 
+        # For each column, let user choose
         for i,colName in enumerate(header):
-            _combo = dpg.add_combo(items=[x for x in range(1,len(header))],default_value = self.tags[0],width=dpg.get_item_width(self.names[i]))
+
+            _items = list(string.ascii_lowercase[:len(header)])
+            _combo = dpg.add_combo(items=_items,default_value = self.null_item,width=dpg.get_item_width(self.names[i]))
             self.rubricOpsCombos[self.rubricOps.index(sender)].append(_combo)
             dpg.add_spacer(width=20)
             dpg.add_text("|")
@@ -651,3 +664,13 @@ class RubricEditor(DPGStage):
         if self.fromFiddlerCell:
             
             self.fromFiddlerCell.regenerate(sender=self._id)
+
+
+if __name__=="__main__":
+    x=10
+    y=5
+    z = eval("x + y")
+    print(z)
+
+    _items = string.ascii_lowercase[:28]
+    print(list(_items))
