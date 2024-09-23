@@ -37,6 +37,10 @@
 
 # Add a manual filter checker for messy searches : EVERGREEN xxxyyyzzz
 
+# Make sure that if there IS an overrride,
+# and cost is missing... it uses the price.
+# if both are missing.... send to errors??
+
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 import dearpygui.dearpygui as dpg

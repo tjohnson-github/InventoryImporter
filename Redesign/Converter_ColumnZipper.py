@@ -20,13 +20,38 @@ def reverseDict(ini_dict,annotations=False):
 
     return inv_dict
 
-def calculateOperations(operations:list[OperationMinimal], current_row, input_rows_header, starting_val,schema,inputFile,revTags,manualTagCombos) -> any:
+def processRubricOP(op,current_row,input_rows_header,schema,inputFile,revTags,manualTagCombos):
+
+    _tag = op.tag
+    _calc= op.calc
+    _combos = op.combos
+
+    _kwargs = {}
+
+    print(f'{input_rows_header=}')
+    print(f'{_tag=}')
+
+    for i,variableName in enumerate(_combos):
+        if variableName!='None' and variableName:#if variableName:
+
+            _tag_of_combo = input_rows_header[i]
+
+            #_sourceVal = getVal(_tag_of_combo,current_row,input_rows_header,schema,inputFile,revTags,manualTagCombos)
+            _sourceVal = current_row[i]
+            _kwargs.update({variableName:_sourceVal})
+
+    print('<><><><><><><><><><><>')
+    print("Calculating:::")
+    print(f"\t\t{_calc}")
+    print(f"\tUsing")
+    print(f"\t\t{_kwargs}")
+
+def processSchemaOp(operations:list[OperationMinimal], current_row, input_rows_header, starting_val,schema,inputFile,revTags,manualTagCombos) -> any:
 
     def gatherKwargs(op):
 
         _kwargs = {}
 
-        print("================= Beginning OPs")
 
         for key,val in op.input_desc.items():
 
@@ -136,7 +161,9 @@ def getVal(tag,current_row,input_rows_header,schema,inputFile,revTags,manualTagC
 
         if _input_header_column_name not in input_rows_header:
 
-            print(f'{_input_header_column_name=} not in {input_rows_header=}')
+            #print(f'====> {_input_header_column_name=} not in {input_rows_header=}')
+
+            print(f">>>>>>>>> <{_input_header_column_name}> not in Input Header; must source elsewhere...")
 
             _val = None
 
@@ -157,7 +184,7 @@ def getVal(tag,current_row,input_rows_header,schema,inputFile,revTags,manualTagC
                 print(f"Cannot find {tag=} in manual inputs:\t{e}")
 
             #===============================================================
-            print(">> Checking Filename convention....")
+            print(">>> Checking Filename convention....")
             try:
                 for fnc in schema.filenameConventions:
                     # should be 1
@@ -187,7 +214,13 @@ def getVal(tag,current_row,input_rows_header,schema,inputFile,revTags,manualTagC
                 # The value is equal to the input row @ index of the Header's matching TAG
 
                 _val = input_column_val
+
+                #============================
+                if _val=="None": _val= ''
+                # maybe have a setting for this
+
                 return _val
+
             except Exception as e:
                 print(f'Error deducing value from current row:\t{e}')
                 return ''
@@ -202,7 +235,7 @@ def getVal(tag,current_row,input_rows_header,schema,inputFile,revTags,manualTagC
 
     return val
 
-def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,annotations=False):
+def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,annotations=True):
     
     # This moves the columns from the input file's columns to the output schema's columns
     #   using the tags as the correspondence system
@@ -232,6 +265,8 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
         #['ITEM_NO', 'PROF_ALPHA_2',    'DESCR',        'LST_COST', 'PRC_1', 'TAX_CATEG_COD',   'CATEG_COD', 'ACCT_COD',    'ITEM_VEND_NO', 'PROF_COD_4',   'PROF_ALPHA_3', 'PROF_DAT_1',   'QTY']
         #['UPC',     'man#',            'description',  'cost',     'price', 'Tax Code',        'dept',     'dept',         'Vendor Code',  'man#',         'man#',         'date',         'QTY']
         print("----------------------------------")
+        
+        print (f'{matchingRubric.tagOverrides=}')
         print (f'{matchingRubric.col_to_tag_correspondence=}')
 
         # INPUT COLUMN NAME : SCHEMA TAG
@@ -260,21 +295,31 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
         print (f'{inputFile.header=}')
         print("----------------------------------")
 
+    def skiprow(row) -> bool:
+
+        #if row.count("None")==len(row): return True
+
+        if row.count('') == len(row) or row.count('None') == len(row) or row.count(None) == len(row):
+            return True
+
+        return False
+
+
     # Iterate through each ROW in the INPUT FILE
     for row in inputFile.rows:
+
+        if skiprow(row): continue
+
+        print("--<>--<>--<>--<>--<>--<>----------------")
         print("--<>--<>--<>--<>--<>--<>----------------")
         print(row)
-
-        # Check for empty
-        if row.count('') == len(row) or row.count('None') == len(row) or row.count(None) == len(row):
-            continue
 
         _row = []
 
         # Iterate through COLUMN in the OUTPUT HEADER
         for i, output_column in enumerate(output_header):
 
-            print(f"#=========================\nFrom <{output_tags[i]}>...\n")
+            print(f"#============\nFrom <{output_tags[i]}>...\n")
 
             _tag = output_tags[i]
 
@@ -283,38 +328,72 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
 
             #print(f"Looking for <{_input_header_column_name}>...")
 
-            _val = getVal(_tag,row,inputFile.header,schema,inputFile,revTags,manualTagCombos)
-          
+            if _tag in [op.tag for op in matchingRubric.ops]:
+                print("================= Attempting RUBRIC OPs")
+                for op in matchingRubric.ops:
+                    if _tag == op.tag:
+
+                        print(op)
+                        #print(type(op))
+
+                        _val = processRubricOP(op,row,inputFile.header,schema,inputFile,revTags,manualTagCombos)
+                        break
+            elif _tag == "":
+                _val = ''
+            else:
+                _val = getVal(_tag,row,inputFile.header,schema,inputFile,revTags,manualTagCombos)
             #=========================================================================
             # HERE is the bulk of the program:
             #   1. need to see if any operations exist, if so, do them.
             #   2. pull from source tag columsn if necessary
 
-            if schema.outputSchemaDict["Operations"][i]:
-                # Right now we only focus on one
-                _opVal = calculateOperations(
-                    operations          =   schema.outputSchemaDict["Operations"][i],
-                    current_row         =   row,
-                    input_rows_header   =   inputFile.header,
-                    starting_val        =   _val,
-                    schema=schema,
-                    inputFile=inputFile,
-                    revTags=revTags,
-                    manualTagCombos=manualTagCombos) 
-                    # is this last one even necessary? if the column has an operation:
-                    #   A) and it uses itself as the main one.. then it'll be grabbed up ahead anyways.
-                    #       IN THIS FRAMEWORK: each column has as an operation the 'grab from another column' 
-                    #   OR
-                    #   B) it uses another row's value as its input...
+            _override =  matchingRubric.tag_to_override_correspondence.get(_tag,None)
+            # if the override exists, we are to use the columns instead
+            print(f"{_override=}")
+            print(f"{_val=}")
 
-                if _val!='':
-                    print("----:::: {input_column_val} being overwritten by {_opVal}")
 
-                _val = _opVal
+            if not _override or _val == '':
+                # If the override is not engaged, try and process the operation
+                
+                print("================= Attempting SCHEMA OPs")
+
+                try:
+                    if schema.outputSchemaDict["Operations"][i]:
+                        # Right now we only focus on one
+                        _opVal = processSchemaOp(
+                            operations          =   schema.outputSchemaDict["Operations"][i],
+                            current_row         =   row,
+                            input_rows_header   =   inputFile.header,
+                            starting_val        =   _val,
+                            schema=schema,
+                            inputFile=inputFile,
+                            revTags=revTags,
+                            manualTagCombos=manualTagCombos) 
+                            # is this last one even necessary? if the column has an operation:
+                            #   A) and it uses itself as the main one.. then it'll be grabbed up ahead anyways.
+                            #       IN THIS FRAMEWORK: each column has as an operation the 'grab from another column' 
+                            #   OR
+                            #   B) it uses another row's value as its input...
+
+                        if _val!='':
+                            print("----:::: {input_column_val} being overwritten by {_opVal}")
+
+                        _val = _opVal
+                except Exception as e:
+                    print(f"Error conducting operation @ tag = <{_tag}>:\n\t{e}")
+                    print(f'Defaulting to found value.')
+
+            #=========================================================================
+            # INSIST ON THERE BEING SOME KIND OF FAILSAFE TO MAKE SURE THAT A RUBRIC OP OF THE SAME ___ doesnt interfere with ____
+
+
+
 
             #=========================================================================
             try:
                 print(">>> Checking for final formatting...")
+
                 _formatTags = getUserDataTags('formatting')
 
                 #print(f'{_tag=}')
@@ -322,6 +401,7 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
 
 
                 if _tag in list(_formatTags.keys()):
+
                     print(f"Overwriting {_tag=} with {dpg.get_value(manualTagCombos[_tag])=}!")
                     _val = dpg.get_value(manualTagCombos[_tag])
 
@@ -329,7 +409,7 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
                 print(f"Formatting requested but not found:\t{e}")
 
             #=========================================================================
-
+            print("#====================================================")
             _row.append(_val)
 
         output_rows.append(_row)

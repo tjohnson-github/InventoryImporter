@@ -262,7 +262,7 @@ class FiddlerCell(DPGStage):
                                             else:
                                                 app_data = "~Not found~"
 
-                                            print(f'{app_data=}')
+                                            #print(f'{app_data=}')
 
                                             self.updateTagPreview(
                                                 sender      =   _tagCombo,
@@ -337,8 +337,8 @@ class FiddlerCell(DPGStage):
         
         try:
 
-            print(f'{user_data["tagDict"]=}')
-            print(f'{app_data=}')
+            #print(f'{user_data["tagDict"]=}')
+            #print(f'{app_data=}')
 
             setattr(self.cd,user_data["tag"],app_data)
             setattr(self.cd,f'{user_data["tag"]}_preview',user_data["tagDict"][app_data])
@@ -467,7 +467,7 @@ class FiddlerWindow(DPGStage):
                 # If it has been selected as complete
                 if cell.cd.correct:
                     for tag,tagPreview in cell.tagCombos.items():
-                        print(f'{tag}\t:\t{dpg.get_value(tagPreview)}')
+                        #print(f'{tag}\t:\t{dpg.get_value(tagPreview)}')
 
                         #------------------------------------------------------------------
                         # If there is a manual input requested that has not been fulfilled
@@ -523,7 +523,7 @@ class FiddlerWindow(DPGStage):
                         includeHeader   =   cell.cd.doNotBatch,
                         manualTagCombos =   cell.tagCombos)
 
-                    print(f'{_output_rows=}')
+                    #print(f'{_output_rows=}')
 
                     if cell.cd.doNotBatch:
                         #_files_as_2D_lists.append(_output_rows)
@@ -562,9 +562,9 @@ class FiddlerWindow(DPGStage):
 
                             if saveFormat=='xlsx':
 
-                                print("<><><><><><><><><><><><><><><><><><><><><><>")
-                                for row in rows:
-                                    print(row)
+                                #print("<><><><><><><><><><><><><><><><><><><><><><>")
+                                #for row in rows:
+                                #    print(row)
 
                                 File_Operations.list_to_excel(rows,_saveName)
 
@@ -586,8 +586,8 @@ class FiddlerWindow(DPGStage):
 
         for i,schema in enumerate(self.schemas):
                
-            print (f'{[cell.cd.correct for cell in self.fiddlerCells[i]]=}')
-            print(f'{len(self.fiddlerCells[i])=}')
+            #print (f'{[cell.cd.correct for cell in self.fiddlerCells[i]]=}')
+            #print(f'{len(self.fiddlerCells[i])=}')
 
             if [cell.cd.correct for cell in self.fiddlerCells[i]].count(False) == len(self.fiddlerCells[i]):
                 print("True!")

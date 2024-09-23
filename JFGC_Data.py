@@ -25,11 +25,7 @@ class SQLClient:
             print ("_____ERROR_____")
             print ("Cursor object not initialized correctly. Please run Setup and retry.")
    
-  
-            
-
-
-
+ 
 @dataclass
 class Department:
     code: int               = field(repr=True)
@@ -101,8 +97,6 @@ allDepartments: list = [
         #Department(code=48,name="",margin=),
         Department(code=49,name="Pumpkins",margin=66.0)]
     
-for x in allDepartments:
-    #print (f'"{x.code}":{x.margin}')
 
 @dataclass
 class JFGC_Data:

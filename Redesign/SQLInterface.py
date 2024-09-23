@@ -40,10 +40,10 @@ class SQLLinker(DPGStage):
 
                 dpg.add_separator()
                 
-                self.server = dpg.add_input_text(label="Server IP",width=self.width-200,tag=f"{self._id}_server",default_value=_mainDefault.get("server",""),callback=self.evaluateChanges)
-                self.dsn_name = dpg.add_input_text(label="DSN Name",width=self.width-200,tag=f"{self._id}_dsn_name",default_value=_mainDefault.get("dsn_name",""),callback=self.evaluateChanges)
-                self.user_name = dpg.add_input_text(label="User Name",width=self.width-200,tag=f"{self._id}_user_name",default_value=_mainDefault.get("user_name",""),callback=self.evaluateChanges)
-                self.pwd = dpg.add_input_text(label="Password",width=self.width-200,tag=f"{self._id}_pwd",default_value=_mainDefault.get("pwd",""),callback=self.evaluateChanges,password=True)
+                self.server     = dpg.add_input_text(label="Server IP",width=self.width-200,tag=f"{self._id}_server",default_value=_mainDefault.get("server",""),callback=self.evaluateChanges)
+                self.dsn_name   = dpg.add_input_text(label="DSN Name",width=self.width-200,tag=f"{self._id}_dsn_name",default_value=_mainDefault.get("dsn_name",""),callback=self.evaluateChanges)
+                self.user_name  = dpg.add_input_text(label="User Name",width=self.width-200,tag=f"{self._id}_user_name",default_value=_mainDefault.get("user_name",""),callback=self.evaluateChanges)
+                self.pwd        = dpg.add_input_text(label="Password",width=self.width-200,tag=f"{self._id}_pwd",default_value=_mainDefault.get("pwd",""),callback=self.evaluateChanges,password=True)
                 
                 dpg.add_separator()
 

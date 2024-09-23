@@ -169,6 +169,7 @@
   <ItemGroup>
     <Content Include="Readme.md" />
     <Content Include="Redesign\Settings\defaultSQLCnxStrs.txt" />
+    <Content Include="Redesign\UserData\Inventory_Filters.json" />
     <Content Include="Redesign\UserData\FilenameConvention_Tags.json" />
     <Content Include="Redesign\UserData\Manual_Input_Tags.json" />
     <Content Include="Redesign\UserData\Format_Tags.json" />

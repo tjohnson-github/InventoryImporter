@@ -13,11 +13,18 @@ import string
 import copy
 
 from Rubric import Rubric
+from dataclasses import dataclass
 
 from Color_Manager import randomColor
 
 default_settings_path = "Redesign\\Settings"
 default_schema_path = "Redesign\\Schemas"
+
+@dataclass
+class RubricOp:
+    tag: str
+    calc: str
+    combos: list[int]
 
 class RubricEditor(DPGStage): 
  
@@ -43,9 +50,10 @@ class RubricEditor(DPGStage):
         self.fromFiddlerCell = kwargs.get("fromFiddlerCell",None)
 
         self.names = []
-        self.items = []
+        self.tag_combos = []
         self.overrides = []
-        self.overrideValues = []
+        self.overrideDict = {}
+        #self.overrideValues = []
 
         self.dncOverride = None
         self.fncOverride = None
@@ -53,6 +61,8 @@ class RubricEditor(DPGStage):
         self.rubricOps = []
         self.rubricCalcs = []
         self.rubricOpsCombos=[[]]
+        self.rubricGroups = []
+        self.rubricDeleteBtns = []
 
         #=====================================================================
         # Look into how to make supported types separate from FilenameConventions
@@ -209,7 +219,7 @@ class RubricEditor(DPGStage):
                     # do other suggest mechanics here
     
             _combo = dpg.add_combo(items=self.tags,default_value = default_tag,parent=TagGroup,width=component_width,callback=self.displayDerivedOps)
-            self.items.append(_combo)
+            self.tag_combos.append(_combo)
 
             try:
                 print(f'{self.rubric.col_to_tag_correspondence=}')
@@ -231,16 +241,27 @@ class RubricEditor(DPGStage):
         dpg.push_container_stack(self.rubricEditor)
         dpg.add_separator()
         dpg.add_text("Calculate Output Schema tags as derived from two or more input Rubric columns")
-        with dpg.group() as self.rubricOpGroup:
 
-            with dpg.group(horizontal=True):
+
+        with dpg.group() as self.rubricOpGroup:
+            pass
+            
+            '''with dpg.group(horizontal=True):
                 _ro = dpg.add_combo(items=self.tags,default_value=self.tags[0],width=dpg.get_item_width(self.widthFixer),callback=self.craftRubricOp,user_data=header)
             _calc = dpg.add_input_text(width=dpg.get_item_width(self.widthFixer))
 
             self.rubricOps.append(_ro)
-            self.rubricCalcs.append(_calc)
-        dpg.add_button(label="+",width=dpg.get_item_width(self.widthFixer),callback=self.addOp,user_data=header)
-    
+            self.rubricCalcs.append(_calc)'''
+
+
+        _addOpBtn = dpg.add_button(label="+",width=dpg.get_item_width(self.widthFixer),callback=self.addOp,user_data={"header":header})
+        
+        if getattr(self.rubric,"ops",None):
+            for i,op in enumerate(self.rubric.ops):
+                self.addOp(sender=_addOpBtn,app_data=None,user_data={"header":header,"op":op})
+        else:
+            self.addOp(sender=_addOpBtn,app_data=None,user_data={"header":header})
+
                     
     def overrideDirnameConventionTags(self,sender,app_data,user_data=True):
         # This function removes the tags sourced by the FILENAME convention from the available tags.
@@ -273,7 +294,7 @@ class RubricEditor(DPGStage):
         # now update all the combos
         # ------------- RESET TAG COMBOS
         _indexes = []
-        for i,combo in enumerate(self.items):
+        for i,combo in enumerate(self.tag_combos):
 
             _val = dpg.get_value(combo)
 
@@ -342,7 +363,7 @@ class RubricEditor(DPGStage):
         # now update all the combos
         # ------------- RESET TAG COMBOS
         _indexes = []
-        for i,combo in enumerate(self.items):
+        for i,combo in enumerate(self.tag_combos):
 
             _val = dpg.get_value(combo)
 
@@ -438,18 +459,21 @@ class RubricEditor(DPGStage):
 
     def setGetOverrideVals(self):
 
-        self.overrideValues = []
+        self.overrideDict = {}
 
-        for box in self.overrides:
+        #self.overrideValues = []
+
+        for i, box in enumerate(self.overrides):
 
             # will be either a DPG ITEM or NONE
 
             if box:
-                self.overrideValues.append(dpg.get_value(box))
-            else:
-                self.overrideValues.append(None)
+                #self.overrideValues.append(dpg.get_value(box))
+                self.overrideDict.update({dpg.get_value(self.tag_combos[i]):dpg.get_value(box)})
+            #else:
+                #self.overrideValues.append(None)
 
-        return self.overrideValues
+        return self.overrideDict
 
     def displayDerivedOps(self):
         #----------------------------
@@ -466,7 +490,8 @@ class RubricEditor(DPGStage):
             #
         #----------------------------
         # See if the values already exist
-        self.setGetOverrideVals()
+        #self.setGetOverrideVals()
+        self.overrideDict = self.rubric.tag_to_override_correspondence
         #----------------------------
         # Reset group
         dpg.delete_item(self.overrideGroup,children_only=True)
@@ -480,12 +505,12 @@ class RubricEditor(DPGStage):
 
         #----------------------------
         # populate override boxes if the tags are seen
-        for i,tagCombo in enumerate(self.items):
+        for i,tagCombo in enumerate(self.tag_combos):
 
 
             print("<><><><><><><><><><><><>")
             _tag = dpg.get_value(tagCombo)
-            print(f'{_tag=}')
+            #print(f'{_tag=}')
 
             _indexes_where_there_are_operations = []
 
@@ -498,19 +523,21 @@ class RubricEditor(DPGStage):
 
             with dpg.child_window(width=dpg.get_item_width(tagCombo)+20,height=25,border=False):
 
-                print(f'{self.schema.outputSchemaDict["Operations"]=}')
+                #print(f'{self.schema.outputSchemaDict["Operations"]=}')
 
-                print(f'{_indexes_where_there_are_operations=}')
+                #print(f'{_indexes_where_there_are_operations=}')
 
                 if _indexes_where_there_are_operations:
+
                     _ops = self.schema.outputSchemaDict["Operations"][_indexes_where_there_are_operations[0]]
 
                     with dpg.group(horizontal=True):
+
                         _opPeeker = dpg.add_combo(items=[op.name for op in _ops],default_value="~",callback=peek,width=40,user_data=_ops)
                         with dpg.tooltip(_opPeeker): dpg.add_text("Peek")
 
                         try:
-                            _default = self.overrideValues[i]
+                            _default = self.overrideDict.get(_tag,None)#self.overrideValues[i]
                             if _default == None: 
                                 # AKA if there's no value here before, but there is one now; override is TRUE by default
                                 _default = True
@@ -534,32 +561,95 @@ class RubricEditor(DPGStage):
 
 
     
+    def saveOp(self,index):
+
+        if dpg.get_value(self.rubricOps[index]) == self.null_item:
+            return None
+
+        _formatted_combos = dpg.get_values(self.rubricOpsCombos[index])
+
+        for i, combo in enumerate(_formatted_combos):
+            if combo==self.null_item:
+                _formatted_combos[i]=None
+
+        print(_formatted_combos)
+
+        #_formatted_combos = list(map(lambda x: x.replace(self.null_item, None), _formatted_combos))
+        
+        _ = RubricOp(
+            tag=dpg.get_value(self.rubricOps[index]),
+            calc=dpg.get_value(self.rubricCalcs[index]),
+            combos=_formatted_combos)
+
+        return _
+
+
+    def deleteOp(self,sender,app_data,user_data):
+
+        index = user_data.get("index")
+
+        # Delete the UI
+        dpg.delete_item(self.rubricGroups[index])
+
+        # Delete the data
+        self.rubricOps.pop(index)
+        self.rubricDeleteBtns.pop(index)
+        self.rubricCalcs.pop(index)
+        self.rubricOpsCombos.pop(index)
+        self.rubricGroups.pop(index)
+
+        for i,op in enumerate(self.rubricOps):
+
+            dpg.set_item_user_data(self.rubricDeleteBtns[i],user_data={"index":i})
+
     def addOp(self,sender,app_data,user_data):
 
-        header = user_data
+        header = user_data.get("header")
+        op = user_data.get("op",None)
 
         dpg.push_container_stack(self.rubricOpGroup)
-        with dpg.group(horizontal=True):
-            _ro = dpg.add_combo(items=self.tags,default_value=self.tags[0],width=dpg.get_item_width(self.widthFixer),callback=self.craftRubricOp,user_data=header)
-            #_calc = dpg.add_combo(items=['*',"-")
-        _calc = dpg.add_input_text(width=dpg.get_item_width(self.widthFixer))
-        self.rubricOps.append(_ro)
-        self.rubricCalcs.append(_calc)
+        
+        with dpg.group() as _rubGroup:
 
+            with dpg.group(horizontal=True):
+                _ro = dpg.add_combo(
+                    items           =   self.tags,
+                    default_value   =   op.tag if op else self.null_item,
+                    width           =   dpg.get_item_width(self.widthFixer),
+                    callback        =   self.craftRubricOp,
+                    user_data       =   {"header":header})
+
+            self.rubricOps.append(_ro)
+
+            with dpg.group(horizontal=True):
+
+                _deleteOp = dpg.add_button(label="X",callback=self.deleteOp,user_data={"index":self.rubricOps.index(_ro)},width=30)
+                with dpg.tooltip(_deleteOp): dpg.add_text("Delete this operation?")
+                _calcDF = op.calc if op else ''
+                _calc = dpg.add_input_text(width=dpg.get_item_width(self.widthFixer)-35,default_value=_calcDF)
+                with dpg.tooltip(_calc): dpg.add_text("Write your calculation here using algebraic expressions.\tThe value will be calculated using this field, populated\nby the terms to the right.")
+
+        self.rubricDeleteBtns.append(_deleteOp)
+        self.rubricCalcs.append(_calc)
         self.rubricOpsCombos.append([])
+        self.rubricGroups.append(_rubGroup)
+
+        if op:
+            self.craftRubricOp(sender=_ro,app_data=op.tag,user_data={"header":header,"op":op})
 
     def craftRubricOp(self,sender,app_data,user_data):
 
-        header = user_data
+        header = user_data.get("header")
+        op = user_data.get("op",None)
 
         # Check versus other column tags
-        if app_data in dpg.get_values(self.items):
+        if app_data in dpg.get_values(self.tag_combos) and app_data!=self.null_item:
             with dpg.window(popup=True):
                 with dpg.group(horizontal=True):
                     dpg.add_text(f"The tag <",color=(255,0,0))
                     dpg.add_text(f"{app_data}")
                     dpg.add_text(f"> is already selected as originating from the rubric column # <",color=(255,0,0))
-                    dpg.add_text(f"{dpg.get_values(self.items).index(app_data)+1}")
+                    dpg.add_text(f"{dpg.get_values(self.tag_combos).index(app_data)+1}")
                     dpg.add_text(f">.",color=(255,0,0))
 
             dpg.configure_item(sender,default_value=self.tags[0])
@@ -571,13 +661,13 @@ class RubricEditor(DPGStage):
         print(type(_tempRubrics))
         print(_tempRubrics)
         del _tempRubrics[_tempRubrics.index(sender)]
-        if app_data in dpg.get_values(_tempRubrics):
+        if app_data in dpg.get_values(_tempRubrics) and app_data!=self.null_item:
             with dpg.window(popup=True):
                 with dpg.group(horizontal=True):
                     dpg.add_text(f"The tag <",color=(255,0,0))
                     dpg.add_text(f"{app_data}")
                     dpg.add_text(f"> is already selected as originating from the rubric operation # <",color=(255,0,0))
-                    dpg.add_text(f"{dpg.get_values(self._tempRubrics).index(app_data)+1}")
+                    dpg.add_text(f"{dpg.get_values(_tempRubrics).index(app_data)+1}")
                     dpg.add_text(f">.",color=(255,0,0))
 
             dpg.configure_item(sender,default_value=self.tags[0])
@@ -593,7 +683,7 @@ class RubricEditor(DPGStage):
         for i,colName in enumerate(header):
 
             _items = list(string.ascii_lowercase[:len(header)])
-            _combo = dpg.add_combo(items=_items,default_value = self.null_item,width=dpg.get_item_width(self.names[i]))
+            _combo = dpg.add_combo(items=_items,default_value = op.combos[i] if op and op.combos[i]!="None" else self.null_item,width=dpg.get_item_width(self.names[i]))
             self.rubricOpsCombos[self.rubricOps.index(sender)].append(_combo)
             dpg.add_spacer(width=20)
             dpg.add_text("|")
@@ -602,12 +692,20 @@ class RubricEditor(DPGStage):
 
 
     def addRubricToSchema(self):
+        #=========================================
+        # Reset any schemas that were used to build this one
+        try:
+            # If the old rubric has a different name, save over it.
+            del self.schema.rubrics[self.rubric.name]
+        except Exception as e:
+            print ("Probably new")
+            print(e)
 
         #=========================================
         # Format and create correspondence dict for use in IMPORTER I/O column zipper
 
         _names = dpg.get_values(self.names)
-        _items = dpg.get_values(self.items)
+        _items = dpg.get_values(self.tag_combos)
  
         for x in _items:
             if x==self.null_item: x = "" 
@@ -622,26 +720,39 @@ class RubricEditor(DPGStage):
             RubricEditor(schema=self.schema,rubric=rubric)
 
         for rubricName,rubric in self.schema.rubrics.items():
-            if _names == rubric.editorNames:
 
+            if _names == rubric.editorNames and self.rubric.name!=rubric.name:
                 with dpg.window(popup=True):
                     dpg.add_text("Warning",color=(255,0,0))
                     dpg.add_separator()
                     dpg.add_text("A rubric with this input header already exists inside of this schema!")
                     dpg.add_button(label="Go to this rubric.",callback=peekRubric,user_data={"rubric":rubric})
-            return 
+
+                return 
+
+            elif self.rubric.name==rubric.name:
+                with dpg.window(popup=True):
+                    dpg.add_text("Warning",color=(255,0,0))
+                    dpg.add_separator()
+                    dpg.add_text("A rubric with this name already exists inside of this schema!")
+                    dpg.add_button(label="Go to this rubric.",callback=peekRubric,user_data={"rubric":rubric})
+
+                return 
 
 
         #=========================================
         # Update all fields.... in the future this would be automated with use of 
         #   unique I/O correspondence dict
 
-        if self.rubric.name != dpg.get_value(self.nameInput):
+        '''if self.rubric.name != dpg.get_value(self.nameInput):
             try:
+                # If the old rubric has a different name, save over it.
                 del self.schema.rubrics[self.rubric.name]
             except Exception as e:
                 print ("Probably new")
                 print(e)
+
+        del self.schema.rubrics[self.rubric.name]'''
 
         self.rubric.name = dpg.get_value(self.nameInput)
         self.rubric.description = dpg.get_value(self.desc)
@@ -651,9 +762,20 @@ class RubricEditor(DPGStage):
         self.rubric.editorTags = _items
         self.rubric.dncOverride = dpg.get_value(self.dncOverride)
         self.rubric.fncOverride = dpg.get_value(self.fncOverride)
-        self.rubric.tagOverrides = self.setGetOverrideVals()
+        self.rubric.tag_to_override_correspondence = self.setGetOverrideVals()
         #=========================================
 
+        self.rubric.ops = []
+
+        for i,op in enumerate(self.rubricOps):
+
+            _savedOp = self.saveOp(i)
+            
+            if _savedOp:
+                self.rubric.ops.append(_savedOp)
+
+        
+        #=========================================
         self.schema.rubrics.update({self.rubric.name:self.rubric})
         self.schema.save(default_schema_path)
         print("Rubric Saved!!!")
