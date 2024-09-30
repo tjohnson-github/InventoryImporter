@@ -113,4 +113,76 @@ def debugDPG(func):
 
         result = func(*args, **kwargs) 
         return result 
-    return wrap_func 
+    return wrap_func
+
+
+
+def parametrized(dec):
+    #https://stackoverflow.com/questions/5929107/decorators-with-parameters
+    def layer(*args, **kwargs):
+        def repl(f):
+            return dec(f, *args, **kwargs)
+        return repl
+    return layer
+
+@parametrized
+def multiply(f, n):
+    def aux(*xs, **kws):
+        return n * f(*xs, **kws)
+    return aux
+
+@multiply(2)
+def function(a):
+    return 10 + a
+
+@parametrized
+def dpg_group(fn,direction="↓"):
+
+    if direction =="↓":
+        horizontal=False
+    elif direction == "→":
+        horizontal=True
+
+
+    def inner1(*args, **kwargs):
+        
+        print("before Execution")
+        
+        # getting the returned value
+
+        with dpg.group(horizontal = horizontal) as group_id:
+
+            returned_value = fn(*args, **kwargs)
+            print("after Execution")
+        
+            # returning the value to the original frame
+            return returned_value, group_id
+    
+    return inner1
+
+
+def hello_decorator(func):
+    def inner1(*args, **kwargs):
+        
+        print("before Execution")
+        
+        # getting the returned value
+        returned_value = func(*args, **kwargs)
+        print("after Execution")
+        
+        # returning the value to the original frame
+        return returned_value
+        
+    return inner1
+
+
+# adding decorator to the function
+@hello_decorator
+def sum_two_numbers(a, b):
+    print("Inside the function")
+    return a + b
+
+a, b = 1, 2
+
+# getting the value through return of the function
+print("Sum =", sum_two_numbers(a, b))

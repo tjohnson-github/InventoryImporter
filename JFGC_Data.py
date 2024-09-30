@@ -250,6 +250,12 @@ class JFGC_Data:
             if new_entry[vendor_num_location].startswith("00"):
                 vendorDict.update({str(new_entry[vendor_nam_location]):new_entry[vendor_num_location]})
 
+        for key,vl in vendorDict.items():
+            print(f'"{key}":{vl}')
+
+        import sys
+        sys.exit()
+
         saveVariable("vendorDict.txt",vendorDict)
         self.vendorDict = vendorDict
 

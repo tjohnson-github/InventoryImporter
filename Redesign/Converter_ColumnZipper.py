@@ -37,7 +37,7 @@ def processRubricOP(op,current_row,input_rows_header,schema,inputFile,revTags,ma
             _tag_of_combo = input_rows_header[i]
 
             #_sourceVal = getVal(_tag_of_combo,current_row,input_rows_header,schema,inputFile,revTags,manualTagCombos)
-            _sourceVal = current_row[i]
+            _sourceVal = float(current_row[i])
             _kwargs.update({variableName:_sourceVal})
 
     print('<><><><><><><><><><><>')
@@ -45,6 +45,16 @@ def processRubricOP(op,current_row,input_rows_header,schema,inputFile,revTags,ma
     print(f"\t\t{_calc}")
     print(f"\tUsing")
     print(f"\t\t{_kwargs}")
+
+    try:
+        _val = eval(_calc,_kwargs)
+        print(f"\t\t{_val=}")
+
+    except Exception as e:
+        print(f"Error running <({_calc})>:\t{e=}")
+        _val = f"ERROR:{e}"
+
+    return _val
 
 def processSchemaOp(operations:list[OperationMinimal], current_row, input_rows_header, starting_val,schema,inputFile,revTags,manualTagCombos) -> any:
 
@@ -337,6 +347,7 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
                         #print(type(op))
 
                         _val = processRubricOP(op,row,inputFile.header,schema,inputFile,revTags,manualTagCombos)
+                        print(f'{_val=}')
                         break
             elif _tag == "":
                 _val = ''

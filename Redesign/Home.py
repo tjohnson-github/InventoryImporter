@@ -43,6 +43,23 @@
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+# 9/27
+
+# Give ability to import single column into data as correspondence values. 
+
+
+# Sub-Schema.... meaning everything is the same, except there are less values to unpack.
+    # selects from SCHEMA where you mark the fields that are in the sub-schema
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# Specify a place for default values if not found:
+#   0 , X, another cell's value, etc
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 import dearpygui.dearpygui as dpg
 dpg.create_context()
 from dataclasses import dataclass, field,asdict

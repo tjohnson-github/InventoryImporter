@@ -104,6 +104,11 @@ class SchemaColumnEditor(DPGStage):
             EditorRow(name = "Manual Check?",
                 type = bool,
                 tooltip = "If checked, the user will be required to validate the input during processing.\nUse this is the column is prone to formatting errors.\nKeep in mind that this will happen automatically for TAGs specified in Manual_Input_Tags.JSON"),
+            
+            #EditorRow(name = "Messy",
+            #    type = bool,
+            #    tooltip = "Sometimes the input data may nor correspond exactly to a value if there is a If checked, you will be able to fiddle with the"),
+
             EditorRow(name = "Necessary?",
                 type = bool,
                 tooltip = "If checked, new input schemas will be required to provide a column whose tag matches the rubric schema tag\neven if other operations will be done to the input column's values."),
