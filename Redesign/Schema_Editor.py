@@ -11,7 +11,7 @@ from DPGStage import DPGStage
 from Settings_DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 from typing import Optional
-from File_Selector import FileSelector
+from Selector_File import FileSelector
 from File_Operations import csv_to_list,excel_to_list,mkdirWrapper
 
 from CustomPickler import get,set

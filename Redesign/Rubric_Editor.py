@@ -2,7 +2,7 @@
 from DPGStage import DPGStage
 from dearpygui import dearpygui as dpg
 from File_Operations import csv_to_list,excel_to_list,mkdirWrapper
-from File_Selector import FileSelector
+from Selector_File import FileSelector
 from Vendorfile import InputFile
 
 from Operations import Operation, OperationEditor

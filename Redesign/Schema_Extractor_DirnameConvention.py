@@ -4,7 +4,7 @@ from DPGStage import DPGStage
 import dearpygui.dearpygui as dpg
 from dataclasses import dataclass,field,asdict
 from Settings_DefaultPathing import DefaultPathing,DefaultPaths
-from Directory_Selector import DirectorySelector
+from Selector_Directory import DirectorySelector
 
 def setFixer(iterable):
     return list(set(iterable))

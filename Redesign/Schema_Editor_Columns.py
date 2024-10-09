@@ -79,14 +79,14 @@ class SchemaColumnEditor(DPGStage):
         self.schemaColNames = self.schema.outputSchemaDict.get("Column Name",[f'Test Name {x}' for x in range(1,6)])
         self.tags           = self.schema.outputSchemaDict.get("Tag",[f'Example {i}' for i,colName in enumerate(self.schemaColNames,1)])
         self.necessaryBox   = self.schema.outputSchemaDict.get("Necessary?",[False for i,colName in enumerate(self.schemaColNames,1)])
-        self.manualCheckBox   = self.schema.outputSchemaDict.get("Manual Check?",[False for i,colName in enumerate(self.schemaColNames,1)])
+        self.manualCheckBox = self.schema.outputSchemaDict.get("Manual Check?",[False for i,colName in enumerate(self.schemaColNames,1)])
 
         self.operations     = copy.deepcopy(self.schema.outputSchemaDict.get("Operations",[[] for i,colName in enumerate(self.schemaColNames,1)]))
-        self.opDisplay     = [None for i,colName in enumerate(self.operations,1)]
+        self.opDisplay      = [None for i,colName in enumerate(self.operations,1)]
+        
+        self.numColumns     = len(self.schemaColNames)
 
         print(f'{self.operations=}')
-
-        self.numColumns     = len(self.schemaColNames)
 
         self.filenameExtractorManager = kwargs.get("filenameExtractorManager")
         self.dirnameExtractor = kwargs.get("dirnameExtractor")
@@ -193,10 +193,6 @@ class SchemaColumnEditor(DPGStage):
                                 for row in self.rows:
                                     row.items = []     
     
-    #def disableFilename(self,disabledState:bool):
-    #    for item in self.rows[3].items:
-    #        dpg.configure_item(item,default_value=False)
-
     def clearTags(self,sender):
 
         for row in self.rows:
@@ -233,12 +229,7 @@ class SchemaColumnEditor(DPGStage):
                     for checkbox in row.items:
                         dpg.configure_item(checkbox,default_value=app_data)
 
-    #def notifyDerived(self,tagName: str):
-        #for i,item in enumerate(self.rows[3].items):
-        #    if dpg.get_value(self.rows[1].items[i])==tagName:
-        #        dpg.configure_item(item,default_value=True)
-    
-    
+ 
     def openOperationEditor(self,sender,app_data,user_data):
         
         columnIndex = user_data["columnIndex"]
@@ -322,21 +313,12 @@ class SchemaColumnEditor(DPGStage):
 
         # add confirmation
 
-        #self.operations[columnIndex][opIndex] = []
-        
-        #self.operations[columnIndex].remove(self.operations[columnIndex][opIndex])
-        
-        #print(f'{self.operations=}')
-        #print(f'{user_data=}')
-
-        #dpg.delete_item(self.opDisplay[columnIndex])
-        #dpg
         del self.operations[columnIndex][opIndex]
 
+        # here is the refresh
         dpg.delete_item(self.opDisplay[columnIndex],children_only=True)
-        #print("deleted")
-        #self.opDisplay[columnIndex]=None
         dpg.push_container_stack(self.opDisplay[columnIndex])
+
         self.populateOps(columnIndex=columnIndex)
 
     def oneColumn(self,columnIndex,**kwargs):

@@ -10,32 +10,26 @@ from DPGStage import DPGStage
 
 default_settings_path = "Redesign//Settings//"
 
-
-@dataclass
-class DefaultPaths:
-    pass
-
-
-def test(inputName,saveName):
-    print("HERE WE GOOOO",f'{inputName=}',f'{saveName=}')
-
-
 class DirectorySelector(DPGStage):
 
     type = "Directory"
     height=300
     width = 600
     inputType: str = "dir"
-    nextStage: callable = test
+    nextStage: callable = lambda: None
 
-    # TO use this function; look @ self.nextStage: this is where you're going to be receiving the file name.
+    """
+    TO use this function; look @ self.nextStage: this is where you're going to be receiving the file name.
     #   It will be <user_data>
+    """
+
+    def main(self,**kwargs):
+        pass
 
     def generate_id(self,**kwargs):
 
         self.nextStage = kwargs.get("nextStage")
         self.label = f'Select {kwargs.get("label","Directory")}'
-
 
         with dpg.window(label="",height=self.height,width=self.width) as self._id:
             dpg.add_button(label=f"Select {self.type}",callback=self.openDialogue,width=500)
@@ -72,7 +66,7 @@ class DirectorySelector(DPGStage):
             print(key,"\t",value)
         #====================================================
         _selectedName    =   app_data['file_path_name']
-        parent      =   app_data['current_path']
+        parent           =   app_data['current_path']
         #====================================================
         dpg.configure_item(self.selectedName,default_value=_selectedName)
         dpg.configure_item(self.next,enabled=True)

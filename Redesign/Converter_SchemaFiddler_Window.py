@@ -79,21 +79,14 @@ class FiddlerCell(DPGStage):
 
         dpg.delete_item(self._id,children_only=True)
         dpg.push_container_stack(self._id)
-        self.populate_container()
-
-    #def establish_container_id(self,**kwargs):
-    #    pass
+        self.populate_id()
 
     def generate_id(self,**kwargs):
         
         with dpg.child_window(height=self.height,horizontal_scrollbar=True) as self._id:
+            self.populate_id(**kwargs)
 
-            #returnVal, group_id = self.testGroupDec()
-            #print(group_id)
-
-            self.populate_container(**kwargs)
-
-    def populate_container(self,**kwargs):
+    def populate_id(self,**kwargs):
         #==================================================================
         with dpg.group(horizontal=True):
 
@@ -110,141 +103,128 @@ class FiddlerCell(DPGStage):
 
         _batchName = self.inputFile.name.split(".")[0]
         self.nonbatchedName_Input = dpg.add_input_text(default_value=_batchName,label="Non-Batched Name",show=False)
-
-        dpg.add_separator()
         #==================================================================
-        with dpg.collapsing_header(label="INPUT"):
+        with dpg.tab_bar():
+            #==================================================================
+            with dpg.tab(label="Save Filters") as _save_filters_tab:
 
-            with dpg.group(horizontal=True):
+                with dpg.tooltip(_save_filters_tab): dpg.add_text("Adds the filter name to the end of each output file.\nIf multiple filters are chosen, multiples will be created.\nYou can specify what to do with particular tags.")
 
-                dpg.add_text("Name    :")
+                _donotfilter = dpg.add_checkbox(label="Do not use filter this time.")
 
-                for column in self.inputFile.header:
-                    dpg.add_input_text(default_value=column,width=100,enabled=False)
-                    dpg.add_spacer(width=10)
-                    dpg.add_text("|")
+                with dpg.group() as filterGroup:
 
-        #==================================================================
-        matchingRubric = None
-        with dpg.collapsing_header(label="Matching RUBRICS"):
+                    #dpg.add_text("Save Filters")
 
-            with dpg.group(horizontal=True):
-                dpg.add_color_button(default_value = self.schema.color,enabled=False,height=30,width=30)
-                dpg.add_text(f"For Schema:\t{self.schema.name}")
-                    
-                    
-            if self.inputFile.header not in [rubric.editorNames for rubric in list(self.schema.rubrics.values())]:
-                dpg.add_text("NO MATCH!!!")
-                dpg.add_button(label="Add input as rubric!",callback=self.openPrepopulatedRubricEditor)
+                    _filter_tags = getUserDataTags("filter")
 
-            else:
+                    def update_filter_sensitive_tag_choices(sender,app_data,user_data):
+                
+                        sensitive_tag_options = user_data.get("sensitive_tag_options")
 
-                matchingRubricIndex = [rubric.editorNames for rubric in list(self.schema.rubrics.values())].index(self.inputFile.header)
+                        if app_data!="All":
+                            for sens_tag_option in sensitive_tag_options:
+                                dpg.configure_item(sens_tag_option,show=False)
+                        else: 
+                            for sens_tag_option in sensitive_tag_options:
+                                dpg.configure_item(sens_tag_option,show=True)
 
-                # ENSURE THAT THE INDEX IS THE SAME EACH TIME, PERHAPS BY SORTING?
-                #for i in range(0,15):
-                ##    a = list(self.schema.rubrics.values())
-                #    print (a)
-                       
-                matchingRubric = list(self.schema.rubrics.values())[matchingRubricIndex]
-
-                self.showRubric(matchingRubric)
-
-                setattr(self,"matchingRubric",matchingRubric)
             
-        #==================================================================
-        if matchingRubric:
-
-            self.tagComboPreviews = {}
-            #==================================================================
-            with dpg.collapsing_header(label="Naming Convention Check"):
-
-                dpg.add_text("TODO: This is hard, as incoming names are messy\nneed to find a way to have the system guess\nuse the field guesser i made, too\nmaybe write a correspondence system",color=(255,64,25))
-                dpg.add_text("Do I need to import the custom obj builder from tracker?",bullet=True,color=(255,64,25))
-
-                if self.schema.filenameConventions:
-                    for fns in self.schema.filenameConventions:
-
-                        with dpg.group() as fnsExtractor:
-
-                            fns.showExtraction(name=self.inputFile.name)
-            #==================================================================
-            with dpg.collapsing_header(label="MANUAL INPUT REQUIRED"):
+                    for key,val in _filter_tags.items():
+                        with dpg.group(horizontal=True):
+                            _filterCombo = dpg.add_combo(items=["All"]+val["options"],default_value="Both",label=key.upper(),callback=update_filter_sensitive_tag_choices,width=100)
                     
-                _defaultFirst = getattr(SettingsManager.getSettings(),"setDefaultFirst")
+                            _tag_choices = {}
 
+                            for sens_tag in val["sensitive_tags"]:
+                    
+                                _sensitive_option = dpg.add_combo(items=["Divide","Copy"],default_value="Divide",label=f'<{sens_tag}>',width=100)
+                                with dpg.tooltip(_sensitive_option): dpg.add_text("Remainders will be prioritized reading from the left of Filters.JSON")
+                                _tag_choices.update({key:_sensitive_option})
+
+                            dpg.set_item_user_data(_filterCombo,user_data={"sensitive_tag_options":_tag_choices})
+               
+                dpg.set_item_callback(_donotfilter,callback=lambda sender,app_data: dpg.configure_item(filterGroup,show=not app_data))
+
+            #==================================================================
+            with dpg.tab(label="Input",show=False):
                 with dpg.group(horizontal=True):
 
-                    _manualTags = getUserDataTags('manual')
-                    _formatTags = getUserDataTags('formatting')
-                    _fncTags    = getUserDataTags('fnc')
+                    dpg.add_text("Name    :")
 
-                    # v v v v v v v v v v v v v v v v v v v v v
-                    # this isnt even true: a manual input tag should be one that's either from the manual
-                    # OR ones that 
-                    # i think it should JUST be ones that are manually input required
-                    # maybe "Manual input check requested"
+                    for column in self.inputFile.header:
+                        dpg.add_input_text(default_value=column,width=100,enabled=False)
+                        dpg.add_spacer(width=10)
+                        dpg.add_text("|")
 
-                    #<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#
-                    #        #        #        #        #        #        #        #        #        #        #        #        #        #
-                    #<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#
+            #==================================================================
+            matchingRubric = None
+            with dpg.tab(label="Rubrics"):
+                with dpg.group(horizontal=True):
+                    dpg.add_color_button(default_value = self.schema.color,enabled=False,height=30,width=30)
+                    dpg.add_text(f"For Schema:\t{self.schema.name}")
+                    
+                    
+                if self.inputFile.header not in [rubric.editorNames for rubric in list(self.schema.rubrics.values())]:
+                    dpg.add_text("NO MATCH!!!")
+                    dpg.add_button(label="Add input as rubric!",callback=self.openPrepopulatedRubricEditor)
 
-                    #for tag in matchingRubric.editorTags:
-                    for i,tag in enumerate(self.schema.outputSchemaDict["Tag"]):
+                else:
+
+                    matchingRubricIndex = [rubric.editorNames for rubric in list(self.schema.rubrics.values())].index(self.inputFile.header)
+
+                    # ENSURE THAT THE INDEX IS THE SAME EACH TIME, PERHAPS BY SORTING?
+                    #for i in range(0,15):
+                    ##    a = list(self.schema.rubrics.values())
+                    #    print (a)
+                       
+                    matchingRubric = list(self.schema.rubrics.values())[matchingRubricIndex]
+
+                    self.showRubric(matchingRubric)
+
+                    setattr(self,"matchingRubric",matchingRubric)
+            
+            #==================================================================
+            if matchingRubric:
+
+                self.tagComboPreviews = {}
+                #==================================================================
+                with dpg.tab(label="Naming Convention Check"):
+                    dpg.add_text("TODO: This is hard, as incoming names are messy\nneed to find a way to have the system guess\nuse the field guesser i made, too\nmaybe write a correspondence system",color=(255,64,25))
+                    dpg.add_text("Do I need to import the custom obj builder from tracker?",bullet=True,color=(255,64,25))
+
+                    if self.schema.filenameConventions:
+                        for fns in self.schema.filenameConventions:
+
+                            with dpg.group() as fnsExtractor:
+
+                                fns.showExtraction(name=self.inputFile.name)
+                #==================================================================
+                with dpg.tab(label="MANUAL INPUT REQUIRED"):
+       
+                    _defaultFirst = getattr(SettingsManager.getSettings(),"setDefaultFirst")
+
+                    with dpg.group(horizontal=True):
+
+                        _manualTags = getUserDataTags('manual')
+                        _formatTags = getUserDataTags('formatting')
+                        _fncTags    = getUserDataTags('fnc')
+
+                        # v v v v v v v v v v v v v v v v v v v v v
+                        # this isnt even true: a manual input tag should be one that's either from the manual
+                        # OR ones that 
+                        # i think it should JUST be ones that are manually input required
+                        # maybe "Manual input check requested"
+
+                        #<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#
+                        #        #        #        #        #        #        #        #        #        #        #        #        #        #
+                        #<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#<><><><>#
+
+                        #for tag in matchingRubric.editorTags:
+                        for i,tag in enumerate(self.schema.outputSchemaDict["Tag"]):
                             
-                        # If the tag is in the manual Input JSON
-                        if tag in list(_manualTags.keys()):
-
-                            with dpg.group():
-
-                                # ----------------------------------------------------
-                                with dpg.group(horizontal=True):
-
-                                    dpg.add_text(f'{tag}:')
-                                    _valuePreview = dpg.add_text(
-                                        default_value=getattr(self.celldata,f'{tag}_preview',''),
-                                        color=(160,160,250))
-
-                                # ----------------------------------------------------
-                                _tagCombo = dpg.add_combo(
-                                    items           =   list(_manualTags[tag].keys()),
-                                    width           =   150,
-                                    default_value   =   getattr(self.celldata,tag,"~"),
-                                    user_data       =   {"tag":tag,"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
-                                    callback        =   self.updateTagPreview)
-
-                                # ----------------------------------------------------
-                                if _defaultFirst:
-
-                                    dpg.configure_item(_tagCombo,default_value = list(_manualTags[tag].keys())[0])
-
-                                    self.updateTagPreview(
-                                        sender=_tagCombo,
-                                        app_data = list(_manualTags[tag].keys())[0],
-                                        user_data = dpg.get_item_user_data(_tagCombo)
-                                        )
-                                # ----------------------------------------------------
-                            #self.tagCombos.update({tag:_tagCombo})
-                            self.tagComboPreviews.update({tag:_valuePreview})
-
-                            continue
-
-                        #if self.schema.outputSchemaDict["Manual Check?"][i]: #if there is a check required
-                        #for fns in self.schema.filenameConventions[0]:
-
-                        # ======================================================
-                        # FILENAME CONVENTIONS ALWAYS REQUIRE A CHECK
-                        if self.schema.filenameConventions:
-                                
-                            fns = self.schema.filenameConventions[0]
-
-                            print(f"CHECKIN....!!! {tag=}....{list(_fncTags.keys())=}")
-
-                            if tag in list(_fncTags.keys()): # HAVE THESE BE FORMATTING KEYS INSTEAD?
-
-                                if tag in list(self.tagComboPreviews.keys()):
-                                    # this will skip over duplicates... but how to ensure the formatted value for this one ends up there, too?
-                                    continue
+                            # If the tag is in the manual Input JSON
+                            if tag in list(_manualTags.keys()):
 
                                 with dpg.group():
 
@@ -257,102 +237,152 @@ class FiddlerCell(DPGStage):
                                             color=(160,160,250))
 
                                     # ----------------------------------------------------
-                                    _tagFilter = dpg.add_input_text(
-                                        width           =   150,
-                                        default_value   =   "",
-                                        #user_data       =   {"tag":tag,"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
-                                        callback        =   self.updateComboAndPreview)
-                                    # ----------------------------------------------------
-
-                                    
                                     _tagCombo = dpg.add_combo(
-                                        items           =   list(_fncTags[tag].keys()), # can make thew full thing
+                                        items           =   list(_manualTags[tag].keys()),
                                         width           =   150,
                                         default_value   =   getattr(self.celldata,tag,"~"),
-                                        user_data       =   {"tag":tag,"tagDict":_fncTags[tag],"previewDestination":_valuePreview},
+                                        user_data       =   {"tag":tag,"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
                                         callback        =   self.updateTagPreview)
-                                    # ----------------------------------------------------
-                                    dpg.set_item_user_data(_tagFilter,user_data = {"tag":tag,"tagDict":_fncTags[tag],"combo":_tagCombo,"items": list(_fncTags[tag].keys())})
-                                    # ----------------------------------------------------
-                                    # try to predict default value
-
-                                    _val_from_filename = fns.getVal(name=self.inputFile.name,tag=tag)
-
-                                    try: 
-                                        _split = _val_from_filename.split(" ")
-                                        print(f'{_split=}')
-                                        for x in list(_fncTags[tag].keys()):
-                                            if x.lower().startswith(_split[0].lower()):
-                                                _val_from_filename = x
-                                    except Exception as e: 
-                                        print(e)
-                                       
-                                    dpg.configure_item(_tagCombo,default_value = _val_from_filename)
-
-                                    if _val_from_filename in list(_fncTags[tag].keys()):
-
-                                        app_data = _val_from_filename
-
-                                    else:
-                                        app_data = "~Not found~"
-
-                                    self.updateTagPreview(
-                                        sender      =   _tagCombo,
-                                        app_data    =   app_data,
-                                        user_data   =   dpg.get_item_user_data(_tagCombo)
-                                        )
 
                                     # ----------------------------------------------------
-    
+                                    if _defaultFirst:
+
+                                        dpg.configure_item(_tagCombo,default_value = list(_manualTags[tag].keys())[0])
+
+                                        self.updateTagPreview(
+                                            sender=_tagCombo,
+                                            app_data = list(_manualTags[tag].keys())[0],
+                                            user_data = dpg.get_item_user_data(_tagCombo)
+                                            )
+                                    # ----------------------------------------------------
+                                #self.tagCombos.update({tag:_tagCombo})
                                 self.tagComboPreviews.update({tag:_valuePreview})
+
                                 continue
 
-                # does it match a rubric?
-                # suggest nearest rubrics
-        #==================================================================
-        '''with dpg.collapsing_header(label="ALL RUBRICS"):
-            for rubric_name in list(self.schema.rubrics.keys()):
+                            #if self.schema.outputSchemaDict["Manual Check?"][i]: #if there is a check required
+                            #for fns in self.schema.filenameConventions[0]:
+
+                            # ======================================================
+                            # FILENAME CONVENTIONS ALWAYS REQUIRE A CHECK
+                            if self.schema.filenameConventions:
+                                
+                                fns = self.schema.filenameConventions[0]
+
+                                print(f"CHECKIN....!!! {tag=}....{list(_fncTags.keys())=}")
+
+                                if tag in list(_fncTags.keys()): # HAVE THESE BE FORMATTING KEYS INSTEAD?
+
+                                    if tag in list(self.tagComboPreviews.keys()):
+                                        # this will skip over duplicates... but how to ensure the formatted value for this one ends up there, too?
+                                        continue
+
+                                    with dpg.group():
+
+                                        # ----------------------------------------------------
+                                        with dpg.group(horizontal=True):
+
+                                            dpg.add_text(f'{tag}:')
+                                            _valuePreview = dpg.add_text(
+                                                default_value=getattr(self.celldata,f'{tag}_preview',''),
+                                                color=(160,160,250))
+
+                                        # ----------------------------------------------------
+                                        _tagFilter = dpg.add_input_text(
+                                            width           =   150,
+                                            default_value   =   "",
+                                            #user_data       =   {"tag":tag,"tagDict":_manualTags[tag],"previewDestination":_valuePreview},
+                                            callback        =   self.updateComboAndPreview)
+                                        # ----------------------------------------------------
+
+                                    
+                                        _tagCombo = dpg.add_combo(
+                                            items           =   list(_fncTags[tag].keys()), # can make thew full thing
+                                            width           =   150,
+                                            default_value   =   getattr(self.celldata,tag,"~"),
+                                            user_data       =   {"tag":tag,"tagDict":_fncTags[tag],"previewDestination":_valuePreview},
+                                            callback        =   self.updateTagPreview)
+                                        # ----------------------------------------------------
+                                        dpg.set_item_user_data(_tagFilter,user_data = {"tag":tag,"tagDict":_fncTags[tag],"combo":_tagCombo,"items": list(_fncTags[tag].keys())})
+                                        # ----------------------------------------------------
+                                        # try to predict default value
+
+                                        _val_from_filename = fns.getVal(name=self.inputFile.name,tag=tag)
+
+                                        try: 
+                                            _split = _val_from_filename.split(" ")
+                                            print(f'{_split=}')
+                                            for x in list(_fncTags[tag].keys()):
+                                                if x.lower().startswith(_split[0].lower()):
+                                                    _val_from_filename = x
+                                        except Exception as e: 
+                                            print(e)
+                                       
+                                        dpg.configure_item(_tagCombo,default_value = _val_from_filename)
+
+                                        if _val_from_filename in list(_fncTags[tag].keys()):
+
+                                            app_data = _val_from_filename
+
+                                        else:
+                                            app_data = "~Not found~"
+
+                                        self.updateTagPreview(
+                                            sender      =   _tagCombo,
+                                            app_data    =   app_data,
+                                            user_data   =   dpg.get_item_user_data(_tagCombo)
+                                            )
+
+                                        # ----------------------------------------------------
+    
+                                    self.tagComboPreviews.update({tag:_valuePreview})
+                                    continue
+
+                    # does it match a rubric?
+                    # suggest nearest rubrics
+            #==================================================================
+            '''with dpg.collapsing_header(label="ALL RUBRICS"):
+                for rubric_name in list(self.schema.rubrics.keys()):
 
                 rubric = self.schema.rubrics[rubric_name]
 
                 self.showRubric(rubric)'''
-        #==================================================================
-        with dpg.collapsing_header(label="OUTPUT"):
-                
-            dpg.add_text(self.schema.name)
+            #==================================================================
+            with dpg.tab(label="OUTPUT",show=False):
+                dpg.add_text(self.schema.name)
 
-            with dpg.group(horizontal=True):
+                with dpg.group(horizontal=True):
 
-                dpg.add_text("Name    :")
+                    dpg.add_text("Name    :")
 
-                for i,column in enumerate(self.schema.outputSchemaDict["Column Name"]):
+                    for i,column in enumerate(self.schema.outputSchemaDict["Column Name"]):
 
-                    dpg.add_input_text(default_value=column,width=100,enabled=False)
-                    _ = dpg.add_checkbox(default_value=self.schema.outputSchemaDict["Necessary?"][i],enabled=False)
-                    with dpg.tooltip(_):
-                        dpg.add_text("Necessary?")
-                        dpg.add_separator()
-                        dpg.add_text("Rows in input file without this value will be skipped\nand instead added to an incomplete staged file.")
-                    dpg.add_spacer(width=10)
-                    dpg.add_text("|")
+                        dpg.add_input_text(default_value=column,width=100,enabled=False)
+                        _ = dpg.add_checkbox(default_value=self.schema.outputSchemaDict["Necessary?"][i],enabled=False)
+                        with dpg.tooltip(_):
+                            dpg.add_text("Necessary?")
+                            dpg.add_separator()
+                            dpg.add_text("Rows in input file without this value will be skipped\nand instead added to an incomplete staged file.")
+                        dpg.add_spacer(width=10)
+                        dpg.add_text("|")
 
-            with dpg.group(horizontal=True):
+                with dpg.group(horizontal=True):
 
-                dpg.add_text("Tag     :")
+                    dpg.add_text("Tag     :")
 
-                for column in self.schema.outputSchemaDict["Tag"]:
+                    for column in self.schema.outputSchemaDict["Tag"]:
 
-                    dpg.add_input_text(default_value=column,width=100,enabled=False)
-                    dpg.add_spacer(width=10+dpg.get_item_width(_)+27)
-                    dpg.add_text("|")
+                        dpg.add_input_text(default_value=column,width=100,enabled=False)
+                        dpg.add_spacer(width=10+dpg.get_item_width(_)+27)
+                        dpg.add_text("|")
 
    
-        #EditorRow(name = = "Column Name",
-        #EditorRow(name = "Tag",
-        #EditorRow(name = "Necessary?",
-        #EditorRow(name = "Operations",
+            #EditorRow(name = = "Column Name",
+            #EditorRow(name = "Tag",
+            #EditorRow(name = "Necessary?",
+            #EditorRow(name = "Operations",
 
-            dpg.add_separator()
+                dpg.add_separator()
 
    
     #============================================================================
@@ -361,14 +391,11 @@ class FiddlerCell(DPGStage):
 
         # Generic function for updating the ITEMS in the combo AND the text field that reflects the final value going to be used for the specified TAG's manual check
 
-
         #<><><><><><><><>#<><><><><><><><>#<><><><><><><><>#
         _tag = user_data.get("tag")
         _tagDict = user_data.get("tagDict")
         _combo = user_data.get("combo")
         #<><><><><><><><>#<><><><><><><><>#<><><><><><><><>#
-
-        print(app_data)
         #---------------------------------------------------
         # change the contents of the list depending on filtering
         all_items = user_data.get("items")
@@ -391,7 +418,6 @@ class FiddlerCell(DPGStage):
                 default_value = "~"
 
         dpg.configure_item(_combo,items = final_items,default_value = default_value)
-
 
         #---------------------------------------------------
         # now update the preview
@@ -466,8 +492,6 @@ class FiddlerWindow(DPGStage):
 
         for file in self.filesToProcessDict[schema.name]:
 
-            #print(file)
-
             _extensionRemoved = file.name.split('.')[0]
 
             _name+=_extensionRemoved+"_"
@@ -476,15 +500,9 @@ class FiddlerWindow(DPGStage):
 
     def generate_id(self,**kwargs):
 
-        #print(self.filesToProcess)
-
         with dpg.window(height=600,width=700,no_scrollbar=False):
 
             dpg.add_button(label="Process",width=150,height=75,callback=self.process)
-
-            #with dpg.child_window(height=30) as key:
-            #    dpg.add_text("Check boxes")
-
 
             with dpg.tab_bar():
 
@@ -515,6 +533,7 @@ class FiddlerWindow(DPGStage):
 
         print("#==========================\nSaving Files::::\n")
 
+        #=======================================================================================
         def validate_through_cells(i,schema):
 
             for cell in self.fiddlerCells[i]:
@@ -621,6 +640,7 @@ class FiddlerWindow(DPGStage):
                     print(f"Error text:\t{e}")
                     print("------------------")
 
+        #=======================================================================================
 
         for i,schema in enumerate(self.schemas):
 

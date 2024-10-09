@@ -107,14 +107,14 @@
     <Compile Include="PDF_Scraper.py" />
     <Compile Include="Redesign\Schema_Editor_Columns.py" />
     <Compile Include="Redesign\Settings_DefaultPathing.py" />
-    <Compile Include="Redesign\Departments.py">
+    <Compile Include="Redesign\Old\Departments.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\DPGStage.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Redesign\Directory_Selector.py" />
-    <Compile Include="Redesign\File_Selector.py">
+    <Compile Include="Redesign\Selector_Directory.py" />
+    <Compile Include="Redesign\Selector_File.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Redesign\Old\from_rubric_builder.py">
@@ -169,7 +169,7 @@
   <ItemGroup>
     <Content Include="Readme.md" />
     <Content Include="Redesign\Settings\defaultSQLCnxStrs.txt" />
-    <Content Include="Redesign\UserData\Inventory_Filters.json" />
+    <Content Include="Redesign\UserData\Filters.json" />
     <Content Include="Redesign\UserData\FilenameConvention_Tags.json" />
     <Content Include="Redesign\UserData\Manual_Input_Tags.json" />
     <Content Include="Redesign\UserData\Format_Tags.json" />

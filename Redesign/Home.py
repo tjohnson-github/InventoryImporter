@@ -33,9 +33,9 @@
     # present + nonOverride = present
 # Repeat the override button inside of the FIDDLER
 
-# Test the custom equations.
+#DONE !!!!!!!!!!!!!!!!! # Test the custom equations.
 
-# Add a manual filter checker for messy searches : EVERGREEN xxxyyyzzz
+#DONE !!!!!!!!!!!!!!!!! # Add a manual filter checker for messy searches : EVERGREEN xxxyyyzzz
 
 # Make sure that if there IS an overrride,
 # and cost is missing... it uses the price.
@@ -56,6 +56,10 @@
 # Specify a place for default values if not found:
 #   0 , X, another cell's value, etc
 
+# Make sure ROWS that are missing TAGGED COLUMNS which are NECESSARY are output to some error-folder or error-file
+
+# Making a new schema/rubric based on an old one.
+#       SAVE vs SAVE AS NEW
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -73,7 +77,9 @@ from DPGStage import DPGStage
 from Settings_DefaultPathing import DefaultPathing,DefaultPaths
 import asyncio
 
-from File_Selector import FileSelector
+#from File_Selector import FileSelector
+from Selector_File import FileSelector
+
 from File_Operations import csv_to_list,excel_to_list
 from CustomPickler import get,set
 

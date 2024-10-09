@@ -3,7 +3,7 @@ from dearpygui import dearpygui as dpg
 from Schema_Editor_Columns import SchemaColumnEditor
 from SQLInterface import SQLLinker
 
-from File_Selector import FileSelector
+from Selector_File import FileSelector
 from File_Operations import csv_to_list,excel_to_list
 from DPGStage import DPGStage
 from Schema import Schema
@@ -57,14 +57,13 @@ class SchemaFromFile(SchemaLoader):
 
         dpg.push_container_stack(self.tableEditor)
         
-        #_ = Schema()
         self.schema.outputSchemaDict["Column Name"] = readArray[0]
 
         self.colEditor = SchemaColumnEditor(
-            schema=self.schema,
-            filenameExtractorManager=self.filenameExtractorManager,
-            dirnameExtractor=self.dirnameExtractor,
-            color=self.default_color)
+            schema                      =   self.schema,
+            filenameExtractorManager    =   self.filenameExtractorManager,
+            dirnameExtractor            =   self.dirnameExtractor,
+            color                       =   self.default_color)
 
         asyncio.run(self.colEditor.populateTable())
 
@@ -109,35 +108,19 @@ class SchemaFromSQL(SchemaLoader):
 
         headers                 =   [i[0] for i in self.sqlLinker.cursor.description]
 
-        print (headers)
-        print(len(headers))
         rows = []
  
         dpg.add_text(tableName)
 
-        #_ = Schema()
         self.schema.outputSchemaDict["Column Name"] = headers
 
         self.colEditor = SchemaColumnEditor(
-            schema=self.schema,
-            filenameExtractorManager=self.filenameExtractorManager,
-            dirnameExtractor=self.dirnameExtractor,
-            color=self.default_color)
-        #self.editor = ColumnEditor(schema=headers)
+            schema                      =   self.schema,
+            filenameExtractorManager    =   self.filenameExtractorManager,
+            dirnameExtractor            =   self.dirnameExtractor,
+            color                       =   self.default_color)
+
         asyncio.run(self.colEditor.populateTable())
-
-
-        #with dpg.group(horizontal=True):
-
-        #    for i,columnName in enumerate(headers):
-        ##        print(i,"\t",columnName)
-        #        dpg.add_input_text(default_value=columnName,enabled=False,width=(len(columnName)*10))
-
-    
-
-        #for i,x in enumerate(self.sqlLinker.cursor):
-        #    print(i,"\t",x)
-        #    dpg.add_input_text(default_value=x,enabled=False)
     
 
     def linkSQL(self,sender,app_data,user_data):
@@ -158,8 +141,6 @@ class SchemaFromBuilder(SchemaLoader):
             subname =   dpg.get_value(self.subtitleInput),)
 
     def generate_id(self,**kwargs):
-
-        #self.filenameExtractor = kwargs.get("filenameExtractor")
 
         with dpg.group() as self._id:
             with dpg.group() as self.tableEditor:

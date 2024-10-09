@@ -107,6 +107,8 @@ def getUserDataTags(type: str) -> dict:
     if type=="operation":
         return parseJSON(f'{default_path}\\Op_Tags.json')
 
+    if type=="filter":
+        return parseJSON(f'{default_path}\\Filters.json')
 
 def parseJSON(full_filepath: str):
 

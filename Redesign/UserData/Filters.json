@@ -1,0 +1,7 @@
+{
+  "Location": {
+    "options": [ "KENS", "OLNEY" ],
+    "sensitive_tags":  ["qty"]
+  }
+  
+}

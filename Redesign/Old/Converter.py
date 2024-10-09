@@ -5,7 +5,7 @@ dpg.create_context()
 from dataclasses import dataclass, field
 
 from DPGStage import DPGStage
-from Directory_Selector import DirectorySelector
+from Selector_Directory import DirectorySelector
 
 from CustomPickler import get,set
 

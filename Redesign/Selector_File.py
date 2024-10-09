@@ -10,16 +10,6 @@ from DPGStage import DPGStage
 
 default_settings_path = "Redesign//Settings//"
 
-
-@dataclass
-class DefaultPaths:
-    pass
-
-
-def test(inputName,saveName):
-    print("HERE WE GOOOO",f'{inputName=}',f'{saveName=}')
-
-
 class FileSelector(DPGStage):
     
     type: str = "File"
@@ -91,7 +81,7 @@ class FileSelectorForConversion(FileSelector):
     inputTypes: list[str] = ["pdf"]
     outputType:str= "csv"
     fileColor: tuple = (255, 255, 0, 255)
-    nextStage: callable = test
+    nextStage: callable = lambda: None
 
     def main(self,**kwargs):
 

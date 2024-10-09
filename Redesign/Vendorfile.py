@@ -6,7 +6,6 @@ import dearpygui.dearpygui as dpg
 @dataclass
 class InputFile:
     #==============================
-    # Clerical
     fullPath: str   = field(repr=False)
     #==============================
     name: str       = field(init=False) 
@@ -16,15 +15,7 @@ class InputFile:
     header: list    = field(init=False,repr=True)
     rows : list     = field(init=False,repr=False)
     #==============================
-    # User Input
-    #vendorName: str = field(init=False,repr=False)
-    #vendorCode: str = field(init=False,repr=False)
-    #department: int = field(init=False)
-    #taxCode: str    = field(init=False,repr=False)
-    #==============================
-    #note: str                   = field(init=False,repr=False)
-    #formatting_dict_name: str   = field(init=False,repr=False)
-    #formatting_dict: dict       = field(init=False,repr=False)
+
 
     def __post_init__(self):
 
@@ -37,17 +28,7 @@ class InputFile:
             temp_name       = splitName[0]
 
             self.extension  = splitName[-1]
-        # =================================================
         
-        # =================================================
-        '''match self.extension:
-            case "csv":
-                output_array,errorMsg    =   File_Operations.csv_to_list(self.fullPath)
-
-            case "xlsx":
-                output_array,errorMsg    =   File_Operations.excel_to_list(self.fullPath)'''
-
-
         def contents():
             try:
 
@@ -73,76 +54,14 @@ class InputFile:
                 #    dpg.add_text(f"{self.fullPath} could not be read! Be sure you saved it with correct extension instead of manually changing.")
                 self.note = "COULD NOT READ"
                 return
-
-
-        def OLDtagger():
-            # =================================================
-            # Try to populate rest using our common naming conventions
-            #if temp_name.count("-") > temp_name.count("_"):
-            #    delim = '-'
-            #else:
-            #    delim = '_'
-            delim       =   '-'
-            temp_name   =   temp_name.split(delim)
-
-            if self.name.startswith("Inventory-format-"):
-                temp_info   =   temp_name[2:]
-            elif self.name.startswith("Inventory-"):
-                temp_info   =   temp_name[1:]
-            else:
-                temp_info   =   temp_name
-
-
-            index_offset = 1
-
-            try:
-                self.vendorName = temp_info[0+index_offset]
-                self.vendorCode = ""
-                self.note       = f'{self.vendorName}_{temp_info[1+index_offset]}'
-
-                self.department = temp_info[-1]
-                self.department = self.department.replace("Dept","")
-                self.department = self.department.replace(" ","")
-                self.department = ''.join(i for i in self.department if i.isdigit())
-            except Exception as e:
-                print (f'Error formatting {self.name}:\t{e}')
-                self.vendorName = "None Found"
-                self.vendorCode = ""
-                self.note       = ""
-                self.department = 0
-
         naming()
         contents()
 
-        #self.taxCode = "TX" #Default
-        # ^ ^ ^ ^ ^ ^ ^
-        # THIS IS GOING TO BE REPLACED WITH THE ABILITY TO IMPORT YOUR OWN
-        # "DATA" JSON OBJECTS
-        # WHEREBY EACH KEY LEADS TO NESTED DICT
-        # KEY = tag name
-        # subkey = field name
-        # subval = field value... like 
-        # TAX CODE = [
-        # "TX",
-        # "ED",
-        # ]
-        # Vendor ID = {
-        # arett : 0154341,
-        # etc.
 
     def displayContents(self):
         print (self.header)
         for row in self.rows:
             print (row)
-
-    def set_formatting_dict(self,name,format):
-        self.formatting_dict_name   =   name
-        self.formatting_dict        =   format
-    
-    def set_manual_input(self,tax,code,dept):
-        self.taxCode       =   tax
-        self.vendorCode    =   code
-        self.department     =   dept
 
 if __name__=="__main__":
 

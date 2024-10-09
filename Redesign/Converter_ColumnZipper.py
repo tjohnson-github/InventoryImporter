@@ -407,10 +407,6 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
 
                 _formatTags = getUserDataTags('formatting')
 
-                #print(f'{_tag=}')
-                #print(f'{_formatTags=}')
-
-
                 if _tag in list(_formatTags.keys()):
 
                     print(f"Overwriting {_tag=} with {dpg.get_value(manualTagCombos[_tag])=}!")

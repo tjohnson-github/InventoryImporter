@@ -17,8 +17,6 @@ class Rubric:
     tagOverrides                :   list    =   field(default_factory=lambda: [])
     tag_to_override_correspondence   :   dict    =   field(default_factory=lambda: {})
 
-
-
     fncOverride                 :   bool    =   field(default=False)
     dncOverride                 :   bool    =   field(default=False)
     #dateAdded : str
