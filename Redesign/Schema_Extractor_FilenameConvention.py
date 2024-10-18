@@ -69,12 +69,20 @@ class FilenameConvention:
                 dpg.add_text("|")
                 dpg.add_spacer(width=10)
 
-    def getVal(self,name,tag):
+    def getVal_from_splitName(self,name,tag):
 
-        _ = name.split(".")
-        _ = _[0].split(self.delim)
+        try:
+            _ = name.split(".")
+            _ = _[0].split(self.delim)
+        except Exception as e:
+            #print(f'HERE!!!!!!!!!!!!!!!!!!{e=}')
+            with dpg.window(popup=True):
+                dpg.add_text(f"Be sure to use the right delimitor for this type of file:\t<{self.delim}>")
 
-        return _[self.tags.index(tag)]
+        try:
+            return _[self.tags.index(tag)]
+        except ValueError:
+            raise Exception("Not found in list.")
 
 class FilenameExtractorManager(DPGStage):
     height=220

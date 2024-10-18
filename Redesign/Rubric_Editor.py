@@ -181,7 +181,7 @@ class RubricEditor(DPGStage):
         with dpg.group(horizontal=True) as headerGroup:
             with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=150,height=25) as self.widthFixer:
                 dpg.add_text("Imported File Header:")
-            dpg.add_spacer(width=20)
+            dpg.add_spacer(width=10)
             dpg.add_text("|")
         
         #=====================================================
@@ -189,7 +189,7 @@ class RubricEditor(DPGStage):
         with dpg.group(horizontal=True) as TagGroup:
             with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=150,height=25):
                 dpg.add_text("Available Tags ::::::")
-            dpg.add_spacer(width=20)
+            dpg.add_spacer(width=10)
             dpg.add_text("|")
         
         dpg.add_separator()
@@ -205,9 +205,9 @@ class RubricEditor(DPGStage):
             self.names.append(_name)
 
             with dpg.group(horizontal=True,parent=headerGroup):
-                dpg.add_spacer(width=20)
+                dpg.add_spacer(width=10)
                 dpg.add_text("|")
-                dpg.add_spacer(width=20)
+                dpg.add_spacer(width=10)
             #===================================================================
             default_tag = self.tags[0]
 
@@ -231,9 +231,9 @@ class RubricEditor(DPGStage):
                 print(e)
 
             with dpg.group(horizontal=True,parent=TagGroup):
-                dpg.add_spacer(width=20)
+                dpg.add_spacer(width=10)
                 dpg.add_text("|")
-                dpg.add_spacer(width=20)
+                dpg.add_spacer(width=10)
             #===================================================================
             
         self.displayDerivedOps()
@@ -461,17 +461,16 @@ class RubricEditor(DPGStage):
 
         self.overrideDict = {}
 
-        #self.overrideValues = []
+        print(f'{self.tag_combos=}')
+        print(f'{self.overrides=}')
+
+
 
         for i, box in enumerate(self.overrides):
 
             # will be either a DPG ITEM or NONE
-
             if box:
-                #self.overrideValues.append(dpg.get_value(box))
                 self.overrideDict.update({dpg.get_value(self.tag_combos[i]):dpg.get_value(box)})
-            #else:
-                #self.overrideValues.append(None)
 
         return self.overrideDict
 
@@ -492,6 +491,7 @@ class RubricEditor(DPGStage):
         # See if the values already exist
         #self.setGetOverrideVals()
         self.overrideDict = self.rubric.tag_to_override_correspondence
+        self.overrides = []
         #----------------------------
         # Reset group
         dpg.delete_item(self.overrideGroup,children_only=True)
@@ -500,7 +500,7 @@ class RubricEditor(DPGStage):
         # generate row info
         with dpg.child_window(border=False,no_scrollbar=True,no_scroll_with_mouse=False,width=dpg.get_item_width(self.widthFixer),height=25):
             dpg.add_text("Derived Value Override")
-        dpg.add_spacer(width=20)
+        dpg.add_spacer(width=10)
         dpg.add_text("|")
 
         #----------------------------
@@ -521,7 +521,7 @@ class RubricEditor(DPGStage):
                     if self.schema.outputSchemaDict["Operations"][ii]:
                         _indexes_where_there_are_operations.append(ii)
 
-            with dpg.child_window(width=dpg.get_item_width(tagCombo)+20,height=25,border=False):
+            with dpg.child_window(width=dpg.get_item_width(tagCombo)+10,height=25,border=False):
 
                 #print(f'{self.schema.outputSchemaDict["Operations"]=}')
 
@@ -557,7 +557,7 @@ class RubricEditor(DPGStage):
             
             dpg.add_spacer(width=0)
             dpg.add_text("|")
-            dpg.add_spacer(width=20)
+            dpg.add_spacer(width=10)
 
 
     
@@ -676,7 +676,7 @@ class RubricEditor(DPGStage):
 
         # If okay:
         dpg.push_container_stack(dpg.get_item_parent(sender))
-        dpg.add_spacer(width=20)
+        dpg.add_spacer(width=10)
         dpg.add_text("|")
 
         # For each column, let user choose
@@ -685,9 +685,9 @@ class RubricEditor(DPGStage):
             _items = list(string.ascii_lowercase[:len(header)])
             _combo = dpg.add_combo(items=_items,default_value = op.combos[i] if op and op.combos[i]!="None" else self.null_item,width=dpg.get_item_width(self.names[i]))
             self.rubricOpsCombos[self.rubricOps.index(sender)].append(_combo)
-            dpg.add_spacer(width=20)
+            dpg.add_spacer(width=10)
             dpg.add_text("|")
-            dpg.add_spacer(width=20)
+            dpg.add_spacer(width=10)
 
 
 

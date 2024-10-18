@@ -199,7 +199,7 @@ def getVal(tag,current_row,input_rows_header,schema,inputFile,revTags,manualTagC
                 for fnc in schema.filenameConventions:
                     # should be 1
 
-                    _val = fnc.getVal(inputFile.name,tag)
+                    _val = fnc.getVal_from_splitName(inputFile.name,tag)
                     return _val
             except Exception as e:
                 print(f"Cannot find {tag=} in filename conventions:\t{e}")
@@ -343,9 +343,6 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
                 for op in matchingRubric.ops:
                     if _tag == op.tag:
 
-                        print(op)
-                        #print(type(op))
-
                         _val = processRubricOP(op,row,inputFile.header,schema,inputFile,revTags,manualTagCombos)
                         print(f'{_val=}')
                         break
@@ -353,6 +350,7 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
                 _val = ''
             else:
                 _val = getVal(_tag,row,inputFile.header,schema,inputFile,revTags,manualTagCombos)
+
             #=========================================================================
             # HERE is the bulk of the program:
             #   1. need to see if any operations exist, if so, do them.
@@ -377,10 +375,10 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
                             current_row         =   row,
                             input_rows_header   =   inputFile.header,
                             starting_val        =   _val,
-                            schema=schema,
-                            inputFile=inputFile,
-                            revTags=revTags,
-                            manualTagCombos=manualTagCombos) 
+                            schema              =   schema,
+                            inputFile           =   inputFile,
+                            revTags             =   revTags,
+                            manualTagCombos     =   manualTagCombos) 
                             # is this last one even necessary? if the column has an operation:
                             #   A) and it uses itself as the main one.. then it'll be grabbed up ahead anyways.
                             #       IN THIS FRAMEWORK: each column has as an operation the 'grab from another column' 
@@ -398,8 +396,8 @@ def zipFile(schema,inputFile,matchingRubric,manualTagCombos,includeHeader=False,
             #=========================================================================
             # INSIST ON THERE BEING SOME KIND OF FAILSAFE TO MAKE SURE THAT A RUBRIC OP OF THE SAME ___ doesnt interfere with ____
 
-
-
+            #=========================================================================
+            
 
             #=========================================================================
             try:

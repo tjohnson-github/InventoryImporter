@@ -18,6 +18,9 @@ from Vendorfile import InputFile
 from Settings_DefaultPathing import DefaultPathing
 from Settings_General import SettingsManager
 
+import copy
+from math import ceil, floor
+
 class FiddlerCell(DPGStage):
 
     matchingRubric: Rubric
@@ -110,29 +113,32 @@ class FiddlerCell(DPGStage):
 
                 with dpg.tooltip(_save_filters_tab): dpg.add_text("Adds the filter name to the end of each output file.\nIf multiple filters are chosen, multiples will be created.\nYou can specify what to do with particular tags.")
 
-                _donotfilter = dpg.add_checkbox(label="Do not use filter this time.")
+                self.doNotfilter = dpg.add_checkbox(label="Do not use filter this time.")
 
                 with dpg.group() as filterGroup:
 
-                    #dpg.add_text("Save Filters")
-
                     _filter_tags = getUserDataTags("filter")
+
+                    self.filter_type_combos = {}
+                    self.filter_tag_choices = {}
 
                     def update_filter_sensitive_tag_choices(sender,app_data,user_data):
                 
                         sensitive_tag_options = user_data.get("sensitive_tag_options")
 
                         if app_data!="All":
-                            for sens_tag_option in sensitive_tag_options:
+                            for tag,sens_tag_option in sensitive_tag_options.items():
                                 dpg.configure_item(sens_tag_option,show=False)
                         else: 
-                            for sens_tag_option in sensitive_tag_options:
+                            for tag,sens_tag_option in sensitive_tag_options.items():
                                 dpg.configure_item(sens_tag_option,show=True)
 
-            
                     for key,val in _filter_tags.items():
                         with dpg.group(horizontal=True):
-                            _filterCombo = dpg.add_combo(items=["All"]+val["options"],default_value="Both",label=key.upper(),callback=update_filter_sensitive_tag_choices,width=100)
+
+                            _items = ["All"]+val["options"]
+
+                            _filterCombo = dpg.add_combo(items=_items,default_value=_items[0],label=key.upper(),callback=update_filter_sensitive_tag_choices,width=100)
                     
                             _tag_choices = {}
 
@@ -140,11 +146,16 @@ class FiddlerCell(DPGStage):
                     
                                 _sensitive_option = dpg.add_combo(items=["Divide","Copy"],default_value="Divide",label=f'<{sens_tag}>',width=100)
                                 with dpg.tooltip(_sensitive_option): dpg.add_text("Remainders will be prioritized reading from the left of Filters.JSON")
-                                _tag_choices.update({key:_sensitive_option})
+                                _tag_choices.update({sens_tag:_sensitive_option})
 
                             dpg.set_item_user_data(_filterCombo,user_data={"sensitive_tag_options":_tag_choices})
                
-                dpg.set_item_callback(_donotfilter,callback=lambda sender,app_data: dpg.configure_item(filterGroup,show=not app_data))
+                        self.filter_type_combos.update({key:_filterCombo})
+                        self.filter_tag_choices.update({key:_tag_choices})
+                        # Location:
+                        #   qty : dpg_item_combo    
+
+                dpg.set_item_callback(self.doNotfilter,callback=lambda sender,app_data: dpg.configure_item(filterGroup,show=not app_data))
 
             #==================================================================
             with dpg.tab(label="Input",show=False):
@@ -307,7 +318,7 @@ class FiddlerCell(DPGStage):
                                         # ----------------------------------------------------
                                         # try to predict default value
 
-                                        _val_from_filename = fns.getVal(name=self.inputFile.name,tag=tag)
+                                        _val_from_filename = fns.getVal_from_splitName(name=self.inputFile.name,tag=tag)
 
                                         try: 
                                             _split = _val_from_filename.split(" ")
@@ -570,14 +581,21 @@ class FiddlerWindow(DPGStage):
 
             return True
 
+
         def processCells(i,schema):
 
             _files_as_2D_lists = {}
 
             # each schema will have its own output file(s)
                 
-            _batchedRows = [schema.outputSchemaDict["Column Name"]]
+            _header = schema.outputSchemaDict["Column Name"]
             _batchedNonExistent = True
+            _filter_tags = getUserDataTags("filter")
+
+            _batchedName = dpg.get_value(self.batchedNames[i])
+            print(f'{_batchedName=}')
+
+            #--------------------------------------------
 
             #--------------------------------------------
             for cell in self.fiddlerCells[i]:
@@ -591,17 +609,160 @@ class FiddlerWindow(DPGStage):
                         includeHeader   =   cell.celldata.doNotBatch,
                         manualTagCombos =   cell.tagComboPreviews)
 
-                    if cell.celldata.doNotBatch:
-                        _files_as_2D_lists.update({dpg.get_value(cell.nonbatchedName_Input):_output_rows})
-                    else:
-                        [_batchedRows.append(x) for x in _output_rows]
-                        if _batchedNonExistent: _batchedNonExistent = False
-            #--------------------------------------------
+                    #=========================================================
+                    # Save multiple things per filter
+                    if not dpg.get_value(cell.doNotfilter):
 
-            if not _batchedNonExistent:
-                _files_as_2D_lists.update({dpg.get_value(self.batchedNames[i]):_batchedRows})
-    
+                        print("\n::::\n::::\n:::: CHECKING FILTERS")
+
+                        if cell.filter_tag_choices != None:
+                            #--------------------------------------------
+                            # Location:
+                            #   qty : dpg_item_combo    
+                            #--------------------------------------------
+                            # FOR EACH FILTER IN THE FILTERS.JSON
+                            for filterName,tag_dict in _filter_tags.items():
+
+                                print(filterName,tag_dict)
+                                print("........")
+
+                                # CHECK FOR ANY FILTER MECHANICS AT THE TAGS
+                                if tag_dict!=None:
+
+                                    # FOR EACH KEY:VAL PAIR IN THE JSON...
+                                    #for filter_tag,combo in tag_dict.items(): # UNNECESSARY: ONLY HAPPENS ONCE
+
+                                    #print(f'{filter_tag,combo=}')
+                                    #print(" - - - - - - ")
+
+                                    # CHECK THE FIDDLER WINDOW'S CHOICE AT THAT FILTERNAME
+                                    _filter_combo_choice = dpg.get_value(cell.filter_type_combos[filterName])
+
+                                    _name = dpg.get_value(cell.nonbatchedName_Input)
+                                    # CHECK TO SEE WHAT THE SUB-OPTION IS FOR EACH FILTER NAME
+                                    _options = _filter_tags[filterName]["options"]
+
+                                    if _filter_combo_choice == "All":
+
+                                        # IF 'ALL', we need to either copy or divide all the values in the specified tag locations
+
+                                        # Needs the unaltered files to derive values from again and again
+
+                                        _unfiltered_rows = [copy.deepcopy(_output_rows) for op in _options]
+                                        _filtered_rows = [[] for x in _options]
+
+                                        # Iterate through the options.. in the example it is a LOCATION option
+                                        for _opIndex,option in enumerate(_options):
+
+                                            _filter_name = f'{_name}_{option}'
+
+                                            # FOR EACH KEY:VALUE PAIR IN THE TAG CHOICES
+                                            for tag,dpg_item in cell.filter_tag_choices.get(filterName,{}).items():
+                                                #print(tag,dpg_item)
+                                                #print("<> <> <> <>")
+                                                #==========================================================
+                                                if dpg.get_value(dpg_item)=="Copy":
+                                                    _filtered_rows[_opIndex] = _unfiltered_rows[_opIndex]
+                                                elif dpg.get_value(dpg_item)=="Divide":
+                                                        
+                                                    _index_of_tag = schema.outputSchemaDict["Tag"].index(tag)
+
+                                                    #==========================================================
+
+                                                    def calculate_divides(index_of_option,options,index_of_tag,unfiltered_rows) -> list:
+
+                                                        for r,row in enumerate(unfiltered_rows):
+                                                            #<><><><><><><><><><><><><><><><><><><><><><><><>
+                                                            try:
+                                                                _val = int(row[index_of_tag])
+                                                            except Exception as e:
+                                                                with dpg.window(popup=True):
+                                                                    with dpg.group(horizontal=True):
+                                                                        dpg.add_text(f'Filter Division requires numeric fields. Instead we found <',color=(255,0,0))
+                                                                        dpg.add_text(f'{row[index_of_tag]}')
+                                                                        dpg.add_text(f"> at ROW = {r}, and INDEX = {index_of_tag}",color=(255,0,0))
+                                                                raise Exception(f"Incorrect data found at ROW = {r}, and INDEX = {index_of_tag}\t:\t{row[index_of_tag]}")
+                                                            #<><><><><><><><><><><><><><><><><><><><><><><><>
+                                                            if _val < len(options):
+
+                                                                if _opIndex==len(options)-1: continue
+
+                                                                modulo = _val % len(options)-1
+                                                                math_eq = ceil
+
+                                                            else: #is greater than or equal to
+
+                                                                modulo = _val % len(options)
+                                                                math_eq = floor
+                                                            #<><><><><><><><><><><><><><><><><><><><><><><><>
+                                                            if modulo > 0 and _opIndex==0:
+                                                                newVal = int((_val/len(options)))+modulo
+                                                            else:
+                                                                newVal = int(math_eq(_val/len(options)))
+                                                            #<><><><><><><><><><><><><><><><><><><><><><><><>
+                                                            row[index_of_tag] = newVal
+
+
+                                                    calculate_divides(
+                                                        index_of_option = _opIndex,
+                                                        options         = _options,
+                                                        index_of_tag    = _index_of_tag,
+                                                        unfiltered_rows = _unfiltered_rows[_opIndex])
+
+                                                    #==========================================================
+                                                    print(f'{_unfiltered_rows[_opIndex]=}')
+                                                    _filtered_rows[_opIndex] = _unfiltered_rows[_opIndex]
+                                                    #==========================================================
+                                                #==========================================================
+                                        # This is set last because we need to make sure the rows are only added once, even if there are multiple filter tags.
+                                        
+                                        
+                                        for _opIndex,option in enumerate(_options):
+
+                                            #_filtered_rows[_opIndex] = _unfiltered_rows[_opIndex]
+
+                                            if cell.celldata.doNotBatch:
+                                                _filter_name = f'{_name}_{option}'
+                                                _files_as_2D_lists.update({_filter_name:_filtered_rows[_opIndex]})
+                                            else:
+                                                # get the rows from this batch, using the header as a default.
+                                                _tempBatched = _files_as_2D_lists.get(f'{_batchedName}_{option}',[_header])
+
+                                                [_tempBatched.append(x) for x in _filtered_rows[_opIndex]]
+
+                                                _files_as_2D_lists.update({f'{_batchedName}_{option}':_tempBatched})
+
+                                        del _unfiltered_rows
+
+
+                                    else: # ELSE SIMPLY ADD THE CHOSEN OPTION TO THE NAME OF THE FILE
+
+                                        if cell.celldata.doNotBatch: 
+                                            _filter_name = f'{_name}_{_filter_combo_choice}' 
+                                            _files_as_2D_lists.update({_filter_name:_output_rows})
+                                        else:
+                                            # get the rows from this batch, using the header as a default.
+                                            _tempBatched = _files_as_2D_lists.get(f'{_batchedName}_{_filter_combo_choice}',[_header])
+
+                                            [_tempBatched.append(x) for x in _output_rows]
+
+                                            _files_as_2D_lists.update({f'{_batchedName}_{_filter_combo_choice}':_tempBatched})
+
+                        else:
+                            # If the cell is still being filtered, but there are no choices specified....
+                            with dpg.window(popup=True):
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text(f'Filter choices needed for <',(255,0,0))
+                                    dpg.add_text(f'{cell.inputFile.name}')
+                                    dpg.add_text(f">.",color=(255,0,0))
+                            raise Exception("Missing data")
+                    #=========================================================
+
             return _files_as_2D_lists
+
+
+
+
 
         def saveOutput(i,schema,files: list[list]):
 
@@ -655,8 +816,84 @@ class FiddlerWindow(DPGStage):
                 # MAYBE can collect the errors all @ once.
                 if validate_through_cells(i, schema):
 
-                    _files = processCells(i, schema)
+                    #try:
+                        _files = processCells(i, schema)
 
-                    saveOutput(i, schema, files=_files)
+                        saveOutput(i, schema, files=_files)
+                    #except Exception as e:
+                    #    print(f"Error processing cells\t:\t{e}")
+                    
 
-            
+def test_modulo_2():
+
+    options = ['a','b']
+
+    _val = 15
+
+    for r in range(0,2):
+
+        if _val < len(options):
+
+            #if r==len(options)-1: continue
+
+            modulo = _val % len(options)-1
+            if modulo > 0 and r==0:
+                new_Val = int((_val/len(options)))+modulo
+            else:
+                new_Val = int(ceil(_val/len(options)))
+
+        else: #is greater than or equal to
+
+            modulo = _val % len(options)
+            if modulo > 0 and r==0:
+                new_Val = int((_val/len(options)))+modulo
+            else:
+                new_Val = int(floor(_val/len(options)))
+
+        print(new_Val)
+
+def test_modulo():
+    import math
+
+
+    from math import ceil, floor
+    #a = 16
+
+    #test=[83,127,4,3,9,2,31,27,94,0,1,5]
+    test = [24,12,15,15,15]
+    test_results = []
+
+    for a in test:
+        options = ['a','b']#,'c']
+
+        vals = [0 for x in options]
+
+        for i,op in enumerate(options):
+
+            if a < len(options):
+
+                if i==len(options)-1: continue
+
+                modulo = a % len(options)-1
+                if modulo > 0 and i==0:
+                    vals[i] = int((a/len(options)))+modulo
+                else:
+                    vals[i] = int(ceil(a/len(options)))
+            else:
+
+                modulo = a % len(options)
+                if modulo > 0 and i==0:
+                    vals[i] = int((a/len(options)))+modulo
+                else:
+                    vals[i] = int(floor(a/len(options)))
+
+        print(f'{vals}\t:\t{sum(vals)}')
+        test_results.append(sum(vals))
+
+    print("-------------------")
+    print(test)
+    print(test_results)
+
+if __name__=="__main__":
+    test_modulo()
+    test_modulo_2()
