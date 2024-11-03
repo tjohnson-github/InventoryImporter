@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7fc669d3-6d84-47f5-bd28-0ecd2e4b1730</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>JFGC_Importer_v2.py</StartupFile>
+    <StartupFile>Home.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -146,7 +146,7 @@
     <Compile Include="Gspread_Rubric.py" />
     <Compile Include="Importer.py" />
     <Compile Include="Vendorfile.py" />
-    <Compile Include="JFGC_Importer_v2.py" />
+    <Compile Include="Home.py" />
     <Compile Include="WIX_Json.py">
       <SubType>Code</SubType>
     </Compile>
