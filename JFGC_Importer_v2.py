@@ -11,7 +11,7 @@ import Gspread_Rubric
 from Vendorfile import vendorfile
 
 import JFGC_Data
-JFGC = JFGC_Data.JFGC_Data()
+JFGC = JFGC_Data.jfgcdata#JFGC_Data.JFGC_Data()
 
 import Importer
 import PDF_Scraper
@@ -470,15 +470,13 @@ def saveDefault(sender,app_data,user_data):
 
 def main():
 
-      
-
     try:
         parent_folder=get_default_dir();
     except:
         parent_folder="<no_directory_selected>"
 
     with dpg.window(tag="Primary Window",label="Import Inventory JFGC",width=650,height=400):
-        
+       
         from DPG_Themes import global_theme
         dpg.bind_theme(global_theme)
   
@@ -563,14 +561,19 @@ def main():
                 Utilities.Markup(width=400,height=120,visualize=True)
                 Utilities.PrcBreakdown(width=400,height=150)
             #-----------------------------------------------
-            with dpg.tab(label="SQL Scraper"):
-                SQL_Scraper.SQLScraper(width=650-10,height=400-10,pathingDict=getPathingDict())
+            #with dpg.tab(label="SQL Scraper"):
+                #SQL_Scraper.SQLScraper(width=650-10,height=400-10,pathingDict=getPathingDict())
             with dpg.tab(label="UPC Auto-Assigner"):
                 Auto_Assigner.AutoAssignerTab(width=650-10,height=400-10)
     #===================================================
     pass
     
-    print(getPathingDict())
+    print("----------------------------------------------")
+    print("MAKE SURE THESE ARE THE FOLDERS YOURE USING:::")
+    for key,val in getPathingDict().items():
+        print(f'{key}\t:\t{val}')
+
+    print("----------------------------------------------")
     #Importer.populateReceivings(getPathingDict())
 
     return

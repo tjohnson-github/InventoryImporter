@@ -5,7 +5,8 @@ import dearpygui.dearpygui as dpg
 import datetime
 import File_Operations
 import JFGC_Data
-
+JFGC = JFGC_Data.jfgcdata#JFGC_Data.JFGC_Data()
+sqlClient = JFGC_Data.sqlClient
 
 class ConditionFilter:
     group: int
@@ -25,7 +26,7 @@ class ConditionFilter:
 
 class SQLScraper:
     queryName: str
-    client: JFGC_Data.SQLClient
+    client: sqlClient
     filters: list[ConditionFilter]
     pathingDict: dict
 
@@ -174,13 +175,13 @@ class SQLScraper:
 
     def __init__(self,width,height,pathingDict):
 
-        self.client = JFGC_Data.SQLClient()
+        self.client = sqlClient
         self.pathingDict = pathingDict
        
 
         with dpg.child_window(width=width,height=height):
 
-            self.jfgcdata = JFGC_Data.JFGC_Data()
+            self.jfgcdata = JFGC
 
             self.queryName = dpg.add_input_text(label="Name of Query",width=170,default_value=str(datetime.datetime.now().strftime('%Y-%m-%d')))
             #dpg.add_text(id='savedirReminder',default_value="Query will be saved in directory:")

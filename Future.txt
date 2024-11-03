@@ -1,0 +1,16 @@
+New Designs for ImportINV:
+	1. standardize the frontend pygui function
+	2. :: several locations
+		a. the dirty data
+		b. formatted dirty data that can use some love
+		c. cleaned data that must try to go to Counterpoint
+		d. cleaned data that goes onto cloud
+		e. flagged data that is input onto cloud directly
+	
+	
+	
+	
+	2. maybe try it in react?
+
+
+

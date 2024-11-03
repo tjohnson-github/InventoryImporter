@@ -4,7 +4,8 @@ import sys,os
 import dearpygui.dearpygui as dpg
 
 import JFGC_Data
-JFGC = JFGC_Data.JFGC_Data()
+JFGC = JFGC_Data.jfgcdata#JFGC_Data.JFGC_Data()
+
 
 class Markup:
 

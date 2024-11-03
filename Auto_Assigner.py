@@ -3,6 +3,10 @@
 #from Counterpoint_Connectivity import getBaseSQL
 from JFGC_Data import SQLClient
 
+
+import JFGC_Data
+sqlClient = JFGC_Data.sqlClient
+
 import itertools
 import os
 from File_Operations import getVariable,saveVariable
@@ -15,11 +19,20 @@ class AutoAssignerTab:
 
         #_targetLength = dpg.get_value(self.targetLengthInput)
         #createAvailableUPCsListObj(targetLength = _targetLength)
-        createAvailableUPCsListObj()
+
+        with dpg.window(popup=True) as self.waitPopup:
+            dpg.add_text("Compiling list..../nThis may take a few seconds.")
+
+        try:
+            createAvailableUPCsListObj()
+        except Exception as e:
+            print(e)
+        
+        dpg.delete_item(self.waitPopup)
 
     def __init__(self,width,height):
 
-        self.client = SQLClient()
+        self.client = sqlClient
 
         with dpg.child_window(width=width,height=height):
             dpg.add_text("""In order to better update products and the website we circumvent \n
@@ -31,12 +44,40 @@ class AutoAssignerTab:
                             computers.""")
             dpg.add_separator()
 
-            self.targetLengthInput = dpg.add_input_int(id="autoassigner_length",default_value=6,label="Current Length",min_value=1)
+            self.targetLengthInput = dpg.add_input_int(id="autoassigner_length",default_value=6,label="Current Length",min_value=1,width=100)
             dpg.add_button(label = "Generate List",callback=self.createList)
+
+
+            dpg.add_separator()
+            dpg.add_input_int(label="Get new UPCs (max 100 at a time)",
+                              width=100,
+                              default_value=0,
+                              callback=self.getUPCsCustom,
+                              on_enter=True,
+                              step=0,
+                              min_clamped=True,
+                              min_value=0,
+                              max_clamped=True,
+                              max_value=100)
+            dpg.add_text("Press Enter after inputting desired UPC count.")
+            dpg.add_text("Check terminal for output and copy/paste as a column into desired Spreadsheet.")
+
+    def getUPCsCustom(self,sender,app_data):
+
+        print(f"=============== Getting {app_data} UPCs =============")
+        if app_data==1:
+            print(getNextUPC(targetLength=dpg.get_value(self.targetLengthInput)))
+        elif app_data >1:
+            multiUPCs = getMultipleUPCs(number_needed=app_data,targetLength=dpg.get_value(self.targetLengthInput))
+            for x in multiUPCs:
+                print(x)
+    
+
         
 @decorators.timer_func
 def createAvailableUPCsListObj(targetLength = None,annotations=False):
 
+    
 
     if not targetLength :
         targetLength = dpg.get_value("autoassigner_length")

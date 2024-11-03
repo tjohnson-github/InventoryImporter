@@ -15,7 +15,7 @@ class SQLClient:
         try:
             #----------------
             conn_str=(';DRIVER='+self.driver+';SERVER='+self.server+';UID='+self.username+';PWD='+self.password)        
-            print(conn_str)
+            #print(conn_str)
             cnxn = pyodbc.connect(conn_str)
             cursor = cnxn.cursor()
             #----------------
@@ -25,7 +25,8 @@ class SQLClient:
             print ("_____ERROR_____")
             print ("Cursor object not initialized correctly. Please run Setup and retry.")
    
- 
+sqlClient = SQLClient()
+
 @dataclass
 class Department:
     code: int               = field(repr=True)
@@ -232,7 +233,7 @@ class JFGC_Data:
     def get_vendor_codes(self):
         # Returns a dict object scraped from PO_VEND of the format: "Name":"00-padded vendor number"
 
-        client = SQLClient()
+        client = sqlClient
 
         from_table              =   "PO_VEND"
         sort_by                 =   "NAM_UPR"
@@ -250,11 +251,11 @@ class JFGC_Data:
             if new_entry[vendor_num_location].startswith("00"):
                 vendorDict.update({str(new_entry[vendor_nam_location]):new_entry[vendor_num_location]})
 
-        for key,vl in vendorDict.items():
-            print(f'"{key}":{vl}')
+        #for key,vl in vendorDict.items():
+        #    print(f'"{key}":{vl}')
 
-        import sys
-        sys.exit()
+        #import sys
+        #sys.exit()
 
         saveVariable("vendorDict.txt",vendorDict)
         self.vendorDict = vendorDict
@@ -300,28 +301,4 @@ class JFGC_Data:
     def getDptByName(self,name):
         return self.dptByName.get(name,f"No department found with name {name}!")
 
-    
-
-if __name__ == "__main__":
-    print ("hi")
-
-    jfgc = JFGC_Data()
-    for dept in jfgc.allDepartments:
-        print(dept)
-
-    '''client = SQLClient()
-
-    from_table              =   "IM_ITEM"
-    sort_by                 =   "NAM_UPR"
-    client.cursor.execute(f'SELECT * FROM JFGC.dbo.{from_table};')
-    headers                 =   [i[0] for i in client.cursor.description]
-
-    print (headers)
-
-
-    for i,x in enumerate(client.cursor):
-        if i>=6: break
-
-        for ii,column in enumerate(headers):
-            if x[ii]!="None" and x[ii]!= None:
-                print(f'{column}\t:\t{x[ii]}')'''
+jfgcdata = JFGC_Data()
