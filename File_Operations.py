@@ -34,7 +34,7 @@ def getVariable(saveName):
 #           EXCEL / CSV <--> LIST CONVERSIONS
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
     
-def csv_to_list(csv_file,delimiter = ','):
+def csv_to_list(csv_file,delimiter = ',', remove_non_ascii = False):
 	#-------------------------------------------
     if os.path.exists(csv_file)==False:     
         error = f"File Path does not exist for item: {str(csv_file)}"
@@ -57,7 +57,9 @@ def csv_to_list(csv_file,delimiter = ','):
                 temp_value = str(item)
                 while temp_value.endswith(' '):
                     temp_value = temp_value[:-1]
-                temp_array.append(item)
+                if remove_non_ascii:
+                    temp_value = temp_value.encode('ascii',errors='ignore').decode()
+                temp_array.append(temp_value)
                 #============ TRIM WHITESPACES!
             #----------
             if (temp_array != [None for i in range(0,len(temp_array))]) and (temp_array != ['' for i in range(0,len(temp_array))]):
@@ -66,7 +68,7 @@ def csv_to_list(csv_file,delimiter = ','):
     return readArray,''
 
 
-def excel_to_list(excel_file):
+def excel_to_list(excel_file, remove_non_ascii=False):
 	#-------------------------------------------
     if os.path.exists(excel_file)==False:   
         error = f"File Path does not exist for item: {str(excel_file)}"
@@ -98,6 +100,8 @@ def excel_to_list(excel_file):
                 temp_value = str(cell.value)
                 while temp_value.endswith(' '):
                     temp_value = temp_value[:-1]
+                if remove_non_ascii:
+                    temp_value = temp_value.encode('ascii',errors='ignore').decode()
                 temp_list.append(temp_value)
                 #============ TRIM WHITESPACES!
         #----------------
