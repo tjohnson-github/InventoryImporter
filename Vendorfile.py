@@ -45,9 +45,9 @@ class vendorfile:
         try:
 
             if(self.extension=="csv"):
-                output_array,errorMsg    =   File_Operations.csv_to_list(self.fullPath)
+                output_array,errorMsg    =   File_Operations.csv_to_list(self.fullPath, ',', True)
             elif(self.extension=="xlsx"):
-                output_array,errorMsg    =   File_Operations.excel_to_list(self.fullPath)
+                output_array,errorMsg    =   File_Operations.excel_to_list(self.fullPath, True)
         except Exception as e:
             print(f"Failure reading {self.fullPath}\t:\t{e}")
 
