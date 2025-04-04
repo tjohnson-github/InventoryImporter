@@ -22,6 +22,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Gspread_Auth.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Single_Product_Multiple_Rows_Transformer.py">
       <SubType>Code</SubType>
     </Compile>

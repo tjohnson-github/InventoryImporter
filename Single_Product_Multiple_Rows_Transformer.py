@@ -4,8 +4,8 @@ import re
 from openpyxl.utils import get_column_letter, coordinate_to_tuple
 import os
 import time
-
-
+import gspread
+from Gspread_Auth import auth_gspread
 
 def display_single_product_multiple_rows_transformer(sender,app_data,user_data):
 
@@ -15,7 +15,7 @@ def display_single_product_multiple_rows_transformer(sender,app_data,user_data):
         
         dpg.add_progress_bar(id=f'{transformer_window}_progress', overlay="Loading formatting dicts...", show=True, width=200, parent=transformer_window)
         format_dicts = parse()
-        dpg.configure_item(f'{transformer_window}_progress', show=True, default_value=1, overlay="Formatting dicts loaded.")
+        dpg.configure_item(f'{transformer_window}_progress', show=True, default_value=1, overlay=f"{len(format_dicts)} formatting dict(s) loaded.")
         
         input_group = dpg.add_group(horizontal=True)
         dpg.add_button(tag=f'{transformer_window}_input_fileselect', label="Choose Input File", callback=file_select, user_data=transformer_window, parent=input_group, width=150)
@@ -85,7 +85,7 @@ def begin_convert(sender, app_data, user_data):
             for column_number, mapping in enumerate(format_dict.values):
                 for coord in mapping.coords:
                     value_row, value_column = coordinate_to_tuple(coord)
-                    value = read_cell(rows[value_row - 1][value_column - 1]) or ""
+                    value = normalize(rows[value_row - 1][value_column - 1].value) or ""
                     if mapping.regex:
                         match = mapping.regex.search(value)
                         if not match:
@@ -106,11 +106,14 @@ def begin_convert(sender, app_data, user_data):
 
 def parse():
 
-    wb = openpyxl.load_workbook("C:\\Users\\Charles\\Single Product Multiple Rows.xlsx", data_only=True)
+    gc = auth_gspread()
+    sh = gc.open("JFGC Single Product Multiple Rows Transformer")
 
     format_dicts = {}
 
-    for ws in wb:
+    for wk in sh.worksheets():
+
+        list_of_lists = wk.get_all_values()
 
         locations = None
         headings = []
@@ -118,47 +121,48 @@ def parse():
         header_line_count = None
         lines_per_product = None
 
-        for row_number, row in enumerate(ws.iter_rows()):
+        for row_number, row in enumerate(list_of_lists):
+            print(row)
             if locations is None:
                 locations = Locations(row)
-
+                print(f"{wk.title}: {locations}")
             else:
 
-                type = read_cell(row[locations.type])
+                type = normalize(row[locations.type])
                 if type is None:
-                    raise ValueError(f"{ws.title}: No type found on row {row_number + 1}")
+                    raise ValueError(f"{wk.title}: No type found on row {row_number + 1}")
 
-                coords = read_cell(row[locations.coords])
+                coords = normalize(row[locations.coords])
                 if coords is None:
-                    raise ValueError(f"{ws.title}: No location found on row {row_number + 1}")
+                    raise ValueError(f"{wk.title}: No location found on row {row_number + 1}")
                 coords = re.findall("[A-Z]+\\d+", coords)
 
-                regex = read_cell(row[locations.regex])
+                regex = normalize(row[locations.regex])
                 if regex is not None:
                     regex = re.compile(regex)
 
                 if row_number == 1:
-                    header_line_count_string = read_cell(row[locations.header_line_count])
+                    header_line_count_string = normalize(row[locations.header_line_count])
                     if header_line_count_string is None:
-                        raise ValueError(f"{ws.title}: Header Line Count not found!")
+                        raise ValueError(f"{wk.title}: Header Line Count not found!")
                     header_line_count = int(header_line_count_string)
 
-                    lines_per_product_string = read_cell(row[locations.lines_per_product])
+                    lines_per_product_string = normalize(row[locations.lines_per_product])
                     if lines_per_product_string is None:
-                          raise ValueError(f"{ws.title}: Lines Per Product not found!")
+                          raise ValueError(f"{wk.title}: Lines Per Product not found!")
                     lines_per_product = int(lines_per_product_string)
 
                 if type == "Key":
                     if regex is None:
-                        raise ValueError(f"{ws.title}: No regex found on row {row_number + 1}")
+                        raise ValueError(f"{wk.title}: No regex found on row {row_number + 1}")
                     headings.append(Heading(
                         coords,
                         regex
                     ))
                 elif type == "Value":
-                    output = read_cell(row[locations.output])
+                    output = normalize(row[locations.output])
                     if output is None:
-                        raise ValueError(f"{ws.title}: No output found on row {row_number + 1}")
+                        raise ValueError(f"{wk.title}: No output found on row {row_number + 1}")
                     mappings.append(Mapping(
                         coords,
                         regex,
@@ -168,16 +172,16 @@ def parse():
                     raise ValueError(f"Invalid type {type}")
         
         if len(mappings) == 0:
-            raise ValueError(f"{ws.title}: No mappings found!")
+            raise ValueError(f"{wk.title}: No mappings found!")
 
-        format_dicts[ws.title] = FormatDict(headings, mappings, header_line_count, lines_per_product)
+        format_dicts[wk.title] = FormatDict(headings, mappings, header_line_count, lines_per_product)
     return format_dicts
 
-def read_cell(cell):
-    if cell.value is None:
+def normalize(value):
+    if value is None:
         return None
     else:
-        stripped = str(cell.value).strip()
+        stripped = str(value).strip()
         return stripped or None
 
 class Locations:
@@ -191,7 +195,7 @@ class Locations:
     def __init__(self, row):
 
         for column_number, cell in enumerate(row):
-            name = read_cell(cell)
+            name = normalize(cell)
             if name is not None:
                 if name == "Type":
                     self.type = column_number
@@ -277,7 +281,8 @@ class FormatDict:
             match_found = False
             for coord in heading.coords:
                 key_row, key_column = coordinate_to_tuple(coord)
-                check = read_cell(worksheet[key_row][key_column - 1]) or ""
+                check = normalize(worksheet[key_row][key_column - 1].value) or ""
+                print(f"check: {check}, regex: {heading.regex}")
                 if heading.regex.search(check):
                     match_found = True
                     break
