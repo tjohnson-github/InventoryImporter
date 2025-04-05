@@ -20,6 +20,8 @@ import WIX_Utilities
 import SQL_Scraper
 import Auto_Assigner
 
+from Single_Product_Multiple_Rows_Transformer import display_single_product_multiple_rows_transformer 
+
 #====================================================
 #================== HELPER FUNCTIONS
 
@@ -490,6 +492,15 @@ def main():
                     dpg.add_text("Files must be of format:\n\t[vendorname]-[tags]-[department #].[extension]")
                 #[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
                 dpg.add_text("Input -> Stage -> Process")
+                
+                before_dist_step_group = dpg.add_group(horizontal=True)
+                dpg.add_spacer(width=50,parent=before_dist_step_group)
+                dpg.add_button(label="Transform Spreadsheet With Multiple Rows for Each Product",          
+                               width        =   500,  
+                               callback     =   display_single_product_multiple_rows_transformer,       
+                               user_data    =   parent_folder,
+                               parent       =   before_dist_step_group)
+                
                 first_step_group = dpg.add_group(horizontal=True)
                 '''dpg.add_button(label="Stage Individual File",     
                                width        =   300,  

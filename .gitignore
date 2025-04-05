@@ -365,3 +365,5 @@ FodyWeavers.xsd
 Data/
 Redesign/IO/
 vendorDict.txt
+token.json
+credentials.json

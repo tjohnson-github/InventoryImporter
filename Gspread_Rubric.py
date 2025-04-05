@@ -3,32 +3,13 @@
 import pickle
 import gspread
 from google.oauth2.service_account import Credentials
-
+from Gspread_Auth import auth_gspread
 from decimal import *
-
-def authGspread():
-    #======================================================
-    SCOPES = [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive'
-    ]
-    
- 
-    SERVICE_ACCOUNT_FILE ="C:\\Users\\Andrew\\source\\repos\\jfgcphotos-e815c44a79c2.json"
-
-    credentials = Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-
-
-    gc = gspread.authorize(credentials)
-
-    return gc
- 
 
 def add_rubric(name,subname,values):
     #============================================================
     # Select Worksheet
-    gc  =   authGspread()
+    gc  =   auth_gspread()
     sh  =   gc.open("JFGC Formatting Rubrics")
     wk  =   sh.sheet1
     #============================================================
@@ -105,7 +86,7 @@ def add_rubric(name,subname,values):
 def read_formatting_gsheet(gsheetName="JFGC Formatting Rubrics"):
     #import gspread
     #from Gspread_Rubric import authGspread
-    gc =  authGspread()
+    gc =  auth_gspread()
     sh =  gc.open(gsheetName)
     wk =  sh.sheet1
     #=======================
@@ -263,7 +244,7 @@ def updateSheetfromTop(sheetName,entries_to_add):
 
     # Assumes sheet with correct header is already present:
 
-    gc =  authGspread()
+    gc = auth_gspread()
     sh = gc.open(sheetName)
     wk = sh.sheet1
 
