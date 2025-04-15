@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7fc669d3-6d84-47f5-bd28-0ecd2e4b1730</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Gspread_WIX.py</StartupFile>
+    <StartupFile>Home.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
