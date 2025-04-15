@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7fc669d3-6d84-47f5-bd28-0ecd2e4b1730</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>Home.py</StartupFile>
+    <StartupFile>Gspread_WIX.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -22,7 +22,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Gspread_Auth.py">
+    <Compile Include="Google_Sheets_and_Drive_Auth.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Single_Product_Multiple_Rows_Transformer.py">
@@ -180,6 +180,7 @@
     <Content Include="Redesign\UserData\Manual_Input_Tags.json" />
     <Content Include="Redesign\UserData\Format_Tags.json" />
     <Content Include="Redesign\UserData\Op_Tags.json" />
+    <Content Include="requirements.txt" />
     <Content Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
