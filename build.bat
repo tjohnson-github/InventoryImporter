@@ -1,0 +1,1 @@
+pyinstaller Home.py -F -n "Inventory Importer"
