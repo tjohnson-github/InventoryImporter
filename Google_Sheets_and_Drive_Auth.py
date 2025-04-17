@@ -3,35 +3,52 @@ import os
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 
 SCOPES = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
 
+credentials = None
 gc = None
+drive_service = None
+
+def auth_drive():
+    print("auth_drive")
+    global drive_service
+    if not drive_service:
+        credentials = auth()
+        drive_service = build("drive", "v3", credentials=credentials)
+    return drive_service
 
 def auth_gspread():
-
     global gc
-
     if not gc:
+        credentials = auth()
+        gc = gspread.authorize(credentials)
+    return gc
 
-        creds = None
+def auth():
+
+    global credentials
+
+    if not credentials:
+
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
         if os.path.exists("token.json"):
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            credentials = Credentials.from_authorized_user_file("token.json", SCOPES)
         # If there are no (valid) credentials available, let the user log in.
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+        if not credentials or not credentials.valid:
+            if credentials and credentials.expired and credentials.refresh_token:
+                credentials.refresh(Request())
             elif os.path.exists("credentials.json"):
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "credentials.json", SCOPES
                 )
-                creds = flow.run_local_server(port=0)
+                credentials = flow.run_local_server(port=0)
             else:
                 raise FileNotFoundError("""No credentials found.
 1: Go to https://console.cloud.google.com/.
@@ -43,10 +60,8 @@ def auth_gspread():
 
             # Save the credentials for the next run
             with open("token.json", "w") as token:
-                token.write(creds.to_json())
+                token.write(credentials.to_json())
 
         print("Authentication with Google successful.")
 
-        gc = gspread.authorize(creds)
-
-    return gc
+    return credentials

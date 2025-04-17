@@ -1,41 +1,12 @@
 
 import pickle
 import gspread
-from google.oauth2.service_account import Credentials
 from decimal import *
-from googleapiclient.discovery import build
-
-def authGspread():
-
-    SCOPES = [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive'
-    ]
-    
-    SERVICE_ACCOUNT_FILE ="C:\\Users\\Andrew\\source\\repos\\jfgcphotos-e815c44a79c2.json"
-
-    credentials = Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-
-    gc = gspread.authorize(credentials)
-
-    return gc
- 
+from Google_Sheets_and_Drive_Auth import auth_gspread, auth_drive
 
 def createFolder(name):
 
-
-    SCOPES = [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive'
-    ]
-    
-    SERVICE_ACCOUNT_FILE ="C:\\Users\\Andrew\\source\\repos\\jfgcphotos-e815c44a79c2.json"
-
-    credentials = Credentials.from_service_account_file(
-            SERVICE_ACCOUNT_FILE, scopes=SCOPES)
-
-    service = build("drive", "v3", credentials=credentials)
+    service = auth_drive()
 
     file_metadata = {
         "name": name,
@@ -53,7 +24,7 @@ def addPendingWixProductsToSharedDrive(title):
     for guides on implementing OAuth2 for the application.
         """
 
-    gc  =   authGspread()
+    gc = auth_gspread()
 
     try:
         spreadsheet = {
@@ -75,7 +46,7 @@ def createSheetAndPopulate(sheetName,entries_to_add,folderID):
 
     # Assumes sheet with correct header is already present:
 
-    gc = authGspread()
+    gc = auth_gspread()
 
     try:
         sh = gc.create(sheetName, folder_id=folderID)
