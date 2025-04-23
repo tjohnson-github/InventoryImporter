@@ -1,20 +1,19 @@
 from dataclasses import dataclass, field
 import pyodbc
-
-
+import json
 from File_Operations import saveVariable,getVariable
 
 class SQLClient:
 
-    server      =   '192.168.4.13'
     driver      =   '{ODBC Driver 17 for SQL Server}'
-    username    =   'sa'
-    password    =   'CounterPoint8'
 
     def __init__(self):
+
+        with open("config.json") as f:
+            settings = json.load(f)
+        conn_str=(settings.get("sql_connection_string"))
+
         try:
-            #----------------
-            conn_str=(';DRIVER='+self.driver+';SERVER='+self.server+';UID='+self.username+';PWD='+self.password)        
             #print(conn_str)
             cnxn = pyodbc.connect(conn_str)
             cursor = cnxn.cursor()
@@ -24,7 +23,8 @@ class SQLClient:
         except Exception as e:
             print ("_____ERROR_____")
             print ("Cursor object not initialized correctly. Please run Setup and retry.")
-   
+            print(e)
+
 sqlClient = SQLClient()
 
 @dataclass

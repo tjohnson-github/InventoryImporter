@@ -3,7 +3,7 @@
 import pickle
 import gspread
 from google.oauth2.service_account import Credentials
-from Gspread_Auth import auth_gspread
+from Google_Sheets_and_Drive_Auth import auth_gspread
 from decimal import *
 
 def add_rubric(name,subname,values):

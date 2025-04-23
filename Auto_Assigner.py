@@ -1,6 +1,3 @@
-
-
-#from Counterpoint_Connectivity import getBaseSQL
 from JFGC_Data import SQLClient
 
 
@@ -85,7 +82,6 @@ def createAvailableUPCsListObj(targetLength = None,annotations=False):
     working_directory = os.getcwd()
     saveName = f"{working_directory}\\Data\\available_AA_UPCs_{targetLength}.txt"
 
-    #cursor = getBaseSQL(username='sa',password='CounterPoint8')
     sqlClient = SQLClient()
     CURSOR_STR = f"SELECT * FROM JFGC.dbo.IM_ITEM ORDER BY ITEM_NO ASC;"
 
