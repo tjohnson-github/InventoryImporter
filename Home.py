@@ -431,6 +431,8 @@ def defaultFolderSelect(sender, app_data, user_data):
         pass
 
 def get_default_dir(outfile=".\\Data\\default_dir.txt"):
+    if not os.path.exists(".\\Data\\default_dir.txt"):
+        return os.path.join(os.path.expanduser('~'), 'VENDOR_FILES')
     #--------------
     last_processed = pickle.load(open(outfile,'rb'))
     #--------------

@@ -367,4 +367,6 @@ Redesign/IO/
 vendorDict.txt
 token.json
 credentials.json
+dist/
+build/
 config.json
