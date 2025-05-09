@@ -576,7 +576,7 @@ def main():
             #-----------------------------------------------
             #with dpg.tab(label="SQL Scraper"):
                 #SQL_Scraper.SQLScraper(width=650-10,height=400-10,pathingDict=getPathingDict())
-            with dpg.tab(label="UPC Auto-Assigner"):
+            with dpg.tab(label="Item Number Auto-Assigner"):
                 Auto_Assigner.AutoAssignerTab(width=650-10,height=400-10)
     #===================================================
     pass
