@@ -25,6 +25,9 @@
     <Compile Include="Google_Sheets_and_Drive_Auth.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Quality_Greenhouses_Transformer.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Single_Product_Multiple_Rows_Transformer.py">
       <SubType>Code</SubType>
     </Compile>
