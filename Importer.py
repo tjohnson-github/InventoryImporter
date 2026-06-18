@@ -242,7 +242,6 @@ class InputProcessor:
     nonbatched_olney            : dict={}
     #nonbatched_both             : List[any]=[]
     # f"{vendorfileObj.name}_nobatch"
-    auto_assign_update_occured = False
 
     def __init__(self,JFGC,list_to_process,pathing_dict):
         print ("=========================================")
@@ -482,38 +481,30 @@ class InputProcessor:
                     #--------------------
                     if (column not in vendor_format_dict.keys()):
                         #if i==0:
-                        if not self.auto_assign_update_occured:
-                            print("Missing UPCs detected... recreating list of available UPCs")
-                            Auto_Assigner.createAvailableUPCsListObj()
-                            self.auto_assign_update_occured = True
 
-                        temp_upc = Auto_Assigner.getNextUPC()
+                        temp_item_no = Auto_Assigner.get_next_available_item_no()
 
                         #self.temp_AA.append(temp_upc)
                         #else:
                         #    temp_upc = self.temp_AA[self.AA_count]
                         #    self.AA_count+=1
 
-                        temp_list.append(temp_upc)
+                        temp_list.append(temp_item_no)
                         AA=True
                     elif (row[header.index(vendor_format_dict[column])] == '') or (row[header.index(vendor_format_dict[column])] == None) or (row[header.index(vendor_format_dict[column])] == ' ')or (row[header.index(vendor_format_dict[column])] == 'None'):
                         # If there is no UPC code found, begin autoassign. 
                         #temp_list.append("(AUTO-ASSIGN)")
 
                         #if i==0:
-                        if not self.auto_assign_update_occured:
-                            print("Missing UPCs detected... recreating list of available UPCs")
-                            Auto_Assigner.createAvailableUPCsListObj()
-                            self.auto_assign_update_occured = True
 
-                        temp_upc = Auto_Assigner.getNextUPC()
+                        temp_item_no = Auto_Assigner.get_next_available_item_no()
                         #temp_AA.append(temp_upc)
                         #else:
                         #    temp_upc = temp_AA[AA_count]
                         #    AA_count+=1
 
 
-                        temp_list.append(temp_upc)
+                        temp_list.append(temp_item_no)
 
                         AA=True
                     else: 
